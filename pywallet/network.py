@@ -276,7 +276,7 @@ class QtumTestNet(object):
     EXT_PUBLIC_KEY = 0x043587CF
     EXT_SECRET_KEY = 0x04358394
     BIP32_PATH = "m/44'/88'/0'/"
- 
+
 class RavenMainNet(object):
     """Raven MainNet version bytes
 
@@ -307,7 +307,7 @@ class RavenTestNet(object):
     EXT_SECRET_KEY = 0x04358394
     BIP32_PATH = "m/44'/175'/0'/"
 
- class BitcoreMainNet(object):
+class BitcoreMainNet(object):
     """BitCore MainNet version bytes.
     From https://github.com/LIMXTEC/BitCore/blob/0.15/src/chainparams.cpp
     """
