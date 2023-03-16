@@ -659,6 +659,10 @@ class Wallet(object):
             response = DashMainNet
         elif network == 'dash_testnet' or network == 'DASHTEST':
             response = DashTestNet
+        elif network == "martex" or network == "MXT":
+            response = MarteXMainNet
+        elif network == 'martex_testnet' or network == 'MXTTEST':
+            response = MarteXTestNet
         elif network == 'omni' or network == 'OMNI':
             response = OmniMainNet
         elif network == 'omni_testnet' or network == 'OMNI_TESTNET':
@@ -669,6 +673,14 @@ class Wallet(object):
             response = QtumMainNet
         elif network == 'qtum_testnet' or network == 'QTUMTEST':
             response = QtumTestNet
+        elif network == 'raven' or network == 'RVN':
+            response = RavenMainNet
+        elif network == 'raven_testnet' or network == 'RVNTEST':
+            response = RavenTestNet
+        elif network == 'bitcore' or network == 'BTX':
+            response = BitcoreMainNet
+        elif network == 'bitcore_testnet' or network == 'BTX_TESTNET':
+            response = BitcoreTestNet
         else:
             response = network
         return response

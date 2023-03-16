@@ -83,6 +83,10 @@ def get_network(network='btctest'):
         return DashMainNet
     elif network == "dash_testnet" or network == 'dashtest':
         return DashTestNet
+    elif network == "martex" or network == "mxt":
+        return MarteXMainNet
+    elif network == "martex_testnet" or network == 'martextest':
+        return MarteXTestNet
     elif network == 'omni':
         return OmniMainNet
     elif network == 'omni_testnet':
@@ -93,6 +97,14 @@ def get_network(network='btctest'):
         return QtumMainNet
     elif network == "qtum_testnet" or network == "qtumtest":
         return QtumTestNet
+    elif network == "raven" or network == "rvn":
+        return RavenMainNet
+    elif network == "raven_testnet" or network == "rvntest":
+        return RavenTestNet
+    elif network == "bitcore" or network == "btx":
+        return BitcoreMainNet
+    elif network == "bitcore_testnet" or network == "btxtest":
+        return BitcoreTestNet
 
     return BitcoinTestNet
 
@@ -158,7 +170,7 @@ def create_wallet(network='btctest', seed=None, children=1):
         wallet["xprivate_key"] = my_wallet.serialize_b58(private=True)
         wallet["xpublic_key"] = my_wallet.serialize_b58(private=False)
         wallet["address"] = my_wallet.to_address()
-        wallet["wif"] = my_wallet.export_to_wif()
+        wallet["wif"] = my_wallet.export_to_wif().decode()
 
         prime_child_wallet = my_wallet.get_child(0, is_prime=True)
         wallet["xpublic_key_prime"] = prime_child_wallet.serialize_b58(private=False)

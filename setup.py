@@ -11,7 +11,7 @@ with open(path.join('README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 def load_version():
-    version_file = "pywallet/_version.py"
+    version_file = "zpywallet/_version.py"
     version_line = open(version_file).read().rstrip()
     vre = re.compile(r'__version__ = "([^"]+)"')
     matches = vre.findall(version_line)
@@ -26,13 +26,13 @@ def load_version():
 version = load_version()
 
 setup(
-    name='pywallet',
+    name='zpywallet',
     version=version,
-    description="Simple BIP32 (HD) wallet creation for BTC, BTG, BCH, LTC, DASH, USDT, QTUM and DOGE",
+    description="Simple BIP32 (HD) wallet creation for BTC, BTX, RVN, MXT, BTG, BCH, LTC, DASH, USDT, QTUM and DOGE",
     long_description=long_description,
-    url='https://github.com/ranaroussi/pywallet',
-    author='Ran Aroussi',
-    author_email='ran@aroussi.com',
+    url='https://github.com/ZenulAbidin/pywallet',
+    author='Ali Sherief',
+    author_email='ali@notatether.com',
     license='MIT License',
     classifiers=[
         "License :: OSI Approved :: MIT License",
@@ -47,14 +47,14 @@ setup(
         "Programming Language :: Python :: 3.6",
     ],
     platforms = ['any'],
-    keywords='bitcoin, wallet, litecoin, hd-wallet, dogecoin, dashcoin, python',
+    keywords='bitcoin, wallet, litecoin, hd-wallet, dogecoin, dashcoin, bitcore, qtum, ravencoin, martexcoin, address, crypto, python',
     packages = find_packages(exclude=['contrib', 'docs', 'tests', 'demo', 'demos', 'examples']),
     package_data={'': ['AUTHORS', 'LICENSE']},
     install_requires=[
         'base58>=0.2.2',
         'ecdsa>=0.11',
         'six>=1.8.0',
-        'two1>=3.10.8',
         'pycryptodome>=3.6.6',
+        'mnemonic>=0.18'
     ]
 )

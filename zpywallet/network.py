@@ -45,14 +45,36 @@ class DashTestNet(object):
     EXT_SECRET_KEY = 0x04358394  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/1'/0'/"
 
+class MarteXMainNet(object):
+    """MarteX MainNet version bytes."""
+    NAME = "MarteX Main Net"
+    COIN = "MXT"
+    SCRIPT_ADDRESS = 0x05  # int(0x05) = 05
+    PUBKEY_ADDRESS = 0x32  # int(0x32) = 50  # Used to create payment addresses
+    SECRET_KEY = 0xB2      # int(0xB2) = 178  # Used for WIF format
+    EXT_PUBLIC_KEY = 0X0488B21E  # Used to serialize public BIP32 addresses
+    EXT_SECRET_KEY = 0X0488ADE4  # Used to serialize private BIP32 addresses
+    BIP32_PATH = "m/44'/180'/0'/"
+
+class MarteXTestNet(object):
+    """MarteX TestNet version bytes."""
+    NAME = "MarteX Test Net"
+    COIN = "MXT"
+    SCRIPT_ADDRESS = 0xC4  # int(0xC4) = 196
+    PUBKEY_ADDRESS = 0x6C  # int(0x6F) = 111  # Used to create payment addresses
+    SECRET_KEY = 0x144     # int(0x144) = 324  # Used for WIF format
+    EXT_PUBLIC_KEY = 0x043587CF  # Used to serialize public BIP32 addresses
+    EXT_SECRET_KEY = 0x04358394  # Used to serialize private BIP32 addresses
+    BIP32_PATH = "m/44'/1'/0'/"
+
 class OmniMainNet(object):
     """Bitcoin MainNet version bytes.
     From https://github.com/OmniLayer/omnicore/blob/develop/src/chainparams.cpp
     """
     NAME = "Omni Main Net"
     COIN = "USDT"
-    SCRIPT_ADDRESS = 0x00  # int(0x00) = 0
-    PUBKEY_ADDRESS = 0x05  # int(0x05) = 5  # Used to create payment addresses
+    SCRIPT_ADDRESS = 0x05  # int(0x05) = 5
+    PUBKEY_ADDRESS = 0x00  # int(0x00) = 0  # Used to create payment addresses
     SECRET_KEY = 0x80      # int(0x80) = 128  # Used for WIF format
     EXT_PUBLIC_KEY = 0x0488B21E  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x0488ADE4  # Used to serialize private BIP32 addresses
@@ -64,8 +86,8 @@ class OmniTestNet(object):
     """
     NAME = "Omni Test Net"
     COIN = "USDT"
-    SCRIPT_ADDRESS = 0x6f  # int(0x6f) = 111
-    PUBKEY_ADDRESS = 0xc4  # int(0xc4) = 196  # Used to create payment addresses
+    SCRIPT_ADDRESS = 0xc4  # int(0xc4) = 196
+    PUBKEY_ADDRESS = 0x6f  # int(0x6f) = 111  # Used to create payment addresses
     SECRET_KEY = 0xef      # int(0xef) = 239  # Used for WIF format
     EXT_PUBLIC_KEY = 0x043587CF  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x04358394  # Used to serialize private BIP32 addresses
@@ -254,3 +276,60 @@ class QtumTestNet(object):
     EXT_PUBLIC_KEY = 0x043587CF
     EXT_SECRET_KEY = 0x04358394
     BIP32_PATH = "m/44'/88'/0'/"
+
+class RavenMainNet(object):
+    """Raven MainNet version bytes
+
+    Primary version bytes from:
+    https://github.com/ravenproject/ravencoin/blob/master/src/chainparams.cpp
+    """
+    NAME = "Raven Main Net"
+    COIN = "RVN"
+    SCRIPT_ADDRESS = 0x7A  # int(0x6e) = 122
+    PUBKEY_ADDRESS = 0x3C  # int(0x78) = 60
+    SECRET_KEY = 0x80      # int(0xef) = 128
+    EXT_PUBLIC_KEY = 0x0488B21E
+    EXT_SECRET_KEY = 0x0488ADE4
+    BIP32_PATH = "m/44'/175'/0'/"
+
+class RavenTestNet(object):
+    """Raven TestNet version bytes
+
+    Primary version bytes from:
+    https://github.com/ravenproject/ravencoin/blob/master/src/chainparams.cpp
+    """
+    NAME = "Raven Test Net"
+    COIN = "RVN"
+    SCRIPT_ADDRESS = 0xC4  # int(0x6e) = 196
+    PUBKEY_ADDRESS = 0x6F  # int(0x78) = 111
+    SECRET_KEY = 0xEF      # int(0xef) = 239
+    EXT_PUBLIC_KEY = 0x043587CF
+    EXT_SECRET_KEY = 0x04358394
+    BIP32_PATH = "m/44'/175'/0'/"
+
+class BitcoreMainNet(object):
+    """BitCore MainNet version bytes.
+    From https://github.com/LIMXTEC/BitCore/blob/0.15/src/chainparams.cpp
+    """
+    NAME = "BitCore Main Net"
+    COIN = "BTX"
+    SCRIPT_ADDRESS = 0x7D  # int(0x7D) = 125
+    PUBKEY_ADDRESS = 0x03  # int(0x03) = 3  # Used to create payment addresses
+    SECRET_KEY = 0x80      # int(0x80) = 128  # Used for WIF format
+    EXT_PUBLIC_KEY = 0x0488B21E # Used to serialize public BIP32 addresses
+    EXT_SECRET_KEY = 0x0488ADE4  # Used to serialize private BIP32 addresses
+    BIP32_PATH = "m/44'/160'/0'/"
+    
+class BitcoreTestNet(object):
+    """BitCore TestNet version bytes.
+    From https://github.com/LIMXTEC/BitCore/blob/0.15/src/chainparams.cpp
+    """
+    NAME = "BitCore Test Net"
+    COIN = "BTX"
+    SCRIPT_ADDRESS = 0xC4  # int(0xC4) = 196
+    PUBKEY_ADDRESS = 0x6F  # int(0x6F) = 111  # Used to create payment addresses
+    SECRET_KEY = 0xEF      # int(0xEF) = 239  # Used for WIF format
+    EXT_PUBLIC_KEY = 0x043587CF # Used to serialize public BIP32 addresses
+    EXT_SECRET_KEY = 0x04358394  # Used to serialize private BIP32 addresses
+    BIP32_PATH = "m/44'/1'/0'/"
+    

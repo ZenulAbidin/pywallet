@@ -1,38 +1,31 @@
 
-PyWallet
+ZPyWallet
 ===========
 
-.. image:: https://img.shields.io/pypi/pyversions/pywallet.svg?maxAge=60
-    :target: https://pypi.python.org/pypi/pywallet
+.. image:: https://img.shields.io/pypi/pyversions/zpywallet.svg?maxAge=60
+    :target: https://pypi.python.org/pypi/zpywallet
     :alt: Python version
 
-.. image:: https://img.shields.io/pypi/v/pywallet.svg?maxAge=60
-    :target: https://pypi.python.org/pypi/pywallet
+.. image:: https://img.shields.io/pypi/v/zpywallet.svg?maxAge=60
+    :target: https://pypi.python.org/pypi/zpywallet
     :alt: PyPi version
 
-.. image:: https://img.shields.io/pypi/status/pywallet.svg?maxAge=60
-    :target: https://pypi.python.org/pypi/pywallet
+.. image:: https://img.shields.io/pypi/status/zpywallet.svg?maxAge=60
+    :target: https://pypi.python.org/pypi/zpywallet
     :alt: PyPi status
 
 \
 
-**Simple BIP32 (HD) wallet creation for: BTC, BTG, BCH, ETH, LTC, DASH, DOGE**
+**Simple BIP32 (HD) wallet creation for: BTC, BTX, RVN, MXT, BTG, BCH, ETH, LTC, DASH, DOGE**
 
 BIP32 (or HD for "hierarchical deterministic") wallets allow you to create
 child wallets which can only generate public keys and don't expose a
 private key to an insecure server.
 
 This library simplify the process of creating new wallets for the
-BTC, BTG, BCH, ETH, LTC, DASH and DOGE cryptocurrencies.
+BTC, BTX, RVN, MXT, BTG, BCH, ETH, LTC, DASH and DOGE cryptocurrencies.
 
-Most of the code here is forked from:
-
-- Steven Buss's `Bitmerchant <https://github.com/sbuss/bitmerchant>`_ (original)
-- BlockIo's `multimerchant-python <https://github.com/BlockIo/multimerchant-python>`_ (fork of Bitmerchant)
-- Michail Brynard's `Ethereum BIP44 Python <https://github.com/michailbrynard/ethereum-bip44-python>`_
-
-I simply added support for a few more cryptocurrencies (BCH, BTG, DASH), as well as created
-methods to simplify the creation of HD wallets and child wallets.
+This is a fork of `PyWallet <https://github.com/ranaroussi/pywallet>` with support for more coins, and some bugfixes.
 
 Enjoy!
 
@@ -45,7 +38,7 @@ Install via PiP:
 
 .. code:: bash
 
-   $ sudo pip install pywallet
+   $ sudo pip install zpywallet
 
 
 Example code:
@@ -60,7 +53,7 @@ The following code creates a new Bitcoin HD wallet:
 
     # create_btc_wallet.py
 
-    from pywallet import wallet
+    from zpywallet import wallet
 
     # generate 12 word mnemonic seed
     seed = wallet.generate_mnemonic()
@@ -97,7 +90,7 @@ Similarly, you can do the same for an Ethereum wallet:
 
     # create_eth_wallet.py
 
-    from pywallet import wallet
+    from zpywallet import wallet
 
     seed = wallet.generate_mnemonic()
     w = wallet.create_wallet(network="ETH", seed=seed, children=1)
@@ -140,7 +133,7 @@ Example:
 
     # create_child_wallet.py
 
-    from pywallet import wallet
+    from zpywallet import wallet
 
     WALLET_PUBKEY = 'YOUR WALLET XPUB'
 
