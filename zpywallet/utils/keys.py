@@ -49,7 +49,8 @@ class Key(object):
 class PrivateKey(Key):
     def __init__(self, secret_exponent, network=BitcoinMainNet,
                  *args, **kwargs):
-        if not isinstance(secret_exponent, six.integer_types):
+        if not isinstance(secret_exponent, six.integer_types) and \
+            type(secret_exponent).__name__ != 'mpz':
             raise ValueError("secret_exponent must be a long")
         super(PrivateKey, self).__init__(network=network, *args, **kwargs)
         self._private_key = SigningKey.from_secret_exponent(
@@ -307,8 +308,10 @@ class PublicKey(Key):
         :param y: The y coodinate on the curve
         :type y: long
         """
-        if (not isinstance(x, six.integer_types) or
-                not isinstance(y, six.integer_types)):
+        if (not (isinstance(x, six.integer_types) and \
+            type(x).__name__ != 'mpz') or
+                not isinstance(y, six.integer_types) and \
+            type(y).__name__ != 'mpz'):
             raise ValueError("The coordinates must be longs.")
         return _ECDSA_Point(SECP256k1.curve, x, y)
 
