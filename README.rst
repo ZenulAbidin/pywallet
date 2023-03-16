@@ -2,16 +2,16 @@
 ZPyWallet
 ===========
 
-.. image:: https://img.shields.io/pypi/pyversions/pywallet.svg?maxAge=60
-    :target: https://pypi.python.org/pypi/pywallet
+.. image:: https://img.shields.io/pypi/pyversions/zpywallet.svg?maxAge=60
+    :target: https://pypi.python.org/pypi/zpywallet
     :alt: Python version
 
-.. image:: https://img.shields.io/pypi/v/pywallet.svg?maxAge=60
-    :target: https://pypi.python.org/pypi/pywallet
+.. image:: https://img.shields.io/pypi/v/zpywallet.svg?maxAge=60
+    :target: https://pypi.python.org/pypi/zpywallet
     :alt: PyPi version
 
-.. image:: https://img.shields.io/pypi/status/pywallet.svg?maxAge=60
-    :target: https://pypi.python.org/pypi/pywallet
+.. image:: https://img.shields.io/pypi/status/zpywallet.svg?maxAge=60
+    :target: https://pypi.python.org/pypi/zpywallet
     :alt: PyPi status
 
 \
