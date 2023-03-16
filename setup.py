@@ -26,13 +26,13 @@ def load_version():
 version = load_version()
 
 setup(
-    name='pywallet',
+    name='zpywallet',
     version=version,
     description="Simple BIP32 (HD) wallet creation for BTC, BTX, RVN, MXT, BTG, BCH, LTC, DASH, USDT, QTUM and DOGE",
     long_description=long_description,
     url='https://github.com/ranaroussi/pywallet',
-    author='Ran Aroussi',
-    author_email='ran@aroussi.com',
+    author='Ali Sherief',
+    author_email='ali@notatether.com',
     license='MIT License',
     classifiers=[
         "License :: OSI Approved :: MIT License",
@@ -47,7 +47,7 @@ setup(
         "Programming Language :: Python :: 3.6",
     ],
     platforms = ['any'],
-    keywords='martexcoin, bitcoin, wallet, litecoin, hd-wallet, dogecoin, dashcoin, python',
+    keywords='bitcoin, wallet, litecoin, hd-wallet, dogecoin, dashcoin, bitcore, qtum, ravencoin, martexcoin, address, crypto, python',
     packages = find_packages(exclude=['contrib', 'docs', 'tests', 'demo', 'demos', 'examples']),
     package_data={'': ['AUTHORS', 'LICENSE']},
     install_requires=[
