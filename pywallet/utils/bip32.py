@@ -669,6 +669,10 @@ class Wallet(object):
             response = QtumMainNet
         elif network == 'qtum_testnet' or network == 'QTUMTEST':
             response = QtumTestNet
+        elif network == 'raven' or network == 'RVN':
+            response = RavenMainNet
+        elif network == 'raven_testnet' or network == 'RVNTEST':
+            response = RavenTestNet
         elif network == 'bitcore' or network == 'BTX':
             response = BitcoreMainNet
         elif network == 'bitcore_testnet' or network == 'BTX_TESTNET':
