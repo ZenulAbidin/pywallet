@@ -24,6 +24,7 @@ from collections import namedtuple
 from zpywallet.utils.ecdsa import Point
 from zpywallet.utils.ecdsa import ECPointAffine
 from zpywallet.utils.ecdsa import secp256k1
+from zpywallet.utils.ripemd160 import ripemd160
 
 bitcoin_curve = secp256k1()
 
@@ -750,13 +751,8 @@ class PublicKey(PublicKeyBase):
         self.point = p
 
         # RIPEMD-160 of SHA-256
-        r = hashlib.new('ripemd160')
-        r.update(hashlib.sha256(bytes(self)).digest())
-        self.ripe = r.digest()
-
-        r = hashlib.new('ripemd160')
-        r.update(hashlib.sha256(self.compressed_bytes).digest())
-        self.ripe_compressed = r.digest()
+        self.ripe = ripemd160(hashlib.sha256(bytes(self)).digest())
+        self.ripe_compressed = ripemd160(hashlib.sha256(bytes(self.compressed_bytes)).digest())
 
         self.keccak = sha3(bytes(self)[1:])
 
