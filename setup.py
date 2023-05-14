@@ -36,7 +36,7 @@ setup(
     license='MIT License',
     classifiers=[
         "License :: OSI Approved :: MIT License",
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 3 - Beta",
 
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
@@ -45,6 +45,11 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
     platforms = ['any'],
     keywords='bitcoin, wallet, litecoin, hd-wallet, dogecoin, dashcoin, bitcore, qtum, ravencoin, martexcoin, address, crypto, python',
