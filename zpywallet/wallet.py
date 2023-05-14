@@ -5,6 +5,7 @@ from datetime import datetime
 from .utils import (
     Wallet, HDPrivateKey, HDKey
 )
+from .utils.utils import ensure_bytes, ensure_str
 from .network import *
 import inspect
 
@@ -37,7 +38,7 @@ def create_address(network='btctest', xpub=None, child=None, path=0):
         res = {
             "path": "m/" + str(acct_pub_key.index) + "/" + str(keys[-1].index),
             "bip32_path": "m/44'/60'/0'/" + str(acct_pub_key.index) + "/" + str(keys[-1].index),
-            "address": keys[-1].address()
+            "address": keys[-1].address(mode='hex')
         }
 
         if inspect.stack()[1][3] == "create_wallet":
@@ -131,7 +132,7 @@ def create_wallet(network='btctest', seed=None, children=1):
         wallet["coin"] = "ETH"
 
         master_key = HDPrivateKey.master_key_from_mnemonic(seed)
-        root_keys = HDKey.from_path(master_key, "m/44'/60'/0'")
+        root_keys = HDKey.from_path(master_key, "m/44'/0'/0'")
 
         acct_priv_key = root_keys[-1]
         acct_pub_key = acct_priv_key.public_key
@@ -162,15 +163,15 @@ def create_wallet(network='btctest', seed=None, children=1):
 
     else:
         my_wallet = Wallet.from_master_secret(
-            network=network.upper(), seed=seed)
+            network=network.upper(), mnemonic=seed)
 
         # account level
-        wallet["private_key"] = my_wallet.private_key.get_key().decode()
-        wallet["public_key"] = my_wallet.public_key.get_key().decode()
+        wallet["private_key"] = my_wallet.private_key.to_hex()
+        wallet["public_key"] = my_wallet.public_key.to_hex()
         wallet["xprivate_key"] = my_wallet.serialize_b58(private=True)
         wallet["xpublic_key"] = my_wallet.serialize_b58(private=False)
         wallet["address"] = my_wallet.to_address()
-        wallet["wif"] = my_wallet.export_to_wif()
+        wallet["wif"] = ensure_str(my_wallet.export_to_wif())
 
         prime_child_wallet = my_wallet.get_child(0, is_prime=True)
         wallet["xpublic_key_prime"] = prime_child_wallet.serialize_b58(private=False)

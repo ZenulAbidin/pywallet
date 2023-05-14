@@ -55,6 +55,7 @@ setup(
         'ecdsa>=0.11',
         'six>=1.8.0',
         'pycryptodome>=3.6.6',
-        'mnemonic>=0.18'
+        'mnemonic>=0.18',
+        'cachetools>=1.1.1'
     ]
 )

@@ -21,10 +21,13 @@ import codecs
 import struct
 import os
 from collections import namedtuple
-from zpywallet.utils.ecdsa import Point
-from zpywallet.utils.ecdsa import ECPointAffine
-from zpywallet.utils.ecdsa import secp256k1
-from zpywallet.utils.ripemd160 import ripemd160
+from .ecdsa import Point
+from .ecdsa import ECPointAffine
+from .ecdsa import secp256k1
+from .ripemd160 import ripemd160
+from .utils import chr_py2
+from .utils import ensure_bytes
+from .keys import PublicPair
 
 bitcoin_curve = secp256k1()
 
@@ -277,7 +280,7 @@ class PublicKeyBase(object):
         """
         raise NotImplementedError
 
-    def address(self, compressed=True, testnet=False):
+    def address(self, compressed=True, testnet=False, mode='base58'):
         """ Address property that returns the Base58Check
         encoded version of the HASH160.
 
@@ -286,9 +289,12 @@ class PublicKeyBase(object):
                be used.
             testnet (bool): Whether or not the key is intended for testnet
                usage. False indicates mainnet usage.
+            mode (bool): Determines what kind of address to create. The
+               default is 'base58', but you can also generate 'bech32'
+               addresses (not implemented) and 'hex' addresses.
 
         Returns:
-            bytes: Base58Check encoded string
+            bytes: Address encoded with Base58Check, hexadecimal, or Bech32 accordingly.
         """
         raise NotImplementedError
 
@@ -546,6 +552,16 @@ class PrivateKey(PrivateKeyBase):
         version = self.TESTNET_VERSION if testnet else self.MAINNET_VERSION
         return base58.b58encode_check(bytes([version]) + bytes(self))
 
+    def get_extended_key(self, network):
+        """Get the extended key.
+
+        Extended keys contain the network bytes and the public or private
+        key.
+        """
+        network_hex_chars = binascii.hexlify(
+            chr_py2(network.SECRET_KEY))
+        return ensure_bytes(network_hex_chars) + ensure_bytes(self.to_hex())
+
     def __bytes__(self):
         return self.key.to_bytes(32, 'big')
 
@@ -756,6 +772,17 @@ class PublicKey(PublicKeyBase):
 
         self.keccak = sha3(bytes(self)[1:])
 
+    def to_compressed_hex(self):
+        """Return the compressed public key in hexadecimal
+        """
+        return binascii.hexlify(self.compressed_bytes).decode()
+
+    
+    def to_public_pair(self):
+        """ Return the public key points as a PublicPair.
+        """
+        return PublicPair(self.point.x, self.point.y)
+
     def hash160(self, compressed=True):
         """ Return the RIPEMD-160 hash of the SHA-256 hash of the
         public key.
@@ -768,7 +795,7 @@ class PublicKey(PublicKeyBase):
         """
         return self.ripe_compressed if compressed else self.ripe
 
-    def address(self, compressed=True, testnet=False):
+    def address(self, compressed=True, testnet=False, mode='base58'):
         """ Address property that returns the Base58Check
         encoded version of the HASH160.
 
@@ -777,15 +804,24 @@ class PublicKey(PublicKeyBase):
                be used.
             testnet (bool): Whether or not the key is intended for testnet
                usage. False indicates mainnet usage.
+            mode (bool): Determines what kind of address to create. The
+               default is 'base58', but you can also generate 'bech32'
+               addresses (not implemented) and 'hex' addresses.
 
         Returns:
-            bytes: Base58Check encoded string
+            bytes: Address encoded with Base58Check, hexadecimal, or Bech32 accordingly.
         """
-        version = '0x'
-        return version + binascii.hexlify(self.keccak[12:]).decode('ascii')
-        # Put the version byte in front, 0x00 for Mainnet, 0x6F for testnet
-        # version = bytes([self.TESTNET_VERSION]) if testnet else bytes([self.MAINNET_VERSION])
-        # return base58.b58encode_check(version + self.hash160(compressed))
+        if mode == 'hex':
+            version = '0x'
+            return version + binascii.hexlify(self.keccak[12:]).decode('ascii')
+        elif mode == 'base58':
+            # Put the version byte in front, 0x00 for Mainnet, 0x6F for testnet
+            version = bytes([self.TESTNET_VERSION]) if testnet else bytes([self.MAINNET_VERSION])
+            return base58.b58encode_check(version + self.hash160(compressed))
+        elif mode == 'bech32':
+            raise NotImplementedError
+        else:
+            raise ValueError("Unknown mode")
 
     def verify(self, message, signature, do_hash=True):
         """ Verifies that message was appropriately signed.
@@ -829,6 +865,20 @@ class PublicKey(PublicKeyBase):
             b (bytes): A 33-byte long byte string.
         """
         return self.point.compressed_bytes
+
+    def get_key(self, compressed=False):
+        """ Returns the compressed or uncompressed public key in bytes, accordingly.
+
+        Args:
+            compressed (bool): Whether to compress the key
+
+        Returns:
+            b (bytes): a 33-byte of 65-byte long byte string.
+        """
+        if compressed:
+            return self.compressed_bytes
+        else:
+            return bytes(self)
 
 
 class Signature(object):
@@ -1634,20 +1684,23 @@ class HDPublicKey(HDKey, PublicKeyBase):
         """
         return self._key.hash160(True)
 
-    def address(self, compressed=True, testnet=False):
-        """ Address property that returns the Base58Check
-        encoded version of the HASH160.
+    def address(self, compressed=True, testnet=False, mode='base58'):
+        """ Address property that returns the HASH160 as encoded by
+        the mode.
 
         Args:
             compressed (bool): Whether or not the compressed key should
                be used.
             testnet (bool): Whether or not the key is intended for testnet
                usage. False indicates mainnet usage.
+            mode (bool): Determines what kind of address to create. The
+               default is 'base58', but you can also generate 'bech32'
+               addresses (not implemented) and 'hex' addresses.
 
         Returns:
-            bytes: Base58Check encoded string
+            bytes: Address encoded with Base58Check, hexadecimal, or Bech32 accordingly.
         """
-        return self._key.address(True, testnet)
+        return self._key.address(True, testnet, mode)
 
     def verify(self, message, signature, do_hash=True):
         """ Verifies that message was appropriately signed.

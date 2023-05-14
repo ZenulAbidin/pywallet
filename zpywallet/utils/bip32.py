@@ -3,6 +3,7 @@ from binascii import unhexlify
 from hashlib import sha256
 from hashlib import sha512
 import hmac
+from mnemonic.mnemonic import Mnemonic
 
 import base58
 from os import urandom
@@ -11,13 +12,14 @@ from ecdsa.ecdsa import Public_key as _ECDSA_Public_key
 from ecdsa.ellipticcurve import INFINITY
 import six
 import time
+from cachetools.func import lru_cache
 
 # import all the networks
 from ..network import *
 
 from .keys import incompatible_network_exception_factory
-from .keys import PrivateKey
-from .keys import PublicKey
+from .coins import PrivateKey
+from .coins import PublicKey
 from .keys import PublicPair
 from .utils import chr_py2
 from .utils import ensure_bytes
@@ -26,7 +28,7 @@ from .utils import hash160
 from .utils import is_hex_string
 from .utils import long_or_int
 from .utils import long_to_hex
-from .utils import memoize
+
 
 
 class Wallet(object):
@@ -81,28 +83,18 @@ class Wallet(object):
         self.private_key = None
         self.public_key = None
         if private_key:
-            if not isinstance(private_key, PrivateKey):
-                raise InvalidPrivateKeyError(
-                    "private_key must be of type "
-                    "bitmerchant.wallet.keys.PrivateKey")
             self.private_key = private_key
         elif private_exponent:
-            self.private_key = PrivateKey(
-                private_exponent, network=network)
+            self.private_key = PrivateKey(private_exponent)
 
         if public_key:
-            if not isinstance(public_key, PublicKey):
-                raise InvalidPublicKeyError(
-                    "public_key must be of type "
-                    "bitmerchant.wallet.keys.PublicKey")
             self.public_key = public_key
         elif public_pair:
-            self.public_key = PublicKey.from_public_pair(
-                public_pair, network=network)
+            self.public_key = PublicKey(public_pair.x, public_pair.y)
         else:
-            self.public_key = self.private_key.get_public_key()
+            self.public_key = self.private_key.public_key
 
-        if (self.private_key and self.private_key.get_public_key() !=
+        if (self.private_key and self.private_key.public_key !=
                 self.public_key):
             raise KeyMismatchError(
                 "Provided private and public values do not match")
@@ -152,7 +144,7 @@ class Wallet(object):
 
     def get_public_key_hex(self, compressed=True):
         """Get the sec1 representation of the public key."""
-        return ensure_bytes(self.public_key.get_key(compressed))
+        return hexlify(ensure_bytes(self.public_key.get_key(compressed)))
 
     @property
     def identifier(self):
@@ -248,7 +240,7 @@ class Wallet(object):
             return child.public_copy()
         return child
 
-    @memoize
+    @lru_cache(maxsize=1024)
     def get_child(self, child_number, is_prime=None, as_private=True):
         """Derive a child key.
 
@@ -281,6 +273,8 @@ class Wallet(object):
         """
         boundary = 0x80000000
 
+        # Note: If this boundary check gets removed, then children above
+        # the boundary should use private (prime) derivation.
         if abs(child_number) >= boundary:
             raise ValueError("Invalid child number %s" % child_number)
 
@@ -289,9 +283,6 @@ class Wallet(object):
             # Prime children are either < 0 or > 0x80000000
             if child_number < 0:
                 child_number = abs(child_number)
-                is_prime = True
-            elif child_number >= boundary:
-                child_number -= boundary
                 is_prime = True
             else:
                 is_prime = False
@@ -315,7 +306,7 @@ class Wallet(object):
 
         if is_prime:
             # Let data = concat(0x00, self.key, child_number)
-            data = b'00' + self.private_key.get_key()
+            data = b'00' + ensure_bytes(self.private_key.to_hex())
         else:
             data = self.get_public_key_hex()
         data += child_number_hex
@@ -323,8 +314,8 @@ class Wallet(object):
         # Compute a 64 Byte I that is the HMAC-SHA512, using self.chain_code
         # as the seed, and data as the message.
         I = hmac.new(
-            unhexlify(self.chain_code),
-            msg=unhexlify(data),
+            unhexlify(ensure_bytes(self.chain_code)),
+            msg=unhexlify(ensure_bytes(data)),
             digestmod=sha512).digest()
         # Split I into its 32 Byte components.
         I_L, I_R = I[:32], I[32:]
@@ -341,7 +332,7 @@ class Wallet(object):
             # n is the order of the ECDSA curve in use.
             private_exponent = (
                 (long_or_int(hexlify(I_L), 16) +
-                 long_or_int(self.private_key.get_key(), 16))
+                 long_or_int(ensure_bytes(self.private_key.to_hex()), 16))
                 % SECP256k1.order)
             # I_R is the child's chain code
         else:
@@ -361,7 +352,7 @@ class Wallet(object):
             private_exponent=private_exponent,
             public_pair=public_pair,
             network=self.network)
-        if child.public_key.to_point() == INFINITY:
+        if child.public_key.point.infinity:
             raise InfinityPointException("The point at infinity is invalid.")
         if not as_private:
             return child.public_copy()
@@ -435,7 +426,7 @@ class Wallet(object):
         description.
         """
         # Add the network byte, creating the "extended key"
-        extended_key_hex = self.private_key.get_extended_key()
+        extended_key_hex = self.private_key.get_extended_key(self.network)
         # BIP32 wallets have a trailing \01 byte
         extended_key_bytes = unhexlify(extended_key_hex) + b'\01'
         # And return the base58-encoded result with a checksum
@@ -471,7 +462,7 @@ class Wallet(object):
                chain_code)
         # Private and public serializations are slightly different
         if private:
-            ret += b'00' + self.private_key.get_key()
+            ret += b'00' + ensure_bytes(self.private_key.to_hex())
         else:
             ret += self.get_public_key_hex(compressed=True)
         return ensure_bytes(ret.lower())
@@ -497,7 +488,7 @@ class Wallet(object):
         # Return a base58 encoded address with a checksum
         return ensure_str(base58.b58encode_check(network_hash160_bytes))
 
-    @classmethod #@memoize
+    @classmethod
     def deserialize(cls, key, network="bitcoin_testnet"):
         """Load the ExtendedBip32Key from a hex key.
 
@@ -578,10 +569,10 @@ class Wallet(object):
                    network=network)
 
     @classmethod
-    def from_master_secret(cls, seed, network="bitcoin_testnet"):
+    def from_master_secret(cls, mnemonic, network="bitcoin_testnet"):
         """Generate a new PrivateKey from a secret key.
 
-        :param seed: The key to use to generate this wallet. It may be a long
+        :param mnemonic: The key to use to generate this wallet. It may be a long
             string. Do not use a phrase from a book or song, as that will
             be guessed and is not secure. My advice is to not supply this
             argument and let me generate a new random key for you.
@@ -589,7 +580,9 @@ class Wallet(object):
         See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Serialization_format  # nopep8
         """
         network = Wallet.get_network(network)
-        seed = ensure_bytes(seed)
+        m = Mnemonic(language='english')
+        seed = ensure_bytes(m.to_seed(mnemonic))
+        
         # Given a seed S of at least 128 bits, but 256 is advised
         # Calculate I = HMAC-SHA512(key="Bitcoin seed", msg=S)
         I = hmac.new(b"Bitcoin seed", msg=seed, digestmod=sha512).digest()
@@ -597,7 +590,7 @@ class Wallet(object):
         I_L, I_R = I[:32], I[32:]
         # Use IL as master secret key, and IR as master chain code.
         return cls(private_exponent=long_or_int(hexlify(I_L), 16),
-                   chain_code=long_or_int(hexlify(I_R), 16),
+                   chain_code=hexlify(I_R),
                    network=network)
 
     @classmethod
