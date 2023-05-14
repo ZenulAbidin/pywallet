@@ -18,8 +18,8 @@ from cachetools.func import lru_cache
 from ..network import *
 
 from .keys import incompatible_network_exception_factory
-from .coins import PrivateKey
-from .coins import PublicKey
+from .keys import PrivateKey
+from .keys import PublicKey
 from .keys import PublicPair
 from .utils import chr_py2
 from .utils import ensure_bytes
@@ -67,7 +67,7 @@ class Wallet(object):
                  private_key=None,
                  public_pair=None,
                  public_key=None,
-                 network="bitcoin_testnet"):
+                 network="BTC"):
         """Construct a new BIP32 compliant wallet.
 
         You probably don't want to use this init methd. Instead use one
@@ -419,19 +419,6 @@ class Wallet(object):
             private_key=parent_private_key,
             network=self.network)
 
-    def export_to_wif(self):
-        """Export a key to WIF.
-
-        See https://en.bitcoin.it/wiki/Wallet_import_format for a full
-        description.
-        """
-        # Add the network byte, creating the "extended key"
-        extended_key_hex = self.private_key.get_extended_key(self.network)
-        # BIP32 wallets have a trailing \01 byte
-        extended_key_bytes = unhexlify(extended_key_hex) + b'\01'
-        # And return the base58-encoded result with a checksum
-        return base58.b58encode_check(extended_key_bytes)
-
     def serialize(self, private=True):
         """Serialize this key.
 
@@ -489,7 +476,7 @@ class Wallet(object):
         return ensure_str(base58.b58encode_check(network_hash160_bytes))
 
     @classmethod
-    def deserialize(cls, key, network="bitcoin_testnet"):
+    def deserialize(cls, key, network="BTC"):
         """Load the ExtendedBip32Key from a hex key.
 
         The key consists of
@@ -569,7 +556,7 @@ class Wallet(object):
                    network=network)
 
     @classmethod
-    def from_master_secret(cls, mnemonic, network="bitcoin_testnet"):
+    def from_master_secret(cls, mnemonic, network="BTC"):
         """Generate a new PrivateKey from a secret key.
 
         :param mnemonic: The key to use to generate this wallet. It may be a long

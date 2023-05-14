@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from .bip32 import Wallet
-from .coins import (
+from .keys import (
     HDPrivateKey, HDPublicKey, HDKey,
     PrivateKey, PublicKey, Signature
 )
