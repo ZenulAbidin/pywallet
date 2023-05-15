@@ -109,16 +109,47 @@ def get_network(network='btctest'):
 
     return BitcoinTestNet
 
+def create_wallet(mnemonic=None, network='BTC'):
+    """Generate a new wallet class from a mnemonic phrase, optionally randomly generated
 
-def create_wallet(network='btctest', seed=None, children=1):
-    if seed is None:
-        seed = generate_mnemonic()
+    Args:
+    :param mnemonic: The key to use to generate this wallet. It may be a long
+        string. Do not use a phrase from a book or song, as that will
+        be guessed and is not secure. My advice is to not supply this
+        argument and let me generate a new random key for you.
+    :param network: The network to create this wallet for
+
+    Return:
+        Wallet: a wallet class
+    """
+    if mnemonic is None:
+        mnemonic = generate_mnemonic()
+
+    return Wallet.from_master_secret(mnemonic=mnemonic, network=network)
+
+
+
+def create_wallet_json(network='BTC', mnemonic=None, children=1):
+    """Generate a new wallet JSON from a mnemonic phrase, optionally randomly generated
+
+    Args:
+    :param mnemonic: The key to use to generate this wallet. It may be a long
+        string. Do not use a phrase from a book or song, as that will
+        be guessed and is not secure. My advice is to not supply this
+        argument and let me generate a new random key for you.
+    :param network: The network to create this wallet for
+
+    Return:
+        dict: A JSON wallet object with fields.
+    """
+    if mnemonic is None:
+        mnemonic = generate_mnemonic()
 
 
     net = get_network(network)
     wallet = {
         "coin": net.COIN,
-        "seed": seed,
+        "seed": mnemonic,
         "private_key": "",
         "public_key": "",
         "xprivate_key": "",
@@ -131,7 +162,7 @@ def create_wallet(network='btctest', seed=None, children=1):
     if network == 'ethereum' or network.upper() == 'ETH':
         wallet["coin"] = "ETH"
 
-        master_key = HDPrivateKey.master_key_from_mnemonic(seed)
+        master_key = HDPrivateKey.master_key_from_mnemonic(mnemonic)
         root_keys = HDKey.from_path(master_key, "m/44'/0'/0'")
 
         acct_priv_key = root_keys[-1]
@@ -163,7 +194,7 @@ def create_wallet(network='btctest', seed=None, children=1):
 
     else:
         my_wallet = Wallet.from_master_secret(
-            network=network.upper(), mnemonic=seed)
+            network=network.upper(), mnemonic=mnemonic)
 
         # account level
         wallet["private_key"] = my_wallet.private_key.to_hex()
