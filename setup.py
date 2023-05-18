@@ -25,6 +25,9 @@ def load_version():
 
 version = load_version()
 
+with open("requirements.txt") as requirements_file:
+    requirements = requirements_file.read().strip().split()
+
 setup(
     name='zpywallet',
     version=version,
@@ -55,12 +58,5 @@ setup(
     keywords='bitcoin, wallet, litecoin, hd-wallet, dogecoin, dashcoin, tether, address, crypto, python',
     packages = find_packages(exclude=['contrib', 'docs', 'tests', 'demo', 'demos', 'examples']),
     package_data={'': ['AUTHORS', 'LICENSE']},
-    install_requires=[
-        'base58>=0.2.2',
-        'ecdsa>=0.11',
-        'six>=1.8.0',
-        'pycryptodome>=3.6.6',
-        'mnemonic>=0.18',
-        'cachetools>=1.1.1'
-    ]
+    install_requires=requirements
 )
