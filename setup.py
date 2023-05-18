@@ -25,7 +25,7 @@ def load_version():
 
 version = load_version()
 
-with open("requirements.txt") as requirements_file:
+with open(path.join("requirements.txt")) as requirements_file:
     requirements = requirements_file.read().strip().split()
 
 setup(
