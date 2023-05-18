@@ -16,14 +16,16 @@ ZPyWallet
 
 \
 
-**Simple BIP32 (HD) wallet creation for: BTC, BTX, RVN, MXT, BTG, BCH, ETH, LTC, DASH, DOGE**
+**Simple BIP32 (HD) wallet creation for: BTC, BCH, ETH, LTC, DASH, USDT (Omni), DOGE**
 
 BIP32 (or HD for "hierarchical deterministic") wallets allow you to create
 child wallets which can only generate public keys and don't expose a
 private key to an insecure server.
 
-This library simplify the process of creating new wallets for the
-BTC, BTX, RVN, MXT, BTG, BCH, ETH, LTC, DASH and DOGE cryptocurrencies.
+This library simplifies the process of creating new wallets for the
+BTC, BCH, ETH, LTC, DASH, USDT (Omni) and DOGE cryptocurrencies.
+In addition, it can also create Bitcoin Bech32 addresses for all supported
+witness versions.
 
 This is a fork of `PyWallet <https://github.com/ranaroussi/pywallet>` with support for more coins, and some bugfixes.
 
@@ -164,6 +166,13 @@ Output looks like this:
     }
 
 -----
+
+CONTRIBUTING
+=========
+
+Bugfixes and enhancements are welcome. Please read CONTRIBUTING.md for contributing instructions.
+
+At the moment, I'm not accepting pull requests for new coins unless they are big and historic coins such as Tether (ERC20), BNB and XMR.
 
 IMPORTANT
 =========
