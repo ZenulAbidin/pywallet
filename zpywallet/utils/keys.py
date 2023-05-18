@@ -21,6 +21,7 @@ import codecs
 import struct
 import os
 from collections import namedtuple
+from .bech32 import encode as bech32_encode
 from .ecdsa import Point
 from .ecdsa import ECPointAffine
 from .ecdsa import secp256k1
@@ -234,8 +235,11 @@ class PrivateKeyBase(object):
         """
         raise NotImplementedError
 
-    def to_b58check(self, testnet=False):
+    def to_b58check(self, network=BitcoinMainNet):
         """ Generates a Base58Check encoding of this private key.
+        
+        Args:
+            network: Network to work in. Default is Bitcoin mainnet.
 
         Returns:
             str: A Base58Check encoded string representing the key.
@@ -311,18 +315,18 @@ class PublicKeyBase(object):
         """
         raise NotImplementedError
 
-    def address(self, compressed=True, testnet=False, mode='base58'):
-        """ Address property that returns the Base58Check
-        encoded version of the HASH160.
+    def address(self, compressed=True, network=BitcoinMainNet, mode=None, witness_version=0):
+        """ Address property that returns a user-friendly encoding of the public key.
 
         Args:
             compressed (bool): Whether or not the compressed key should
                be used.
-            testnet (bool): Whether or not the key is intended for testnet
-               usage. False indicates mainnet usage.
-            mode (bool): Determines what kind of address to create. The
-               default is 'base58', but you can also generate 'bech32'
-               addresses (not implemented) and 'hex' addresses.
+            network: Network to work in. Default is Bitcoin mainnet.
+            mode (str): Determines what kind of address to create. You must choose a
+                mode that is supported by the network. Default is the first mode in the list
+                for that network.
+            witness_version (int): Used only when creating Bech32 addresses.
+                Allowed values are 0 (segwit) and 1 (Taproot).
 
         Returns:
             bytes: Address encoded with Base58Check, hexadecimal, or Bech32 accordingly.
@@ -384,8 +388,6 @@ class PrivateKey(PrivateKeyBase):
     Returns:
         PrivateKey: The object representing the private key.
     """
-    TESTNET_VERSION = 0xEF
-    MAINNET_VERSION = 0x80
 
     @staticmethod
     def from_bytes(b):
@@ -429,19 +431,19 @@ class PrivateKey(PrivateKeyBase):
         return PrivateKey(i)
 
     @staticmethod
-    def from_b58check(private_key):
+    def from_b58check(private_key, network=BitcoinMainNet):
         """ Decodes a Base58Check encoded private-key.
 
         Args:
             private_key (str): A Base58Check encoded private key.
+            network: Network to work in. Default is Bitcoin mainnet.
 
         Returns:
             PrivateKey: A PrivateKey object
         """
         b58dec = base58.b58decode_check(private_key)
         version = b58dec[0]
-        assert version in [PrivateKey.TESTNET_VERSION,
-                           PrivateKey.MAINNET_VERSION]
+        assert version == network.SECRET_KEY
 
         return PrivateKey(int.from_bytes(b58dec[1:], 'big'))
 
@@ -596,6 +598,8 @@ class PrivateKey(PrivateKeyBase):
     def export_to_wif(self, compressed=False, network=BitcoinMainNet):
         """Export a key to WIF.
 
+
+        network: Network to work in. Default is Bitcoin mainnet.
         :param compressed: False if you want a standard WIF export (the most
             standard option). True if you want the compressed form (Note that
             not all clients will accept this form). Defaults to None, which
@@ -658,13 +662,16 @@ class PrivateKey(PrivateKeyBase):
         # And we should finally have a valid key
         return cls(long_or_int(hexlify(extended_key_bytes), 16))
 
-    def to_b58check(self, testnet=False):
+    def to_b58check(self, network=BitcoinMainNet):
         """ Generates a Base58Check encoding of this private key.
+
+        Args:
+            network: Network to work in. Default is Bitcoin mainnet.
 
         Returns:
             str: A Base58Check encoded string representing the key.
         """
-        version = self.TESTNET_VERSION if testnet else self.MAINNET_VERSION
+        version = network.SECRET_KEY
         return base58.b58encode_check(bytes([version]) + bytes(self))
 
     def get_extended_key(self, network):
@@ -697,9 +704,6 @@ class PublicKey(PublicKeyBase):
     Returns:
         PublicKey: The object representing the public key.
     """
-
-    TESTNET_VERSION = 0x6F
-    MAINNET_VERSION = 0x00
 
     @staticmethod
     def from_point(p):
@@ -735,14 +739,12 @@ class PublicKey(PublicKeyBase):
         return PublicKey.from_point(point)
 
     @staticmethod
-    def from_base64(b64str, testnet=False):
+    def from_base64(b64str):
         """ Generates a public key object from a Base64 encoded string.
 
         Args:
             b64str (str): A Base64-encoded string.
-            testnet (bool) (Optional): If True, changes the version that
-               is prepended to the key.
-
+        
         Returns:
             PublicKey: A PublicKey object.
         """
@@ -915,31 +917,44 @@ class PublicKey(PublicKeyBase):
         """
         return self.ripe_compressed if compressed else self.ripe
 
-    def address(self, compressed=True, testnet=False, mode='base58'):
-        """ Address property that returns the Base58Check
-        encoded version of the HASH160.
+    def address(self, compressed=True, network=BitcoinMainNet, mode=None, witness_version=0):
+        """ Address property that returns a user-friendly encoding of the public key.
 
         Args:
             compressed (bool): Whether or not the compressed key should
                be used.
-            testnet (bool): Whether or not the key is intended for testnet
-               usage. False indicates mainnet usage.
-            mode (bool): Determines what kind of address to create. The
-               default is 'base58', but you can also generate 'bech32'
-               addresses (not implemented) and 'hex' addresses.
+            network: Network to work in. Default is Bitcoin mainnet.
+            mode (str): Determines what kind of address to create. You must choose a
+                mode that is supported by the network. Default is the first mode in the list
+                for that network.
+            witness_version (int): Used only when creating Bech32 addresses.
+                Allowed values are 0 (segwit) and 1 (Taproot).
 
         Returns:
             bytes: Address encoded with Base58Check, hexadecimal, or Bech32 accordingly.
         """
-        if mode == 'hex':
+        if not network or not network.ADDRESS_MODE:
+            raise TypeError("Invalid network parameter")
+        
+        if not mode:
+            mode = network.ADDRESS_MODE[0]
+        
+        mode = mode.upper()
+        if mode == 'HEX':
             version = '0x'
             return version + binascii.hexlify(self.keccak[12:]).decode('ascii')
-        elif mode == 'base58':
+        elif mode == 'BASE58':
             # Put the version byte in front, 0x00 for Mainnet, 0x6F for testnet
-            version = bytes([self.TESTNET_VERSION]) if testnet else bytes([self.MAINNET_VERSION])
+            version = bytes([network.PUBKEY_ADDRESS])
             return base58.b58encode_check(version + self.hash160(compressed))
-        elif mode == 'bech32':
-            raise NotImplementedError
+        elif mode == 'BECH32':
+            if witness_version < 0 or witness_version > 1:
+                raise ValueError("Unknown witness version")
+            elif not compressed and network.NAME == "BTC":
+                raise ValueError("Using uncompressed bech32 addresses is non-standard and may lead to funds loss")
+            elif not network.BECH32_PREFIX:
+                raise ValueError("Network does not support Bech32")
+            return bech32_encode(network.BECH32_PREFIX, witness_version, self.hash160(True))
         else:
             raise ValueError("Unknown mode")
 
@@ -1427,20 +1442,20 @@ class HDKey(object):
         """
         return self.identifier[:4]
 
-    def to_b58check(self, testnet=False):
+    def to_b58check(self, network=BitcoinMainNet):
         """ Generates a Base58Check encoding of this key.
 
         Args:
-            testnet (bool): True if the key is to be used with
-                testnet, False otherwise.
+            network: Network to work in. Default is Bitcoin mainnet.
+
         Returns:
             str: A Base58Check encoded string representing the key.
         """
         b = self.testnet_bytes if testnet else bytes(self)
         return base58.b58encode_check(b)
 
-    def _serialize(self, testnet=False):
-        version = self.TESTNET_VERSION if testnet else self.MAINNET_VERSION
+    def _serialize(self, network=BitcoinMainNet):
+        version = self.TESTNET_VERSION if network.TESTNET else self.MAINNET_VERSION
         key_bytes = self._key.compressed_bytes if isinstance(self, HDPublicKey) else b'\x00' + bytes(self._key)
         return (version.to_bytes(length=4, byteorder='big') +
                 bytes([self.depth]) +
@@ -1804,23 +1819,21 @@ class HDPublicKey(HDKey, PublicKeyBase):
         """
         return self._key.hash160(True)
 
-    def address(self, compressed=True, testnet=False, mode='base58'):
-        """ Address property that returns the HASH160 as encoded by
-        the mode.
+    def address(self, compressed=True, network=BitcoinMainNet, mode=None):
+        """ Address property that returns a user-friendly encoding of the public key.
 
         Args:
             compressed (bool): Whether or not the compressed key should
                be used.
-            testnet (bool): Whether or not the key is intended for testnet
-               usage. False indicates mainnet usage.
-            mode (bool): Determines what kind of address to create. The
-               default is 'base58', but you can also generate 'bech32'
-               addresses (not implemented) and 'hex' addresses.
+            network: Network to work in. Default is Bitcoin mainnet.
+            mode (str): Determines what kind of address to create. You must choose a
+                mode that is supported by the network. Default is the first mode in the list
+                for that network.
 
         Returns:
             bytes: Address encoded with Base58Check, hexadecimal, or Bech32 accordingly.
         """
-        return self._key.address(True, testnet, mode)
+        return self._key.address(compressed=compressed, network=network, mode=mode)
 
     def verify(self, message, signature, do_hash=True):
         """ Verifies that message was appropriately signed.

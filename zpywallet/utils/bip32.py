@@ -459,14 +459,29 @@ class Wallet(object):
         return ensure_str(
             base58.b58encode_check(unhexlify(self.serialize(private))))
 
-    def to_address(self):
+    def to_address(self, compressed=True, mode=None, witness_version=0):
         """Create a public address from this Wallet.
 
         Public addresses can accept payments.
 
         https://en.bitcoin.it/wiki/Technical_background_of_Bitcoin_addresses
+
+
+        Args:
+            compressed (bool): Whether or not the compressed key should
+               be used.
+            mode (str): Determines what kind of address to create. You must choose a
+                mode that is supported by the network. Default is the first mode in the list
+                for that network.
+            witness_version (int): Used only when creating Bech32 addresses.
+                Allowed values are 0 (segwit) and 1 (Taproot).
+
+        Returns:
+            str: An encoded address
         """
-        key = unhexlify(self.get_public_key_hex())
+        key = PublicKey.from_bytes(unhexlify(self.get_public_key_hex()))
+        return ensure_str(key.address(network=self.network, mode=mode, compressed=compressed, witness_version=0))
+
         # First get the hash160 of the key
         hash160_bytes = hash160(key)
         # Prepend the network address byte
