@@ -2,7 +2,6 @@
 
 """Tests for `ragnarok` package."""
 
-
 import unittest
 from zpywallet import wallet, network
 
