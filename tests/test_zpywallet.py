@@ -4,12 +4,10 @@
 
 
 import unittest
-from click.testing import CliRunner
-
 from zpywallet import wallet, network
 
 
-class TestZPyQallet(unittest.TestCase):
+class TestZPyWallet(unittest.TestCase):
     """Tests for `ragnarok` package."""
 
     def setUp(self):
