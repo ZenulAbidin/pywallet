@@ -3,7 +3,7 @@
 """Tests for `ragnarok` package."""
 
 import unittest
-from zpywallet import wallet, network
+from zpywallet import wallet
 
 
 class TestZPyWallet(unittest.TestCase):
@@ -17,5 +17,5 @@ class TestZPyWallet(unittest.TestCase):
 
     def test_000_something(self):
         """Test something."""
-        w = wallet.create_wallet()
-        assert w
+        hdw = wallet.create_wallet()
+        assert hdw

@@ -1,29 +1,26 @@
-from binascii import hexlify
-from binascii import unhexlify
-from hashlib import sha256
-from hashlib import sha512
+from binascii import hexlify, unhexlify
+from hashlib import sha256, sha512
 import hmac
+from os import urandom
 from mnemonic.mnemonic import Mnemonic
 
 import base58
-from os import urandom
 from ecdsa import SECP256k1
 from ecdsa.ecdsa import Public_key as _ECDSA_Public_key
-from ecdsa.ellipticcurve import INFINITY
 import six
 import time
 from cachetools.func import lru_cache
 
 # import all the networks
-from ..network import *
+from ..network import BitcoinCashMainNet, BitcoinMainNet, BitcoinTestNet, BlockCypherTestNet, \
+    DashMainNet, DashTestNet, DogecoinMainNet, DogecoinTestNet, EthereumMainNet, LitecoinMainNet, \
+        LitecoinTestNet, OmniMainNet, OmniTestNet
 
 from .keys import incompatible_network_exception_factory
 from .keys import PrivateKey
 from .keys import PublicKey
 from .keys import PublicPair
-from .utils import chr_py2
-from .utils import ensure_bytes
-from .utils import ensure_str
+from .utils import ensure_bytes, ensure_str
 from .utils import hash160
 from .utils import is_hex_string
 from .utils import long_or_int
@@ -269,7 +266,7 @@ class Wallet(object):
         as a leading 1 in a 32 bit unsigned int.
 
         This derivation is fully described at
-        https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#child-key-derivation-functions  # nopep8
+        https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#child-key-derivation-functions
         """
         boundary = 0x80000000
 
@@ -387,7 +384,8 @@ class Wallet(object):
         >>> cracked_private_master = public_master.crack_private_key(child)
         >>> assert w == cracked_private_master  # :(
 
-        Implementation details from http://bitcoinmagazine.com/8396/deterministic-wallets-advantages-flaw/  # nopep8
+        Implementation details from:
+          http://bitcoinmagazine.com/8396/deterministic-wallets-advantages-flaw/
         """
         if self.private_key:
             raise AssertionError("You already know the private key")
@@ -408,8 +406,7 @@ class Wallet(object):
         # Public derivation is the same as private derivation plus some offset
         # knowing the child's private key allows us to find this offset just
         # by subtracting the child's private key from the parent I_L data
-        privkey = PrivateKey(long_or_int(hexlify(I_L), 16),
-                             network=self.network)
+        privkey = PrivateKey(long_or_int(hexlify(I_L), 16))
         parent_private_key = child_private_key.private_key - privkey
         return self.__class__(
             chain_code=self.chain_code,
@@ -480,15 +477,8 @@ class Wallet(object):
             str: An encoded address
         """
         key = PublicKey.from_bytes(unhexlify(self.get_public_key_hex()))
-        return ensure_str(key.address(network=self.network, mode=mode, compressed=compressed, witness_version=0))
-
-        # First get the hash160 of the key
-        hash160_bytes = hash160(key)
-        # Prepend the network address byte
-        network_hash160_bytes = \
-            chr_py2(self.network.PUBKEY_ADDRESS) + hash160_bytes
-        # Return a base58 encoded address with a checksum
-        return ensure_str(base58.b58encode_check(network_hash160_bytes))
+        return ensure_str(key.address(network=self.network, mode=mode, compressed=compressed,
+                                      witness_version=witness_version))
 
     @classmethod
     def deserialize(cls, key, network="BTC"):
@@ -548,7 +538,7 @@ class Wallet(object):
                 raise incompatible_network_exception_factory(
                     network.NAME, network.EXT_PUBLIC_KEY,
                     version)
-            pubkey = PublicKey.from_hex_key(key_data, network=network)
+            pubkey = PublicKey.from_hex(key_data)
             # Even though this was generated from a compressed pubkey, we
             # want to store it as an uncompressed pubkey
             pubkey.compressed = False
@@ -579,12 +569,12 @@ class Wallet(object):
             be guessed and is not secure. My advice is to not supply this
             argument and let me generate a new random key for you.
 
-        See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Serialization_format  # nopep8
+        See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Serialization_format
         """
         network = Wallet.get_network(network)
         m = Mnemonic(language='english')
         seed = ensure_bytes(m.to_seed(mnemonic))
-        
+
         # Given a seed S of at least 128 bits, but 256 is advised
         # Calculate I = HMAC-SHA512(key="Bitcoin seed", msg=S)
         I = hmac.new(b"Bitcoin seed", msg=seed, digestmod=sha512).digest()
@@ -630,7 +620,7 @@ class Wallet(object):
     __hash__ = object.__hash__
 
     @classmethod
-    def get_network(self, network):
+    def get_network(cls, network):
         # returns a network class object
 
         response = None
@@ -648,34 +638,18 @@ class Wallet(object):
             response = LitecoinTestNet
         elif network == "bitcoin_cash" or network == "BCH":
             response = BitcoinCashMainNet
-        elif network == "bitcoin_gold" or network == "BTG":
-            response = BitcoinGoldMainNet
         elif network == "dash" or network == "DASH":
             response = DashMainNet
         elif network == 'dash_testnet' or network == 'DASHTEST':
             response = DashTestNet
-        elif network == "martex" or network == "MXT":
-            response = MarteXMainNet
-        elif network == 'martex_testnet' or network == 'MXTTEST':
-            response = MarteXTestNet
         elif network == 'omni' or network == 'OMNI':
             response = OmniMainNet
         elif network == 'omni_testnet' or network == 'OMNI_TESTNET':
             response = OmniTestNet
-        elif network == 'feathercoin' or network == 'FTC':
-            response = FeathercoinMainNet
-        elif network == "qtum" or network == "QTUM":
-            response = QtumMainNet
-        elif network == 'qtum_testnet' or network == 'QTUMTEST':
-            response = QtumTestNet
-        elif network == 'raven' or network == 'RVN':
-            response = RavenMainNet
-        elif network == 'raven_testnet' or network == 'RVNTEST':
-            response = RavenTestNet
-        elif network == 'bitcore' or network == 'BTX':
-            response = BitcoreMainNet
-        elif network == 'bitcore_testnet' or network == 'BTX_TESTNET':
-            response = BitcoreTestNet
+        elif network == 'eth' or network == 'ETH':
+            response = EthereumMainNet
+        elif network == 'bcy_testnet' or network == 'BCY_TESTNET':
+            response = BlockCypherTestNet
         else:
             response = network
         return response

@@ -13,21 +13,24 @@ import math
 import base58
 import base64
 import binascii
+from binascii import hexlify
 import hashlib
+from hashlib import sha256
 import hmac
 from mnemonic.mnemonic import Mnemonic
 import random
 import codecs
-import struct
 import os
 from collections import namedtuple
+
+import six
 from .bech32 import encode as bech32_encode
 from .ecdsa import Point
 from .ecdsa import ECPointAffine
 from .ecdsa import secp256k1
 from .ripemd160 import ripemd160
 from .utils import chr_py2
-from .utils import ensure_bytes
+from .utils import ensure_bytes, ensure_str, long_or_int
 from ..network import BitcoinMainNet
 
 
@@ -1451,7 +1454,7 @@ class HDKey(object):
         Returns:
             str: A Base58Check encoded string representing the key.
         """
-        b = self.testnet_bytes if testnet else bytes(self)
+        b = self.testnet_bytes if network.TESTNET else bytes(self)
         return base58.b58encode_check(b)
 
     def _serialize(self, network=BitcoinMainNet):
