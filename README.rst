@@ -14,7 +14,9 @@ ZPyWallet
     :target: https://pypi.python.org/pypi/zpywallet
     :alt: PyPi status
 
-\
+.. image:: https://codecov.io/gh/ZenulAbidin/zpywallet/branch/master/graph/badge.svg?token=G2tC6LpTNm
+    :target: https://codecov.io/gh/ZenulAbidin/zpywallet
+    :alt: Code coverage
 
 **Simple BIP32 (HD) wallet creation for: BTC, BCH, ETH, LTC, DASH, USDT (Omni), DOGE**
 

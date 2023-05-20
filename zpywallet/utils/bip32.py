@@ -1,14 +1,17 @@
+"""
+Module for generating Heirarchical Deterministic (HD) keys for supported networks.
+"""
 from binascii import hexlify, unhexlify
 from hashlib import sha256, sha512
 import hmac
 from os import urandom
-from mnemonic.mnemonic import Mnemonic
+import time
 
+from mnemonic.mnemonic import Mnemonic
 import base58
 from ecdsa import SECP256k1
 from ecdsa.ecdsa import Public_key as _ECDSA_Public_key
 import six
-import time
 from cachetools.func import lru_cache
 
 # import all the networks
@@ -96,7 +99,7 @@ class Wallet(object):
             raise KeyMismatchError(
                 "Provided private and public values do not match")
 
-        def h(val, hex_len):
+        def hex_check_length(val, hex_len):
             if isinstance(val, six.integer_types):
                 return long_to_hex(val, hex_len)
             elif (isinstance(val, six.string_types) or
@@ -108,7 +111,7 @@ class Wallet(object):
             else:
                 raise ValueError("Invalid parameter type")
 
-        def l(val):
+        def hex_long_or_int(val):
             if isinstance(val, six.integer_types):
                 return long_or_int(val)
             elif (isinstance(val, six.string_types) or
@@ -121,15 +124,15 @@ class Wallet(object):
                 raise ValueError("parameter must be an int or long")
 
         self.network = Wallet.get_network(network)
-        self.depth = l(depth)
+        self.depth = hex_long_or_int(depth)
         if (isinstance(parent_fingerprint, six.string_types) or
                 isinstance(parent_fingerprint, six.binary_type)):
             val = ensure_bytes(parent_fingerprint)
             if val.startswith(b"0x"):
                 parent_fingerprint = val[2:]
-        self.parent_fingerprint = b"0x" + h(parent_fingerprint, 8)
-        self.child_number = l(child_number)
-        self.chain_code = h(chain_code, 64)
+        self.parent_fingerprint = b"0x" + hex_check_length(parent_fingerprint, 8)
+        self.child_number = hex_long_or_int(child_number)
+        self.chain_code = hex_check_length(chain_code, 64)
 
     def get_private_key_hex(self):
         """
@@ -172,8 +175,7 @@ class Wallet(object):
         insecure server."""
         max_id = 0x80000000
         if user_id < 0 or user_id > max_id:
-            raise ValueError(
-                "Invalid UserID. Must be between 0 and %s" % max_id)
+            raise ValueError(f"Invalid UserID. Must be between 0 and {max_id}")
         return self.get_child(user_id, is_prime=False, as_private=False)
 
     def get_child_for_path(self, path):
@@ -206,7 +208,7 @@ class Wallet(object):
         path = ensure_str(path)
 
         if not path:
-            raise InvalidPathError("%s is not a valid path" % path)
+            raise InvalidPathError(f"{path} is not a valid path")
 
         # Figure out public/private derivation
         as_private = True
@@ -230,8 +232,8 @@ class Wallet(object):
                 part = part.replace("'", "").replace("p", "")
             try:
                 child_number = long_or_int(part)
-            except ValueError:
-                raise InvalidPathError("%s is not a valid path" % path)
+            except ValueError as exc:
+                raise InvalidPathError(f"{path} is not a valid path") from exc
             child = child.get_child(child_number, is_prime)
         if not as_private:
             return child.public_copy()
@@ -273,7 +275,7 @@ class Wallet(object):
         # Note: If this boundary check gets removed, then children above
         # the boundary should use private (prime) derivation.
         if abs(child_number) >= boundary:
-            raise ValueError("Invalid child number %s" % child_number)
+            raise ValueError(f"Invalid child number {child_number}")
 
         # If is_prime isn't set, then we can infer it from the child_number
         if is_prime is None:
@@ -287,9 +289,7 @@ class Wallet(object):
             # Otherwise is_prime is set so the child_number should be between
             # 0 and 0x80000000
             if child_number < 0 or child_number >= boundary:
-                raise ValueError(
-                    "Invalid child number. Must be between 0 and %s" %
-                    boundary)
+                raise ValueError(f"Invalid child number. Must be between 0 and {boundary}")
 
         if not self.private_key and is_prime:
             raise ValueError(
@@ -310,17 +310,17 @@ class Wallet(object):
 
         # Compute a 64 Byte I that is the HMAC-SHA512, using self.chain_code
         # as the seed, and data as the message.
-        I = hmac.new(
+        ichild = hmac.new(
             unhexlify(ensure_bytes(self.chain_code)),
             msg=unhexlify(ensure_bytes(data)),
             digestmod=sha512).digest()
         # Split I into its 32 Byte components.
-        I_L, I_R = I[:32], I[32:]
+        ichild_left, ichild_right = ichild[:32], ichild[32:]
 
-        if long_or_int(hexlify(I_L), 16) >= SECP256k1.order:
+        if long_or_int(hexlify(ichild_left), 16) >= SECP256k1.order:
             raise InvalidPrivateKeyError("The derived key is too large.")
 
-        c_i = hexlify(I_R)
+        c_i = hexlify(ichild_right)
         private_exponent = None
         public_pair = None
         if self.private_key:
@@ -328,15 +328,15 @@ class Wallet(object):
             # I_L is added to the current key's secret exponent (mod n), where
             # n is the order of the ECDSA curve in use.
             private_exponent = (
-                (long_or_int(hexlify(I_L), 16) +
+                (long_or_int(hexlify(ichild_left), 16) +
                  long_or_int(ensure_bytes(self.private_key.to_hex()), 16))
                 % SECP256k1.order)
             # I_R is the child's chain code
         else:
             # Only use public information for this derivation
-            g = SECP256k1.generator
-            I_L_long = long_or_int(hexlify(I_L), 16)
-            point = (_ECDSA_Public_key(g, g * I_L_long).point +
+            gen = SECP256k1.generator
+            ichild_left_long = long_or_int(hexlify(ichild_left), 16)
+            point = (_ECDSA_Public_key(gen, gen * ichild_left_long).point +
                      self.public_key.to_point())
             # I_R is the child's chain code
             public_pair = PublicPair(point.x(), point.y())
@@ -398,15 +398,15 @@ class Wallet(object):
         # Duplicate the public child derivation
         child_number_hex = long_to_hex(child_private_key.child_number, 8)
         data = self.get_public_key_hex() + child_number_hex
-        I = hmac.new(
+        ichild = hmac.new(
             unhexlify(self.chain_code),
             msg=unhexlify(data),
             digestmod=sha512).digest()
-        I_L, I_R = I[:32], I[32:]
+        ichild_left, _ = ichild[:32], ichild[32:]
         # Public derivation is the same as private derivation plus some offset
         # knowing the child's private key allows us to find this offset just
         # by subtracting the child's private key from the parent I_L data
-        privkey = PrivateKey(long_or_int(hexlify(I_L), 16))
+        privkey = PrivateKey(long_or_int(hexlify(ichild_left), 16))
         parent_private_key = child_private_key.private_key - privkey
         return self.__class__(
             chain_code=self.chain_code,
@@ -543,20 +543,20 @@ class Wallet(object):
             # want to store it as an uncompressed pubkey
             pubkey.compressed = False
         else:
-            raise ValueError("Invalid key_data prefix, got %s" % point_type)
+            raise ValueError(f"Invalid key_data prefix, got {point_type}")
 
-        def l(byte_seq):
+        def bytes_long_or_int(byte_seq):
             if byte_seq is None:
                 return byte_seq
             elif isinstance(byte_seq, six.integer_types):
                 return byte_seq
             return long_or_int(hexlify(byte_seq), 16)
 
-        return cls(depth=l(depth),
-                   parent_fingerprint=l(parent_fingerprint),
-                   child_number=l(child),
-                   chain_code=l(chain_code),
-                   private_exponent=l(exponent),
+        return cls(depth=bytes_long_or_int(depth),
+                   parent_fingerprint=bytes_long_or_int(parent_fingerprint),
+                   child_number=bytes_long_or_int(child),
+                   chain_code=bytes_long_or_int(chain_code),
+                   private_exponent=bytes_long_or_int(exponent),
                    public_key=pubkey,
                    network=network)
 
@@ -572,17 +572,17 @@ class Wallet(object):
         See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Serialization_format
         """
         network = Wallet.get_network(network)
-        m = Mnemonic(language='english')
-        seed = ensure_bytes(m.to_seed(mnemonic))
+        mne = Mnemonic(language='english')
+        seed = ensure_bytes(mne.to_seed(mnemonic))
 
         # Given a seed S of at least 128 bits, but 256 is advised
         # Calculate I = HMAC-SHA512(key="Bitcoin seed", msg=S)
-        I = hmac.new(b"Bitcoin seed", msg=seed, digestmod=sha512).digest()
+        ichild = hmac.new(b"Bitcoin seed", msg=seed, digestmod=sha512).digest()
         # Split I into two 32-byte sequences, IL and IR.
-        I_L, I_R = I[:32], I[32:]
+        ichild_left, ichild_right = ichild[:32], ichild[32:]
         # Use IL as master secret key, and IR as master chain code.
-        return cls(private_exponent=long_or_int(hexlify(I_L), 16),
-                   chain_code=hexlify(I_R),
+        return cls(private_exponent=long_or_int(hexlify(ichild_left), 16),
+                   chain_code=hexlify(ichild_right),
                    network=network)
 
     @classmethod
@@ -597,7 +597,7 @@ class Wallet(object):
         # Make sure the password string is bytes
         key = ensure_bytes(password)
         data = unhexlify(b"0" * 64)  # 256-bit 0
-        for i in range(50000):
+        for _ in range(50000):
             data = hmac.new(key, msg=data, digestmod=sha256).digest()
         return cls.from_master_secret(data, network)
 
@@ -621,8 +621,17 @@ class Wallet(object):
 
     @classmethod
     def get_network(cls, network):
-        # returns a network class object
+        """
+        Returns the appropriate network class object based on the provided network string.
+        If no match is found from the predefined networks, return the provided string as a fallback.
 
+        Args:
+            network (str): A string indicating the name or code of the network
+
+        Returns:
+            A class object representing the requested network, or the fallback string if no match
+            found.
+        """
         response = None
         if network == "bitcoin_testnet" or network == "BTCTEST":
             response = BitcoinTestNet
@@ -681,24 +690,36 @@ class Wallet(object):
 
 
 class InvalidPathError(Exception):
-    pass
+    """
+    Raised when the provided derivation path is invalid.
+    """
 
 
 class InsufficientKeyDataError(ValueError):
-    pass
+    """
+    Exception raised when there is insufficient key data for a specific operation.
+    """
 
 
 class InvalidPrivateKeyError(ValueError):
-    pass
+    """
+    Raised when a private key is out of range.
+    """
 
 
 class InvalidPublicKeyError(ValueError):
-    pass
+    """
+    Raised when a public key is outside of the curve.
+    """
 
 
 class KeyMismatchError(ValueError):
-    pass
+    """
+    Raised when the public key and private key don't match
+    """
 
 
 class InfinityPointException(Exception):
-    pass
+    """
+    Raised when the point at infinity is encountered.
+    """
