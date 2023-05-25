@@ -34,8 +34,7 @@ def chr_py2(num):
 
 def hash160(data):
     """Return ripemd160(sha256(data))"""
-    rh = ripemd160(sha256(data).digest())
-    return rh.digest()
+    return ripemd160(sha256(data).digest())
 
 
 def is_hex_string(string):
