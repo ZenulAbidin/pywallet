@@ -5,6 +5,8 @@ import re
 
 import six
 
+from .ripemd160 import ripemd160
+
 if six.PY3:
     long = int
 
@@ -32,7 +34,7 @@ def chr_py2(num):
 
 def hash160(data):
     """Return ripemd160(sha256(data))"""
-    rh = hashlib.new('ripemd160', sha256(data).digest())
+    rh = ripemd160(sha256(data).digest())
     return rh.digest()
 
 
