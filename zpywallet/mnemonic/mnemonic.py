@@ -256,19 +256,3 @@ class Mnemonic(object):
 
         # Return base58
         return b58encode(xprv)
-
-
-def main() -> None:
-    import sys
-
-    if len(sys.argv) > 1:
-        hex_data = sys.argv[1]
-    else:
-        hex_data = sys.stdin.readline().strip()
-    data = bytes.fromhex(hex_data)
-    m = Mnemonic("english")
-    print(m.to_mnemonic(data))
-
-
-if __name__ == "__main__":
-    main()
