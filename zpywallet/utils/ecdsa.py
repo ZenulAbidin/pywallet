@@ -6,6 +6,9 @@ import hmac
 from collections import namedtuple
 
 
+class InvalidKeyDataException(Exception):
+    pass
+
 # Links
 # https://en.wikibooks.org/wiki/Cryptography/Elliptic_curve
 # https://en.bitcoin.it/wiki/Secp256k1
@@ -701,9 +704,14 @@ class EllipticCurve(EllipticCurveBase):
         y2 = self.p - y1
         rv = []
 
-        if self.is_on_curve(Point(x, y1)):
+        on_curve_1 = self.is_on_curve(Point(x, y1))
+        on_curve_2 = self.is_on_curve(Point(x, y2))
+        if not on_curve_1 and not on_curve_1:
+            raise InvalidKeyDataException("Public key point is not on the curve")
+
+        if on_curve_1:
             rv.append(y1)
-        if self.is_on_curve(Point(x, y2)):
+        if on_curve_2:
             # Put the even parity one first.
             if y2 & 0x1 == 1:
                 rv.append(y2)

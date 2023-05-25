@@ -14,20 +14,13 @@ from ecdsa.ecdsa import Public_key as _ECDSA_Public_key
 import six
 from cachetools.func import lru_cache
 
-# import all the networks
-from ..network import BitcoinCashMainNet, BitcoinMainNet, BitcoinTestNet, BlockCypherTestNet, \
-    DashMainNet, DashTestNet, DogecoinMainNet, DogecoinTestNet, EthereumMainNet, LitecoinMainNet, \
-        LitecoinTestNet, OmniMainNet, OmniTestNet
 
-from .keys import incompatible_network_exception_factory
-from .keys import PrivateKey
-from .keys import PublicKey
-from .keys import PublicPair
-from .utils import ensure_bytes, ensure_str
-from .utils import hash160
-from .utils import is_hex_string
-from .utils import long_or_int
-from .utils import long_to_hex
+from .keys import HDPrivateKey, incompatible_network_exception_factory, PrivateKey, PublicKey, PublicPair
+from .ecdsa import InvalidKeyDataException
+from .utils import ensure_bytes, ensure_str, hash160, is_hex_string, long_or_int, long_to_hex
+
+# import all the networks
+from ..network import *
 
 
 
@@ -45,7 +38,7 @@ class Wallet(object):
     You need to save the private key somewhere. It is OK to just write
     it down on a piece of paper! Don't share this key with anyone!
 
-    >>> my_wallet = Wallet.from_master_secret(
+    >>> my_wallet = Wallet.from_mnemonic(
     ...     key='correct horse battery staple')
     >>> private = my_wallet.serialize(private=True)
     >>> private  # doctest: +ELLIPSIS
@@ -67,11 +60,11 @@ class Wallet(object):
                  private_key=None,
                  public_pair=None,
                  public_key=None,
-                 network="BTC"):
+                 network="btc"):
         """Construct a new BIP32 compliant wallet.
 
         You probably don't want to use this init methd. Instead use one
-        of the 'from_master_secret' or 'deserialize' cosntructors.
+        of the 'from_mnemonic' or 'deserialize' cosntructors.
         """
 
         if (not (private_exponent or private_key) and
@@ -79,7 +72,6 @@ class Wallet(object):
             raise InsufficientKeyDataError(
                 "You must supply one of private_exponent or public_pair")
 
-        network = Wallet.get_network(network)
         self.private_key = None
         self.public_key = None
         if private_key:
@@ -123,7 +115,10 @@ class Wallet(object):
             else:
                 raise ValueError("parameter must be an int or long")
 
-        self.network = Wallet.get_network(network)
+        if isinstance(network, six.string_types):
+            self.network = Wallet.get_network(network)
+        else:
+            self.network = network
         self.depth = hex_long_or_int(depth)
         if (isinstance(parent_fingerprint, six.string_types) or
                 isinstance(parent_fingerprint, six.binary_type)):
@@ -238,6 +233,16 @@ class Wallet(object):
         if not as_private:
             return child.public_copy()
         return child
+
+    def legacy_child(self):
+        """Equivalent to get_child(44, is_prime=True)
+        """
+        return self.get_child(44, is_prime=True)
+
+    def segwit_child(self):
+        """Equivalent to get_child(84, is_prime=True)
+        """
+        return self.get_child(84, is_prime=True)
 
     @lru_cache(maxsize=1024)
     def get_child(self, child_number, is_prime=None, as_private=True):
@@ -456,7 +461,7 @@ class Wallet(object):
         return ensure_str(
             base58.b58encode_check(unhexlify(self.serialize(private))))
 
-    def to_address(self, compressed=True, mode=None, witness_version=0):
+    def address(self, compressed=True,witness_version=0):
         """Create a public address from this Wallet.
 
         Public addresses can accept payments.
@@ -467,9 +472,6 @@ class Wallet(object):
         Args:
             compressed (bool): Whether or not the compressed key should
                be used.
-            mode (str): Determines what kind of address to create. You must choose a
-                mode that is supported by the network. Default is the first mode in the list
-                for that network.
             witness_version (int): Used only when creating Bech32 addresses.
                 Allowed values are 0 (segwit) and 1 (Taproot).
 
@@ -477,12 +479,12 @@ class Wallet(object):
             str: An encoded address
         """
         key = PublicKey.from_bytes(unhexlify(self.get_public_key_hex()))
-        return ensure_str(key.address(network=self.network, mode=mode, compressed=compressed,
+        return ensure_str(key.address(compressed=compressed,
                                       witness_version=witness_version))
 
     @classmethod
-    def deserialize(cls, key, network="BTC"):
-        """Load the ExtendedBip32Key from a hex key.
+    def deserialize(cls, key, network="btc"):
+        """Load an extended BIP32 private key from a hex string.
 
         The key consists of
 
@@ -519,6 +521,10 @@ class Wallet(object):
         version, depth, parent_fingerprint, child, chain_code, key_data = (
             key[:4], key[4], key[5:9], key[9:13], key[13:45], key[45:])
 
+        if long_or_int(depth) == 0 and long_or_int(hexlify(parent_fingerprint), 16) != 0:
+            raise InvalidKeyDataException("Zero depth with non-zero parent fingerprint")
+        if long_or_int(depth) == 0 and long_or_int(hexlify(child)) != 0:
+            raise InvalidKeyDataException("Zero depth with non-zero index")
         version_long = long_or_int(hexlify(version), 16)
         exponent = None
         pubkey = None
@@ -529,14 +535,17 @@ class Wallet(object):
             # Private key
             if version_long != network.EXT_SECRET_KEY:
                 raise incompatible_network_exception_factory(
-                    network.NAME, network.EXT_SECRET_KEY,
+                    network.NAME, unhexlify(f"{network.EXT_SECRET_KEY:x}".zfill(8)),
                     version)
             exponent = key_data[1:]
+            iexponent = long_or_int(hexlify(exponent), 16)
+            if iexponent < 1 or iexponent >= SECP256k1.order:
+                raise InvalidKeyDataException("Private key is out of range")
         elif point_type in [2, 3, 4]:
             # Compressed public coordinates
             if version_long != network.EXT_PUBLIC_KEY:
                 raise incompatible_network_exception_factory(
-                    network.NAME, network.EXT_PUBLIC_KEY,
+                    network.NAME, unhexlify(f"{network.EXT_PUBLIC_KEY:x}".zfill(8)),
                     version)
             pubkey = PublicKey.from_hex(key_data)
             # Even though this was generated from a compressed pubkey, we
@@ -561,13 +570,12 @@ class Wallet(object):
                    network=network)
 
     @classmethod
-    def from_master_secret(cls, mnemonic, network="BTC"):
+    def from_mnemonic(cls, mnemonic, network="BTC"):
         """Generate a new PrivateKey from a secret key.
 
-        :param mnemonic: The key to use to generate this wallet. It may be a long
-            string. Do not use a phrase from a book or song, as that will
-            be guessed and is not secure. My advice is to not supply this
-            argument and let me generate a new random key for you.
+        :param mnemonic: The key to use to generate this wallet.
+        :param network: The network to use. Defaults to Bitcoin mainnet.
+        
 
         See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Serialization_format
         """
@@ -577,29 +585,76 @@ class Wallet(object):
 
         # Given a seed S of at least 128 bits, but 256 is advised
         # Calculate I = HMAC-SHA512(key="Bitcoin seed", msg=S)
-        ichild = hmac.new(b"Bitcoin seed", msg=seed, digestmod=sha512).digest()
+        I = hmac.new(b"Bitcoin seed", msg=seed, digestmod=sha512).digest()
         # Split I into two 32-byte sequences, IL and IR.
-        ichild_left, ichild_right = ichild[:32], ichild[32:]
+        Il, Ir = I[:32], I[32:]
         # Use IL as master secret key, and IR as master chain code.
-        return cls(private_exponent=long_or_int(hexlify(ichild_left), 16),
-                   chain_code=hexlify(ichild_right),
+        return cls(private_exponent=long_or_int(hexlify(Il), 16),
+                   chain_code=hexlify(Ir),
                    network=network)
 
     @classmethod
-    def from_master_secret_slow(cls, password, network=BitcoinMainNet):
+    def from_brainwallet(cls, password, network=BitcoinMainNet):
         """
         Generate a new key from a password using 50,000 rounds of HMAC-SHA256.
 
         This should generate the same result as bip32.org.
 
         WARNING: The security of this method has not been evaluated.
+
+        Args:
+            :param password (str):  The value to hash for generating the wallet.
+            It may be a long string. Do not use a phrase from a book or song,
+            as that will be guessed and is not secure.
+            :param network: The network to use. Defaults to Bitcoin mainnet.
+        
+        Returns:
+            Wallet: A Wallet object.
         """
+        network = Wallet.get_network(network)
         # Make sure the password string is bytes
         key = ensure_bytes(password)
         data = unhexlify(b"0" * 64)  # 256-bit 0
         for _ in range(50000):
             data = hmac.new(key, msg=data, digestmod=sha256).digest()
-        return cls.from_master_secret(data, network)
+
+        I = hmac.new(b"Bitcoin seed", msg=data, digestmod=sha512).digest()
+        # Split I into two 32-byte sequences, IL and IR.
+        Il, Ir = I[:32], I[32:]
+        # Use IL as master secret key, and IR as master chain code.
+        return cls(private_exponent=long_or_int(hexlify(Il), 16),
+                   chain_code=hexlify(Ir),
+                   network=network)
+
+    @classmethod
+    def from_master_seed(cls, seed, network="BTC"):
+        """Generate a new PrivateKey from a seed (byte string).
+
+        :param seed: The byte sequence to use to generate this wallet. The seed length
+            should be at least 128 bits, no longer than 256 bits, and be divisible by 32.
+        :param network: The network to use. Defaults to Bitcoin mainnet.
+        
+
+        See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Serialization_format
+        """
+        network = Wallet.get_network(network)
+
+        # Given a seed S of at least 128 bits, but 256 is advised
+        # Calculate I = HMAC-SHA512(key="Bitcoin seed", msg=S)
+        I = hmac.new(b"Bitcoin seed", msg=seed, digestmod=sha512).digest()
+        # Split I into two 32-byte sequences, IL and IR.
+        Il, Ir = I[:32], I[32:]
+        # Use IL as master secret key, and IR as master chain code.
+        return cls(private_exponent=long_or_int(hexlify(Il), 16),
+                   chain_code=hexlify(Ir),
+                   network=network)
+
+    @classmethod
+    def from_hd_private_key(cls, hd_private_key: HDPrivateKey):
+        """Converts an HDPrivateKey into a Wallet object."""
+        return Wallet(private_key=hd_private_key.keydata(), depth=hd_private_key.depth,
+                      chain_code=hd_private_key.chain_code, parent_fingerprint=hd_private_key.parent_fingerprint,
+                    child_number=hd_private_key.index, network=hd_private_key.network)
 
     def __eq__(self, other):
         attrs = [
@@ -623,7 +678,6 @@ class Wallet(object):
     def get_network(cls, network):
         """
         Returns the appropriate network class object based on the provided network string.
-        If no match is found from the predefined networks, return the provided string as a fallback.
 
         Args:
             network (str): A string indicating the name or code of the network
@@ -631,36 +685,50 @@ class Wallet(object):
         Returns:
             A class object representing the requested network, or the fallback string if no match
             found.
+
+        Raises:
+            ValueError: If no match is found from the predefined networks
         """
         response = None
-        if network == "bitcoin_testnet" or network == "BTCTEST":
+        network = network.lower()
+        if network == "bitcoin_testnet" or network == "btctest":
             response = BitcoinTestNet
-        elif network == "bitcoin" or network == "BTC":
+        elif network == "bitcoin" or network == "btc":
             response = BitcoinMainNet
-        elif network == "dogecoin" or network == "DOGE":
+        elif network == "dogecoin" or network == "doge":
             response = DogecoinMainNet
-        elif network == "dogecoin_testnet" or network == "DOGETEST":
+        elif network == "dogecoin-btc" or network == "dogebtc":
+            response = DogecoinBTCMainNet
+        elif network == "dogecoin-testnet" or network == "dogetest":
             response = DogecoinTestNet
-        elif network == "litecoin" or network == "LTC":
+        elif network == "litecoin" or network == "ltc":
             response = LitecoinMainNet
-        elif network == "litecoin_testnet" or network == "LTCTEST":
+        elif network == "litecoin-btc" or network == "ltcbtc":
+            response = LitecoinBTCMainNet
+        elif network == "litecoin-testnet" or network == "ltctest":
             response = LitecoinTestNet
-        elif network == "bitcoin_cash" or network == "BCH":
+        elif network == "bitcoin-cash" or network == "bch":
             response = BitcoinCashMainNet
-        elif network == "dash" or network == "DASH":
+        elif network == "dash":
             response = DashMainNet
-        elif network == 'dash_testnet' or network == 'DASHTEST':
+        elif network == "dash-inverted":
+            response = DashInvertedMainNet
+        elif network == "dash-btc" or network == "dashbtc":
+            response = DashBTCMainNet
+        elif network == 'dash_testnet' or network == 'dashtest':
             response = DashTestNet
-        elif network == 'omni' or network == 'OMNI':
+        elif network == 'dash_testnet_inverted':
+            response = DashInvertedTestNet
+        elif network == 'omni':
             response = OmniMainNet
-        elif network == 'omni_testnet' or network == 'OMNI_TESTNET':
+        elif network == 'omni_testnet' or network == 'omnitest':
             response = OmniTestNet
-        elif network == 'eth' or network == 'ETH':
+        elif network == 'ethereum' or network == 'eth':
             response = EthereumMainNet
-        elif network == 'bcy_testnet' or network == 'BCY_TESTNET':
+        elif network == 'blockcypher_testnet' or network == 'bcytest':
             response = BlockCypherTestNet
         else:
-            response = network
+            raise ValueError("Network is not defined")
         return response
 
     @classmethod
@@ -686,7 +754,7 @@ class Wallet(object):
         if user_entropy:
             user_entropy = str(user_entropy)  # allow for int/long
             seed += user_entropy
-        return cls.from_master_secret(seed, network=network)
+        return cls.from_mnemonic(seed, network=network)
 
 
 class InvalidPathError(Exception):

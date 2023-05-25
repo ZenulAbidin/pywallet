@@ -1,14 +1,14 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+This module contains the methods for creating a crypto wallet.
+"""
 
 from datetime import datetime
+import inspect
 from .utils import (
     Wallet, HDPrivateKey, HDKey
 )
-from .utils.utils import ensure_bytes, ensure_str
-from .network import *
-import inspect
-
+from .utils.utils import ensure_str
 
 def generate_mnemonic(strength=128):
     _, seed = HDPrivateKey.master_key_from_entropy(strength=strength)
@@ -16,6 +16,18 @@ def generate_mnemonic(strength=128):
 
 
 def generate_child_id():
+    """
+    Generates a child ID based on the current timestamp and returns it as an integer.
+
+    The child ID is calculated by combining the current date and the number of seconds
+    since midnight, scaled to fit within the range of an integer.
+
+    Returns:
+        int: The generated child ID.
+
+    Usage:
+        child_id = generate_child_id()
+    """
     now = datetime.now()
     seconds_since_midnight = (now - now.replace(
         hour=0, minute=0, second=0, microsecond=0)).total_seconds()
@@ -24,6 +36,26 @@ def generate_child_id():
 
 
 def create_address(network='btctest', xpub=None, child=None, path=0):
+    """
+    Creates a cryptocurrency address based on the provided parameters.
+
+    Args:
+        network (str): The network for which the address should be created. Defaults to 'btctest'.
+        xpub (str): The extended public key used for address generation.
+        child (int): The child ID to use for address generation. If not provided, a child ID will
+            be generated using the `generate_child_id` method.
+        path (int): The path value used in the address derivation. Defaults to 0.
+
+    Returns:
+        dict: A dictionary containing the generated address information, including the path, BIP32
+            path, and address itself.
+
+    Raises:
+        AssertionError: If the `xpub` argument is not provided.
+
+    Usage:
+        address_info = create_address(network='btctest', xpub='xpub...', child=123)
+    """
     assert xpub is not None
 
     if child is None:
@@ -32,8 +64,8 @@ def create_address(network='btctest', xpub=None, child=None, path=0):
     if network == 'ethereum' or network.upper() == 'ETH':
         acct_pub_key = HDKey.from_b58check(xpub)
 
-        keys = HDKey.from_path(
-            acct_pub_key, '{change}/{index}'.format(change=path, index=child))
+        keys = HDKey.from_path(acct_pub_key, f"{path}/{child}")
+        #'{change}/{index}'.format(change=path, index=child))
 
         res = {
             "path": "m/" + str(acct_pub_key.index) + "/" + str(keys[-1].index),
@@ -50,66 +82,18 @@ def create_address(network='btctest', xpub=None, child=None, path=0):
     wallet_obj = Wallet.deserialize(xpub, network=network.upper())
     child_wallet = wallet_obj.get_child(child, is_prime=False)
 
-    net = get_network(network)
+    net = Wallet.get_network(network)
 
     return {
         "path": "m/" + str(wallet_obj.child_number) + "/" +str(child_wallet.child_number),
-        "bip32_path": net.BIP32_PATH + str(wallet_obj.child_number) + "/" +str(child_wallet.child_number),
-        "address": child_wallet.to_address(),
+        "bip32_path": net.BIP32_PATH + str(wallet_obj.child_number) + "/" +
+        str(child_wallet.child_number), "address": child_wallet.address(),
         # "xpublic_key": child_wallet.serialize_b58(private=False),
         # "wif": child_wallet.export_to_wif() # needs private key
     }
 
 
-def get_network(network='btctest'):
-    network = network.lower()
-
-    if network == "bitcoin_testnet" or network == "btctest":
-        return BitcoinTestNet
-    elif network == "bitcoin" or network == "btc":
-        return BitcoinMainNet
-    elif network == "dogecoin" or network == "doge":
-        return DogecoinMainNet
-    elif network == "dogecoin_testnet" or network == "dogetest":
-        return DogecoinTestNet
-    elif network == "litecoin" or network == "ltc":
-        return LitecoinMainNet
-    elif network == "litecoin_testnet" or network == "ltctest":
-        return LitecoinTestNet
-    elif network == "bitcoin_cash" or network == "bch":
-        return BitcoinCashMainNet
-    elif network == "bitcoin_gold" or network == "btg":
-        return BitcoinGoldMainNet
-    elif network == "dash":
-        return DashMainNet
-    elif network == "dash_testnet" or network == 'dashtest':
-        return DashTestNet
-    elif network == "martex" or network == "mxt":
-        return MarteXMainNet
-    elif network == "martex_testnet" or network == 'martextest':
-        return MarteXTestNet
-    elif network == 'omni':
-        return OmniMainNet
-    elif network == 'omni_testnet':
-        return OmniTestNet
-    elif network == "feathercoin" or network == 'ftc':
-        return FeathercoinMainNet
-    elif network == "qtum":
-        return QtumMainNet
-    elif network == "qtum_testnet" or network == "qtumtest":
-        return QtumTestNet
-    elif network == "raven" or network == "rvn":
-        return RavenMainNet
-    elif network == "raven_testnet" or network == "rvntest":
-        return RavenTestNet
-    elif network == "bitcore" or network == "btx":
-        return BitcoreMainNet
-    elif network == "bitcore_testnet" or network == "btxtest":
-        return BitcoreTestNet
-
-    return BitcoinTestNet
-
-def create_wallet(mnemonic=None, network='BTC'):
+def create_wallet(mnemonic=None, network='BTC', children=10):
     """Generate a new wallet class from a mnemonic phrase, optionally randomly generated
 
     Args:
@@ -118,18 +102,24 @@ def create_wallet(mnemonic=None, network='BTC'):
         be guessed and is not secure. My advice is to not supply this
         argument and let me generate a new random key for you.
     :param network: The network to create this wallet for
+    :param children: Create this many child addresses for this wallet. Default
+        is 10, You should not use the master private key itself for sending
+        or receiving funds, as a best practice.
 
     Return:
         Wallet: a wallet class
+    
+    Usage:
+        w = create_wallet(network='BTC', children=10)
     """
     if mnemonic is None:
         mnemonic = generate_mnemonic()
 
-    return Wallet.from_master_secret(mnemonic=mnemonic, network=network)
+    return Wallet.from_mnemonic(mnemonic=mnemonic, network=network)
 
 
 
-def create_wallet_json(network='BTC', mnemonic=None, children=1):
+def create_wallet_json(network='BTC', mnemonic=None, children=10):
     """Generate a new wallet JSON from a mnemonic phrase, optionally randomly generated
 
     Args:
@@ -138,15 +128,17 @@ def create_wallet_json(network='BTC', mnemonic=None, children=1):
         be guessed and is not secure. My advice is to not supply this
         argument and let me generate a new random key for you.
     :param network: The network to create this wallet for
-
     Return:
         dict: A JSON wallet object with fields.
+    
+    Usage:
+        w = create_wallet(network='BTC', children=1000)
     """
     if mnemonic is None:
         mnemonic = generate_mnemonic()
 
 
-    net = get_network(network)
+    net = Wallet.get_network(network)
     wallet = {
         "coin": net.COIN,
         "seed": mnemonic,
@@ -193,7 +185,7 @@ def create_wallet_json(network='BTC', mnemonic=None, children=1):
             })
 
     else:
-        my_wallet = Wallet.from_master_secret(
+        my_wallet = Wallet.from_mnemonic(
             network=network.upper(), mnemonic=mnemonic)
 
         # account level
@@ -201,7 +193,7 @@ def create_wallet_json(network='BTC', mnemonic=None, children=1):
         wallet["public_key"] = my_wallet.public_key.to_hex()
         wallet["xprivate_key"] = my_wallet.serialize_b58(private=True)
         wallet["xpublic_key"] = my_wallet.serialize_b58(private=False)
-        wallet["address"] = my_wallet.to_address()
+        wallet["address"] = my_wallet.address()
         wallet["wif"] = ensure_str(my_wallet.private_key.export_to_wif())
 
         prime_child_wallet = my_wallet.get_child(0, is_prime=True)
@@ -212,7 +204,7 @@ def create_wallet_json(network='BTC', mnemonic=None, children=1):
             child_wallet = my_wallet.get_child(child, is_prime=False, as_private=False)
             wallet["children"].append({
                 "xpublic_key": child_wallet.serialize_b58(private=False),
-                "address": child_wallet.to_address(),
+                "address": child_wallet.address(),
                 "path": "m/" + str(child),
                 "bip32_path": net.BIP32_PATH + str(child_wallet.child_number),
             })

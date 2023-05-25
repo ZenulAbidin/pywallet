@@ -10,18 +10,21 @@ It also provides HDPublicKey and HDPrivateKey classes for working with HD
 wallets."""
 
 import math
-import base58
 import base64
 import binascii
 from binascii import hexlify
 import hashlib
 from hashlib import sha256
 import hmac
-from mnemonic.mnemonic import Mnemonic
 import random
 import codecs
 import os
 from collections import namedtuple
+
+
+from mnemonic.mnemonic import Mnemonic
+import base58
+from Crypto.Hash import keccak
 
 import six
 from .bech32 import encode as bech32_encode
@@ -45,11 +48,8 @@ class KeyParseError(Exception):
 def incompatible_network_exception_factory(
         network_name, expected_prefix, given_prefix):
     return IncompatibleNetworkException(
-        "Incorrect network. {net_name} expects a byte prefix of "
-        "{expected_prefix}, but you supplied {given_prefix}".format(
-            net_name=network_name,
-            expected_prefix=expected_prefix,
-            given_prefix=given_prefix))
+        f"Incorrect network. {network_name} expects a byte prefix of "
+        f"{expected_prefix}, but you supplied {given_prefix}")
 
 
 class ChecksumException(Exception):
@@ -63,11 +63,11 @@ class IncompatibleNetworkException(Exception):
 class InvalidChildException(Exception):
     pass
 
-
 bitcoin_curve = secp256k1()
 
-from Crypto.Hash import keccak
-sha3_256 = lambda x: keccak.new(digest_bits=256, data=x)
+def sha3_256(x):
+    """ Wrapper to quickly generate 256 digest bits of SHA3 Keccac. """
+    return keccak.new(digest_bits=256, data=x)
 
 Point = namedtuple('Point', ['x', 'y'])
 
@@ -238,15 +238,8 @@ class PrivateKeyBase(object):
         """
         raise NotImplementedError
 
-    def to_b58check(self, network=BitcoinMainNet):
-        """ Generates a Base58Check encoding of this private key.
-        
-        Args:
-            network: Network to work in. Default is Bitcoin mainnet.
-
-        Returns:
-            str: A Base58Check encoded string representing the key.
-        """
+    def to_b58check(self):
+        """ Generates a Base58Check encoding of this private key."""
         raise NotImplementedError
 
     def to_hex(self):
@@ -318,22 +311,40 @@ class PublicKeyBase(object):
         """
         raise NotImplementedError
 
-    def address(self, compressed=True, network=BitcoinMainNet, mode=None, witness_version=0):
-        """ Address property that returns a user-friendly encoding of the public key.
+    def base58_address(self, compressed=True):
+        """ Address property that returns a base58 encoding of the public key.
 
         Args:
             compressed (bool): Whether or not the compressed key should
                be used.
-            network: Network to work in. Default is Bitcoin mainnet.
-            mode (str): Determines what kind of address to create. You must choose a
-                mode that is supported by the network. Default is the first mode in the list
-                for that network.
-            witness_version (int): Used only when creating Bech32 addresses.
+
+        Returns:
+            bytes: Address encoded in Base58Check.
+        """
+        raise NotImplementedError
+
+    def bech32_address(self, compressed=True, witness_version=0):
+        """ Address property that returns a bech32 encoding of the public key.
+
+        Args:
+            compressed (bool): Whether or not the compressed key should
+               be used. It is recommended to leave this value as true - Uncompressed segwit
+               addresses are non-standard on most networks, preventing them from being broadcasted
+               normally, and should be avoided.
+            witness_version (int): Witness version to use for theBech32 address.
                 Allowed values are 0 (segwit) and 1 (Taproot).
 
         Returns:
-            bytes: Address encoded with Base58Check, hexadecimal, or Bech32 accordingly.
+            bytes: Address encoded in Bech32.
         """
+        raise NotImplementedError
+
+    def hex_address(self):
+        """ Address property that returns a hexadecimal encoding of the public key. """
+        raise NotImplementedError
+
+    def address(self, compressed=True, witness_version=0):
+        """Returns the address genereated according to the first supported address format by the network."""
         raise NotImplementedError
 
     def verify(self, message, signature, do_hash=True):
@@ -459,9 +470,11 @@ class PrivateKey(PrivateKeyBase):
         """
         return PrivateKey(random.SystemRandom().randrange(1, bitcoin_curve.n))
 
-    def __init__(self, k):
+    def __init__(self, k, network=BitcoinMainNet):
+        PrivateKeyBase.__init__(self, k)
         self.key = k
         self._public_key = None
+        self.network = network
 
     @classmethod
     def from_brainwallet(cls, password, salt="zpywallet"):
@@ -598,11 +611,9 @@ class PrivateKey(PrivateKeyBase):
 
         return base64.b64encode(bytes([magic]) + bytes(sig))
 
-    def export_to_wif(self, compressed=False, network=BitcoinMainNet):
+    def export_to_wif(self, compressed=False):
         """Export a key to WIF.
 
-
-        network: Network to work in. Default is Bitcoin mainnet.
         :param compressed: False if you want a standard WIF export (the most
             standard option). True if you want the compressed form (Note that
             not all clients will accept this form). Defaults to None, which
@@ -613,7 +624,7 @@ class PrivateKey(PrivateKeyBase):
         description.
         """
         # Add the network byte, creating the "extended key"
-        extended_key_hex = self.get_extended_key(network)
+        extended_key_hex = self.get_extended_key(self.network)
         # BIP32 wallets have a trailing \01 byte
         extended_key_bytes = binascii.unhexlify(extended_key_hex)
         if compressed:
@@ -630,7 +641,7 @@ class PrivateKey(PrivateKeyBase):
         description.
 
         This supports compressed WIFs - see this for an explanation:
-        http://bitcoin.stackexchange.com/questions/7299/when-importing-private-keys-will-compressed-or-uncompressed-format-be-used  # nopep8
+        https://bitcoin.stackexchange.com/q/7299/112589  # nopep8
         (specifically http://bitcoin.stackexchange.com/a/7958)
         """
         # Decode the base58 string and ensure the checksum is valid
@@ -639,14 +650,14 @@ class PrivateKey(PrivateKeyBase):
             extended_key_bytes = base58.b58decode_check(wif)
         except ValueError as e:
             # Invalid checksum!
-            raise ChecksumException(e)
+            raise ChecksumException(e) from e
 
         # Verify we're on the right network
         network_bytes = extended_key_bytes[0]
         # py3k interprets network_byte as an int already
         if not isinstance(network_bytes, six.integer_types):
             network_bytes = ord(network_bytes)
-        if (network_bytes != network.SECRET_KEY):
+        if network_bytes != network.SECRET_KEY:
             raise incompatible_network_exception_factory(
                 network_name=network.NAME,
                 expected_prefix=network.SECRET_KEY,
@@ -657,23 +668,16 @@ class PrivateKey(PrivateKeyBase):
 
         # Check for comprssed public key
         # This only affects the way in which addresses are generated.
-        compressed = False
-        if len(extended_key_bytes) == 33:
-            # We are supposed to use compressed form!
-            extended_key_bytes = extended_key_bytes[:-1]
+        #compressed = False
+        #if len(extended_key_bytes) == 33:
+        #    # We are supposed to use compressed form!
+        #    extended_key_bytes = extended_key_bytes[:-1]
 
         # And we should finally have a valid key
         return cls(long_or_int(hexlify(extended_key_bytes), 16))
 
     def to_b58check(self, network=BitcoinMainNet):
-        """ Generates a Base58Check encoding of this private key.
-
-        Args:
-            network: Network to work in. Default is Bitcoin mainnet.
-
-        Returns:
-            str: A Base58Check encoded string representing the key.
-        """
+        """ Generates a Base58Check encoding of this private key."""
         version = network.SECRET_KEY
         return base58.b58encode_check(bytes([version]) + bytes(self))
 
@@ -872,19 +876,20 @@ class PublicKey(PublicKeyBase):
         if derived_public_key is None:
             raise ValueError("Could not recover public key from the provided signature.")
 
-        ver, h160 = address_to_key_hash(address)
+        _, h160 = address_to_key_hash(address)
         hash160 = derived_public_key.hash160(compressed)
         if hash160 != h160:
             return False
 
         return derived_public_key.verify(msg_hash, sig)
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, network=BitcoinMainNet):
         p = ECPointAffine(bitcoin_curve, x, y)
         if not bitcoin_curve.is_on_curve(p):
             raise ValueError("The provided (x, y) are not on the secp256k1 curve.")
 
         self.point = p
+        self.network = network
 
         # RIPEMD-160 of SHA-256
         self.ripe = ripemd160(hashlib.sha256(bytes(self)).digest())
@@ -897,7 +902,6 @@ class PublicKey(PublicKeyBase):
         """
         return binascii.hexlify(self.compressed_bytes).decode()
 
-    
     def to_public_pair(self):
         """ Return the public key points as a PublicPair.
         """
@@ -920,46 +924,73 @@ class PublicKey(PublicKeyBase):
         """
         return self.ripe_compressed if compressed else self.ripe
 
-    def address(self, compressed=True, network=BitcoinMainNet, mode=None, witness_version=0):
-        """ Address property that returns a user-friendly encoding of the public key.
+    def base58_address(self, compressed=True):
+        """ Address property that returns a base58 encoding of the public key.
 
         Args:
             compressed (bool): Whether or not the compressed key should
                be used.
-            network: Network to work in. Default is Bitcoin mainnet.
-            mode (str): Determines what kind of address to create. You must choose a
-                mode that is supported by the network. Default is the first mode in the list
-                for that network.
-            witness_version (int): Used only when creating Bech32 addresses.
+
+        Returns:
+            bytes: Address encoded in Base58Check.
+        """
+        if not self.network or not self.network.ADDRESS_MODE:
+            raise TypeError("Invalid network parameter")
+        elif "BASE58" not in self.network.ADDRESS_MODE:
+            raise TypeError("Base58 addresses are not supported for this network")
+
+        # Put the version byte in front, 0x00 for Mainnet, 0x6F for testnet
+        version = bytes([self.network.PUBKEY_ADDRESS])
+        return base58.b58encode_check(version + self.hash160(compressed))
+
+
+    def bech32_address(self, compressed=True, witness_version=0):
+        """ Address property that returns a bech32 encoding of the public key.
+
+        Args:
+            compressed (bool): Whether or not the compressed key should
+               be used. It is recommended to leave this value as true - Uncompressed segwit
+               addresses are non-standard on most networks, preventing them from being broadcasted
+               normally, and should be avoided.
+            witness_version (int): Witness version to use for theBech32 address.
                 Allowed values are 0 (segwit) and 1 (Taproot).
 
         Returns:
-            bytes: Address encoded with Base58Check, hexadecimal, or Bech32 accordingly.
+            bytes: Address encoded in Bech32.
         """
-        if not network or not network.ADDRESS_MODE:
+
+        if not self.network or not self.network.ADDRESS_MODE:
             raise TypeError("Invalid network parameter")
-        
-        if not mode:
-            mode = network.ADDRESS_MODE[0]
-        
-        mode = mode.upper()
-        if mode == 'HEX':
-            version = '0x'
-            return version + binascii.hexlify(self.keccak[12:]).decode('ascii')
-        elif mode == 'BASE58':
-            # Put the version byte in front, 0x00 for Mainnet, 0x6F for testnet
-            version = bytes([network.PUBKEY_ADDRESS])
-            return base58.b58encode_check(version + self.hash160(compressed))
-        elif mode == 'BECH32':
-            if witness_version < 0 or witness_version > 1:
-                raise ValueError("Unknown witness version")
-            elif not compressed and network.NAME == "BTC":
-                raise ValueError("Using uncompressed bech32 addresses is non-standard and may lead to funds loss")
-            elif not network.BECH32_PREFIX:
-                raise ValueError("Network does not support Bech32")
-            return bech32_encode(network.BECH32_PREFIX, witness_version, self.hash160(True))
+        elif "BECH32" not in self.network.ADDRESS_MODE:
+            raise TypeError("Bech32 addresses are not supported for this network")
+
+        if not self.network.BECH32_PREFIX:
+            raise ValueError("Network does not support Bech32")
+        return bech32_encode(self.network.BECH32_PREFIX, witness_version, self.hash160(compressed))
+
+
+    def hex_address(self):
+        """ Address property that returns a hexadecimal encoding of the public key. """
+
+        if not self.network or not self.network.ADDRESS_MODE:
+            raise TypeError("Invalid network parameter")
+        elif "HEX" not in self.network.ADDRESS_MODE:
+            raise TypeError("HExadecimal addresses are not supported for this network")
+
+        version = '0x'
+        return version + binascii.hexlify(self.keccak[12:]).decode('ascii')
+
+
+    def address(self, compressed=True, witness_version=0):
+        """Returns the address genereated according to the first supported address format by the network."""
+        if self.network.ADDRESS_MODE[0] == "BASE58":
+            return self.base58_address(compressed)
+        elif self.network.ADDRESS_MODE[0] == "BECH32":
+            return self.bech32_address(compressed, witness_version)
+        elif self.network.ADDRESS_MODE[0] == "HEX":
+            return self.hex_address()
         else:
-            raise ValueError("Unknown mode")
+            raise TypeError("Network does not support any addres type")
 
     def verify(self, message, signature, do_hash=True):
         """ Verifies that message was appropriately signed.
@@ -1176,23 +1207,31 @@ class Signature(object):
         return self.s
 
     def _canonicalize(self):
-        rv = []
-        for x in [self.r, self.s]:
-            # Compute minimum bytes to represent integer
-            bl = math.ceil(x.bit_length() / 8)
-            # Make sure it's at least one byte in length
-            if bl == 0:
-                bl += 1
-            x_bytes = x.to_bytes(bl, 'big')
+        # Compute minimum bytes to represent integer
+        bl = math.ceil(self.r.bit_length() / 8)
+        # Make sure it's at least one byte in length
+        if bl == 0:
+            bl += 1
+        r_bytes = self.r.to_bytes(bl, 'big')
 
-            # make sure there's no way it could be interpreted
-            # as a negative integer
-            if x_bytes[0] & 0x80:
-                x_bytes = bytes([0]) + x_bytes
+        # make sure there's no way it could be interpreted
+        # as a negative integer
+        if r_bytes[0] & 0x80:
+            r_bytes = bytes([0]) + r_bytes
 
-            rv.append(x_bytes)
+        # Compute minimum bytes to represent integer
+        bl = math.ceil(self.s.bit_length() / 8)
+        # Make sure it's at least one byte in length
+        if bl == 0:
+            bl += 1
+        s_bytes = self.s.to_bytes(bl, 'big')
 
-        return rv
+        # make sure there's no way it could be interpreted
+        # as a negative integer
+        if s_bytes[0] & 0x80:
+            s_bytes = bytes([0]) + s_bytes
+
+        return (r_bytes, s_bytes)
 
     def to_der(self):
         """ Encodes this signature using DER
@@ -1242,6 +1281,8 @@ class HDKey(object):
            number. Values >= 0x80000000 are considered hardened children.
         parent_fingerprint (bytes): The fingerprint of the parent node. This
            is 0x00000000 for the master node.
+        :param network: The network to use for things like defining key
+            key paths and supported address formats. Defaults to Bitcoin mainnet.
 
     Returns:
         HDKey: An HDKey object.
@@ -1264,7 +1305,7 @@ class HDKey(object):
         return HDKey.from_bytes(base58.b58decode_check(key))
 
     @staticmethod
-    def from_bytes(b):
+    def from_bytes(b, network=BitcoinMainNet):
         """ Generates either a HDPrivateKey or HDPublicKey from the underlying
         bytes.
 
@@ -1290,7 +1331,7 @@ class HDKey(object):
         key_bytes = b[45:78]
 
         rv = None
-        if version == HDPrivateKey.MAINNET_VERSION or version == HDPrivateKey.TESTNET_VERSION:
+        if version == network.EXT_PRIVATE_KEY or version == network.EXT_SEGWIT_PRIVATE_KEY:
             if key_bytes[0] != 0:
                 raise ValueError("First byte of private key must be 0x00!")
 
@@ -1300,7 +1341,7 @@ class HDKey(object):
                               index=index,
                               depth=depth,
                               parent_fingerprint=parent_fingerprint)
-        elif version == HDPublicKey.MAINNET_VERSION or version == HDPublicKey.TESTNET_VERSION:
+        elif version == network.EXT_PUBLIC_KEY or version == network.EXT_SEGWIT_PUBLIC_KEY:
             if key_bytes[0] != 0x02 and key_bytes[0] != 0x03:
                 raise ValueError("First byte of public key must be 0x02 or 0x03!")
 
@@ -1312,7 +1353,7 @@ class HDKey(object):
                              depth=depth,
                              parent_fingerprint=parent_fingerprint)
         else:
-            raise ValueError("incorrect encoding.")
+            raise ValueError("Provided private key does not match any of the network's extended version bytes")
 
         return rv
 
@@ -1384,7 +1425,7 @@ class HDKey(object):
 
         return "/".join(p)
 
-    def __init__(self, key, chain_code, index, depth, parent_fingerprint):
+    def __init__(self, key, chain_code, index, depth, parent_fingerprint, network):
         if index < 0 or index > 0xffffffff:
             raise ValueError("index is out of range: 0 <= index <= 2**32 - 1")
 
@@ -1397,6 +1438,14 @@ class HDKey(object):
         self.index = index
 
         self.parent_fingerprint = get_bytes(parent_fingerprint)
+        self.network = network
+
+    @property
+    def keydata(self):
+        """
+        Returns the public key object.
+        """
+        return self._key
 
     @property
     def master(self):
@@ -1445,20 +1494,40 @@ class HDKey(object):
         """
         return self.identifier[:4]
 
-    def to_b58check(self, network=BitcoinMainNet):
+    def to_b58check(self):
         """ Generates a Base58Check encoding of this key.
-
-        Args:
-            network: Network to work in. Default is Bitcoin mainnet.
 
         Returns:
             str: A Base58Check encoded string representing the key.
         """
-        b = self.testnet_bytes if network.TESTNET else bytes(self)
+        b = self.serialize()
         return base58.b58encode_check(b)
 
-    def _serialize(self, network=BitcoinMainNet):
-        version = self.TESTNET_VERSION if network.TESTNET else self.MAINNET_VERSION
+    def segwit_serialize(self, private=True):
+        """Returns the extended public or private key for Segwit addresses."""
+        if self.network.BIP32_SEGWIT_PATH:
+            if private:
+                version = self.network.EXT_SEGWIT_PRIVATE_KEY
+            else:
+                version = self.network.EXT_SEGWIT_PUBLIC_KEY
+        else:
+            raise ValueError("Segwit P2WPKH is not supported for this network.")
+
+        key_bytes = self._key.compressed_bytes if isinstance(self, HDPublicKey) else b'\x00' + bytes(self._key)
+        return (version.to_bytes(length=4, byteorder='big') +
+                bytes([self.depth]) +
+                self.parent_fingerprint +
+                self.index.to_bytes(length=4, byteorder='big') +
+                self.chain_code +
+                key_bytes)
+
+    def serialize(self, private=True):
+        """Returns the extended public or private key for legacy addresses."""
+        if private:
+            version = self.network.EXT_PRIVATE_KEY
+        else:
+            version = self.network.EXT_PUBLIC_KEY
+
         key_bytes = self._key.compressed_bytes if isinstance(self, HDPublicKey) else b'\x00' + bytes(self._key)
         return (version.to_bytes(length=4, byteorder='big') +
                 bytes([self.depth]) +
@@ -1468,18 +1537,7 @@ class HDKey(object):
                 key_bytes)
 
     def __bytes__(self):
-        return self._serialize()
-
-    @property
-    def testnet_bytes(self):
-        """ Serialization of the key for testnet.
-
-        Returns:
-            bytes:
-                A 78-byte serialization of the key, specifically for
-                testnet (i.e. the first 2 bytes will be 0x0435).
-        """
-        return self._serialize(True)
+        return self.serialize()
 
 
 class HDPrivateKey(HDKey, PrivateKeyBase):
@@ -1507,33 +1565,37 @@ class HDPrivateKey(HDKey, PrivateKeyBase):
         HDKey: An HDKey object.
 
     """
-    MAINNET_VERSION = 0x0488ADE4
-    TESTNET_VERSION = 0x04358394
 
     @staticmethod
-    def master_key_from_mnemonic(mnemonic, passphrase=''):
+    def master_key_from_mnemonic(mnemonic, passphrase='', network=BitcoinMainNet):
         """ Generates a master key from a mnemonic.
 
         Args:
-            mnemonic (str): The mnemonic sentence representing
+            :param mnemonic (str): The mnemonic sentence representing
                the seed from which to generate the master key.
-            passphrase (str): Password if one was used.
+            :param passphrase (str): Password if one was used.
+            :param network: The network to use for things like defining key
+                key paths and supported address formats. Defaults to Bitcoin mainnet.
 
         Returns:
             HDPrivateKey: the master private key.
         """
         return HDPrivateKey.master_key_from_seed(
-            Mnemonic.to_seed(mnemonic, passphrase))
+            Mnemonic.to_seed(mnemonic, passphrase), network=network)
 
     @staticmethod
-    def master_key_from_entropy(passphrase='', strength=128):
+    def master_key_from_entropy(passphrase='', strength=128, network=BitcoinMainNet):
         """ Generates a master key from system entropy.
 
         Args:
-            strength (int): Amount of entropy desired. This should be
-               a multiple of 32 between 128 and 256.
+            :param strength (int): Amount of entropy desired, in bits.
+                This should be a multiple of 32 between 128 and 256.
+                It directly affects the length of the mnemonic exported
+                (each additional 32 bits adds an extra three words at the end).
             passphrase (str): An optional passphrase for the generated
                mnemonic string.
+            :param network: The network to use for things like defining key
+                key paths and supported address formats. Defaults to Bitcoin mainnet.
 
         Returns:
             HDPrivateKey, str:
@@ -1549,26 +1611,28 @@ class HDPrivateKey(HDKey, PrivateKeyBase):
         m = Mnemonic(language='english')
         n = m.to_mnemonic(entropy)
         return HDPrivateKey.master_key_from_seed(
-            Mnemonic.to_seed(n, passphrase)), n
+            Mnemonic.to_seed(n, passphrase), network=network), n
 
     @staticmethod
-    def master_key_from_seed(seed):
+    def master_key_from_seed(seed, network=BitcoinMainNet):
         """ Generates a master key from a provided seed.
 
         Args:
-            seed (bytes or str): a string of bytes or a hex string
+            :param seed (bytes or str): a string of bytes or a hex string
+            :param network: The network to use for things like defining key
+                key paths and supported address formats. Defaults to Bitcoin mainnet.
 
         Returns:
             HDPrivateKey: the master private key.
         """
-        S = get_bytes(seed)
-        I = hmac.new(b"Bitcoin seed", S, hashlib.sha512).digest()
+        seed_bytes = get_bytes(seed)
+        I = hmac.new(b"Bitcoin seed", seed_bytes, hashlib.sha512).digest()
         Il, Ir = I[:32], I[32:]
         parse_Il = int.from_bytes(Il, 'big')
         if parse_Il == 0 or parse_Il >= bitcoin_curve.n:
             raise ValueError("Bad seed, resulting in invalid key!")
 
-        return HDPrivateKey(key=parse_Il, chain_code=Ir, index=0, depth=0)
+        return HDPrivateKey(key=parse_Il, chain_code=Ir, index=0, depth=0, network=network)
 
     @staticmethod
     def from_parent(parent_key, i):
@@ -1584,7 +1648,7 @@ class HDPrivateKey(HDKey, PrivateKeyBase):
 
         hmac_key = parent_key.chain_code
         if i & 0x80000000:
-            hmac_data = b'\x00' + bytes(parent_key._key) + i.to_bytes(length=4, byteorder='big')
+            hmac_data = b'\x00' + bytes(parent_key.keydata()) + i.to_bytes(length=4, byteorder='big')
         else:
             hmac_data = parent_key.public_key.compressed_bytes + i.to_bytes(length=4, byteorder='big')
 
@@ -1595,27 +1659,28 @@ class HDPrivateKey(HDKey, PrivateKeyBase):
         if parse_Il >= bitcoin_curve.n:
             return None
 
-        child_key = (parse_Il + parent_key._key.key) % bitcoin_curve.n
-
+        child_key = (parse_Il + parent_key.keydata().key) % bitcoin_curve.n
         if child_key == 0:
             # Incredibly unlucky choice
-            return None
+            raise ValueError("Child with index {i} causes a private key at zero, choose another one.")
 
         child_depth = parent_key.depth + 1
         return HDPrivateKey(key=child_key,
                             chain_code=Ir,
                             index=i,
                             depth=child_depth,
-                            parent_fingerprint=parent_key.fingerprint)
+                            parent_fingerprint=parent_key.fingerprint,
+                            network=parent_key.network)
 
     def __init__(self, key, chain_code, index, depth,
-                 parent_fingerprint=b'\x00\x00\x00\x00'):
+                 parent_fingerprint=b'\x00\x00\x00\x00', network=BitcoinMainNet):
         if index < 0 or index > 0xffffffff:
             raise ValueError("index is out of range: 0 <= index <= 2**32 - 1")
 
         private_key = PrivateKey(key)
+        PrivateKeyBase.__init__(self, key)
         HDKey.__init__(self, private_key, chain_code, index, depth,
-                       parent_fingerprint)
+                       parent_fingerprint, network)
         self._public_key = None
 
     @property
@@ -1633,7 +1698,8 @@ class HDPrivateKey(HDKey, PrivateKeyBase):
                                            chain_code=self.chain_code,
                                            index=self.index,
                                            depth=self.depth,
-                                           parent_fingerprint=self.parent_fingerprint)
+                                           parent_fingerprint=self.parent_fingerprint,
+                                           network=self.network)
 
         return self._public_key
 
@@ -1751,12 +1817,17 @@ class HDPublicKey(HDKey, PublicKeyBase):
 
     """
 
-    MAINNET_VERSION = 0x0488B21E
-    TESTNET_VERSION = 0x043587CF
-
     @staticmethod
     def from_parent(parent_key, i):
         """
+        Derives a child HD private key at the particular index.
+
+        Args:
+            parent_key (HDPrivateKey): The parent key to derive a child key from
+            i (int): The index for deriving the child key
+        
+        Returns:
+            HDPrivateKey: an extended private key child.
         """
         if isinstance(parent_key, HDPrivateKey):
             # Get child private key
@@ -1774,7 +1845,7 @@ class HDPublicKey(HDKey, PublicKeyBase):
                     return None
 
                 temp_priv_key = PrivateKey(parse_Il)
-                Ki = temp_priv_key.public_key.point + parent_key._key.point
+                Ki = temp_priv_key.public_key.point + parent_key.keydata().point
                 if Ki.infinity:
                     return None
 
@@ -1784,14 +1855,15 @@ class HDPublicKey(HDKey, PublicKeyBase):
                                    chain_code=Ir,
                                    index=i,
                                    depth=child_depth,
-                                   parent_fingerprint=parent_key.fingerprint)
+                                   parent_fingerprint=parent_key.fingerprint,
+                                   network=parent_key.network)
         else:
             raise TypeError("parent_key must be either a HDPrivateKey or HDPublicKey object")
 
     def __init__(self, x, y, chain_code, index, depth,
-                 parent_fingerprint=b'\x00\x00\x00\x00'):
+                 parent_fingerprint=b'\x00\x00\x00\x00', network=BitcoinMainNet):
         key = PublicKey(x, y)
-        HDKey.__init__(self, key, chain_code, index, depth, parent_fingerprint)
+        HDKey.__init__(self, key, chain_code, index, depth, parent_fingerprint, network)
         PublicKeyBase.__init__(self)
 
     @property
@@ -1822,21 +1894,21 @@ class HDPublicKey(HDKey, PublicKeyBase):
         """
         return self._key.hash160(True)
 
-    def address(self, compressed=True, network=BitcoinMainNet, mode=None):
-        """ Address property that returns a user-friendly encoding of the public key.
+    def base58_address(self, compressed=True):
+        """ This is a wrapper around PublicKey.base58_address(). """
+        return self._key.base58_address(compressed)
 
-        Args:
-            compressed (bool): Whether or not the compressed key should
-               be used.
-            network: Network to work in. Default is Bitcoin mainnet.
-            mode (str): Determines what kind of address to create. You must choose a
-                mode that is supported by the network. Default is the first mode in the list
-                for that network.
+    def bech32_address(self, compressed=True, witness_version=0):
+        """ This is a wrapper around PublicKey.bech32_address(). """
+        return self._key.bech32_address(compressed, witness_version)
 
-        Returns:
-            bytes: Address encoded with Base58Check, hexadecimal, or Bech32 accordingly.
-        """
-        return self._key.address(compressed=compressed, network=network, mode=mode)
+    def hex_address(self, compressed=True):
+        """ This is a wrapper around PublicKey.hex_address(). """
+        return self._key.bech32_address(compressed)
+
+    def address(self, compressed=True, witness_version=0):
+        """ This is a wrapper around PublicKey.address(). """
+        return self._key.address(compressed, witness_version)
 
     def verify(self, message, signature, do_hash=True):
         """ Verifies that message was appropriately signed.
@@ -1864,3 +1936,6 @@ class HDPublicKey(HDKey, PublicKeyBase):
             b (bytes): A 33-byte long byte string.
         """
         return self._key.compressed_bytes
+
+    def __int__(self):
+        return int(self._key)
