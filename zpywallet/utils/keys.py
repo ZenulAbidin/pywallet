@@ -22,11 +22,12 @@ import os
 from collections import namedtuple
 
 
-from mnemonic.mnemonic import Mnemonic
-import base58
 from Crypto.Hash import keccak
 
 import six
+
+from .base58 import b58encode_check, b58decode_check
+from ..mnemonic.mnemonic import Mnemonic
 from .bech32 import encode as bech32_encode
 from .ecdsa import Point
 from .ecdsa import ECPointAffine
@@ -96,7 +97,7 @@ def address_to_key_hash(s):
         (version, h160) (tuple): A tuple containing the version and
         RIPEMD-160 hash of the public key.
     """
-    n = base58.b58decode_check(s)
+    n = b58decode_check(s)
     version = n[0]
     h160 = n[1:]
     return version, h160
@@ -455,7 +456,7 @@ class PrivateKey(PrivateKeyBase):
         Returns:
             PrivateKey: A PrivateKey object
         """
-        b58dec = base58.b58decode_check(private_key)
+        b58dec = b58decode_check(private_key)
         version = b58dec[0]
         assert version == network.SECRET_KEY
 
@@ -630,7 +631,7 @@ class PrivateKey(PrivateKeyBase):
         if compressed:
             extended_key_bytes += b'\01'
         # And return the base58-encoded result with a checksum
-        return base58.b58encode_check(extended_key_bytes)
+        return b58encode_check(extended_key_bytes)
 
     @classmethod
     def from_wif(cls, wif, network=BitcoinMainNet):
@@ -647,7 +648,7 @@ class PrivateKey(PrivateKeyBase):
         # Decode the base58 string and ensure the checksum is valid
         wif = ensure_str(wif)
         try:
-            extended_key_bytes = base58.b58decode_check(wif)
+            extended_key_bytes = b58decode_check(wif)
         except ValueError as e:
             # Invalid checksum!
             raise ChecksumException(e) from e
@@ -679,7 +680,7 @@ class PrivateKey(PrivateKeyBase):
     def to_b58check(self, network=BitcoinMainNet):
         """ Generates a Base58Check encoding of this private key."""
         version = network.SECRET_KEY
-        return base58.b58encode_check(bytes([version]) + bytes(self))
+        return b58encode_check(bytes([version]) + bytes(self))
 
     def get_extended_key(self, network):
         """Get the extended key.
@@ -941,7 +942,7 @@ class PublicKey(PublicKeyBase):
 
         # Put the version byte in front, 0x00 for Mainnet, 0x6F for testnet
         version = bytes([self.network.PUBKEY_ADDRESS])
-        return base58.b58encode_check(version + self.hash160(compressed))
+        return b58encode_check(version + self.hash160(compressed))
 
 
     def bech32_address(self, compressed=True, witness_version=0):
@@ -1302,7 +1303,7 @@ class HDKey(object):
                 Either an HD private or
                 public key object, depending on what was serialized.
         """
-        return HDKey.from_bytes(base58.b58decode_check(key))
+        return HDKey.from_bytes(b58decode_check(key))
 
     @staticmethod
     def from_bytes(b, network=BitcoinMainNet):
@@ -1501,7 +1502,7 @@ class HDKey(object):
             str: A Base58Check encoded string representing the key.
         """
         b = self.serialize()
-        return base58.b58encode_check(b)
+        return b58encode_check(b)
 
     def segwit_serialize(self, private=True):
         """Returns the extended public or private key for Segwit addresses."""

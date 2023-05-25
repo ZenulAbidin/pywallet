@@ -1,21 +1,3 @@
-import hashlib
-import math
-import random
-import hmac
-
-from collections import namedtuple
-
-
-class InvalidKeyDataException(Exception):
-    pass
-
-# Links
-# https://en.wikibooks.org/wiki/Cryptography/Elliptic_curve
-# https://en.bitcoin.it/wiki/Secp256k1
-# https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
-# http://www.coindesk.com/math-behind-bitcoin/
-# https://bitcointalk.org/index.php?topic=289795.120
-
 """ This module is intended to provide straight-forward ECDSA
     capability in a pure Python module. It provides group addition and
     multiplication using either Affine or Jacobian coordinates and
@@ -26,6 +8,29 @@ class InvalidKeyDataException(Exception):
     etc. For those requiring a more secure implementation, use:
     https://github.com/dstufft/pynacl.
 """
+
+
+import hashlib
+import math
+import random
+import hmac
+
+from collections import namedtuple
+
+#FIXME APPALING! Neither this file and the `ecdsa` module are suitable for production use.
+
+# Links
+# https://en.wikibooks.org/wiki/Cryptography/Elliptic_curve
+# https://en.bitcoin.it/wiki/Secp256k1
+# https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
+# http://www.coindesk.com/math-behind-bitcoin/
+# https://bitcointalk.org/index.php?topic=289795.120
+
+
+
+class InvalidKeyDataException(Exception):
+    pass
+
 
 class EllipticCurveBase(object):
     """ A generic class for elliptic curves and operations on them.

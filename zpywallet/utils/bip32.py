@@ -7,14 +7,12 @@ import hmac
 from os import urandom
 import time
 
-from mnemonic.mnemonic import Mnemonic
-import base58
 from ecdsa import SECP256k1
 from ecdsa.ecdsa import Public_key as _ECDSA_Public_key
 import six
-from cachetools.func import lru_cache
 
-
+from .base58 import b58encode_check, b58decode_check
+from ..mnemonic.mnemonic import Mnemonic
 from .keys import HDPrivateKey, incompatible_network_exception_factory, PrivateKey, PublicKey, PublicPair
 from .ecdsa import InvalidKeyDataException
 from .utils import ensure_bytes, ensure_str, hash160, is_hex_string, long_or_int, long_to_hex
@@ -244,7 +242,6 @@ class Wallet(object):
         """
         return self.get_child(84, is_prime=True)
 
-    @lru_cache(maxsize=1024)
     def get_child(self, child_number, is_prime=None, as_private=True):
         """Derive a child key.
 
@@ -459,7 +456,7 @@ class Wallet(object):
     def serialize_b58(self, private=True):
         """Encode the serialized node in base58."""
         return ensure_str(
-            base58.b58encode_check(unhexlify(self.serialize(private))))
+            b58encode_check(unhexlify(self.serialize(private))))
 
     def address(self, compressed=True,witness_version=0):
         """Create a public address from this Wallet.
@@ -515,7 +512,7 @@ class Wallet(object):
                 key = unhexlify(key)
             elif len(key) == 111:
                 # We have a base58 encoded string
-                key = base58.b58decode_check(key)
+                key = b58decode_check(key)
         # Now that we double checkd the values, convert back to bytes because
         # they're easier to slice
         version, depth, parent_fingerprint, child, chain_code, key_data = (
