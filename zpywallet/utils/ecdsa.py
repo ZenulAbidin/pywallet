@@ -188,6 +188,11 @@ class EllipticCurveBase(object):
 
 Point = namedtuple('Point', ['x', 'y'])
 
+#TODO we don't need all of these specialized ECC functions, we just need:
+# private key creation
+# public key (and Y coordinate?) extraction
+# secure ECDSA
+# Public/private key to bytes
 def montgomery_ladder(k, p):
     """ Implements scalar multiplication via the Montgomery ladder
     technique.

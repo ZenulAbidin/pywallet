@@ -13,7 +13,7 @@ import six
 
 from .base58 import b58encode_check, b58decode_check
 from ..mnemonic.mnemonic import Mnemonic
-from .keys import HDPrivateKey, incompatible_network_exception_factory, PrivateKey, PublicKey, PublicPair
+from .keys import incompatible_network_exception_factory, PrivateKey, PublicKey, PublicPair
 from .ecdsa import InvalidKeyDataException
 from .utils import ensure_bytes, ensure_str, hash160, is_hex_string, long_or_int, long_to_hex
 
@@ -435,9 +435,13 @@ class Wallet(object):
             raise ValueError("Cannot serialize a public key as private")
 
         if private:
+            if not self.network.EXT_SECRET_KEY:
+                raise ValueError("Network does not support private key serialization")
             network_version = long_to_hex(
                 self.network.EXT_SECRET_KEY, 8)
         else:
+            if not self.network.EXT_PUBLIC_KEY:
+                raise ValueError("Network does not support public key serialization")
             network_version = long_to_hex(
                 self.network.EXT_PUBLIC_KEY, 8)
         depth = long_to_hex(self.depth, 2)
@@ -458,7 +462,7 @@ class Wallet(object):
         return ensure_str(
             b58encode_check(unhexlify(self.serialize(private))))
 
-    def address(self, compressed=True,witness_version=0):
+    def address(self, compressed=True, witness_version=0):
         """Create a public address from this Wallet.
 
         Public addresses can accept payments.
@@ -475,7 +479,7 @@ class Wallet(object):
         Returns:
             str: An encoded address
         """
-        key = PublicKey.from_bytes(unhexlify(self.get_public_key_hex()))
+        key = PublicKey.from_bytes(unhexlify(self.get_public_key_hex()), network=self.network)
         return ensure_str(key.address(compressed=compressed,
                                       witness_version=witness_version))
 
@@ -645,13 +649,6 @@ class Wallet(object):
         return cls(private_exponent=long_or_int(hexlify(Il), 16),
                    chain_code=hexlify(Ir),
                    network=network)
-
-    @classmethod
-    def from_hd_private_key(cls, hd_private_key: HDPrivateKey):
-        """Converts an HDPrivateKey into a Wallet object."""
-        return Wallet(private_key=hd_private_key.keydata(), depth=hd_private_key.depth,
-                      chain_code=hd_private_key.chain_code, parent_fingerprint=hd_private_key.parent_fingerprint,
-                    child_number=hd_private_key.index, network=hd_private_key.network)
 
     def __eq__(self, other):
         attrs = [

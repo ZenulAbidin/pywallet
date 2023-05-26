@@ -22,7 +22,7 @@ import os
 from collections import namedtuple
 
 
-from Crypto.Hash import keccak
+from .keccak import Keccak256
 
 import six
 
@@ -66,9 +66,6 @@ class InvalidChildException(Exception):
 
 bitcoin_curve = secp256k1()
 
-def sha3_256(x):
-    """ Wrapper to quickly generate 256 digest bits of SHA3 Keccac. """
-    return keccak.new(digest_bits=256, data=x)
 
 Point = namedtuple('Point', ['x', 'y'])
 
@@ -101,10 +98,6 @@ def address_to_key_hash(s):
     version = n[0]
     h160 = n[1:]
     return version, h160
-
-
-def sha3(seed):
-    return sha3_256(seed).digest()
 
 
 def get_bytes(s):
@@ -759,7 +752,7 @@ class PublicKey(PublicKeyBase):
         return PublicKey.from_bytes(base64.b64decode(b64str))
 
     @staticmethod
-    def from_bytes(key_bytes):
+    def from_bytes(key_bytes, network=BitcoinMainNet):
         """ Generates a public key object from a byte (or hex) string.
 
         The byte stream must be of the SEC variety
@@ -773,7 +766,10 @@ class PublicKey(PublicKeyBase):
         the x component.
 
         Args:
-            key_bytes (bytes or str): A byte stream that conforms to the above.
+            :param key_bytes (bytes or str): A byte stream that conforms to the above.
+            :param network: The network to use for things like defining key
+                key paths and supported address formats. Defaults to Bitcoin mainnet.
+
 
         Returns:
             PublicKey: A PublicKey object.
@@ -804,7 +800,7 @@ class PublicKey(PublicKeyBase):
         else:
             return None
 
-        return PublicKey(x, y)
+        return PublicKey(x, y, network)
 
     @staticmethod
     def from_hex(h):
@@ -896,7 +892,7 @@ class PublicKey(PublicKeyBase):
         self.ripe = ripemd160(hashlib.sha256(bytes(self)).digest())
         self.ripe_compressed = ripemd160(hashlib.sha256(bytes(self.compressed_bytes)).digest())
 
-        self.keccak = sha3(bytes(self)[1:])
+        self.keccak = Keccak256(bytes(self)[1:]).digest()
 
     def to_compressed_hex(self):
         """Return the compressed public key in hexadecimal
@@ -1332,7 +1328,7 @@ class HDKey(object):
         key_bytes = b[45:78]
 
         rv = None
-        if version == network.EXT_PRIVATE_KEY or version == network.EXT_SEGWIT_PRIVATE_KEY:
+        if version == network.EXT_SECRET_KEY or version == network.EXT_SEGWIT_SECRET_KEY:
             if key_bytes[0] != 0:
                 raise ValueError("First byte of private key must be 0x00!")
 
@@ -1525,7 +1521,7 @@ class HDKey(object):
     def serialize(self, private=True):
         """Returns the extended public or private key for legacy addresses."""
         if private:
-            version = self.network.EXT_PRIVATE_KEY
+            version = self.network.EXT_SECRET_KEY
         else:
             version = self.network.EXT_PUBLIC_KEY
 
@@ -1649,7 +1645,7 @@ class HDPrivateKey(HDKey, PrivateKeyBase):
 
         hmac_key = parent_key.chain_code
         if i & 0x80000000:
-            hmac_data = b'\x00' + bytes(parent_key.keydata()) + i.to_bytes(length=4, byteorder='big')
+            hmac_data = b'\x00' + bytes(parent_key.keydata) + i.to_bytes(length=4, byteorder='big')
         else:
             hmac_data = parent_key.public_key.compressed_bytes + i.to_bytes(length=4, byteorder='big')
 
@@ -1660,7 +1656,7 @@ class HDPrivateKey(HDKey, PrivateKeyBase):
         if parse_Il >= bitcoin_curve.n:
             return None
 
-        child_key = (parse_Il + parent_key.keydata().key) % bitcoin_curve.n
+        child_key = (parse_Il + parent_key.keydata.key) % bitcoin_curve.n
         if child_key == 0:
             # Incredibly unlucky choice
             raise ValueError("Child with index {i} causes a private key at zero, choose another one.")
@@ -1846,7 +1842,7 @@ class HDPublicKey(HDKey, PublicKeyBase):
                     return None
 
                 temp_priv_key = PrivateKey(parse_Il)
-                Ki = temp_priv_key.public_key.point + parent_key.keydata().point
+                Ki = temp_priv_key.public_key.point + parent_key.keydata.point
                 if Ki.infinity:
                     return None
 
