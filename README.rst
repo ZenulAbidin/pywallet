@@ -170,7 +170,7 @@ Output looks like this:
 -----
 
 CONTRIBUTING
-=========
+============
 
 Bugfixes and enhancements are welcome. Please read CONTRIBUTING.md for contributing instructions.
 
