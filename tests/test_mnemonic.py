@@ -125,11 +125,3 @@ class MnemonicTest(unittest.TestCase):
         self.assertEqual(
             "access access acb acc act action", m.expand("access acce acb acc act acti")
         )
-
-
-def __main__() -> None:
-    unittest.main()
-
-
-if __name__ == "__main__":
-    __main__()

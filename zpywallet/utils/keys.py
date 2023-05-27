@@ -31,10 +31,6 @@ from ..network import BitcoinMainNet
 
 
 
-PublicPair = namedtuple("PublicPair", ["x", "y"])
-
-
-
 class InvalidKeyDataException(Exception):
     pass
 
