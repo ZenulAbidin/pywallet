@@ -4,7 +4,7 @@ This file contains parameters and constants for all supported networks.
 
 class BitcoinCashMainNet(object):
     """ Bitcoin Cash MainNet version bytes. """
-    NAME = "Bitcoin Cash Main Net"
+    NAME = "Bitcoin Cash"
     COIN = "BCH"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -33,7 +33,7 @@ class DashMainNet(object):
 
     See: https://www.dash.org/forum/index.php?threads/dash-bip32-serialization-values-dev-discussion-wont-apply-to-most.8092/
     """
-    NAME = "Dash Main Net"
+    NAME = "Dash"
     COIN = "DASH"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -56,7 +56,7 @@ class DashInvertedMainNet(object):
     extended version bytes respectively. It intentionally has the same name
     and coin as the other Dash mainnets.
     """
-    NAME = "Dash Main Net"
+    NAME = "Dash"
     COIN = "DASH"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -78,7 +78,7 @@ class DashBTCMainNet(object):
     Extended version bytes are the same as for Bitcoin, i.e. xpub/xprv,
     for maximum wallet compatibility.
     """
-    NAME = "Dash Main Net"
+    NAME = "Dash"
     COIN = "DASH"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -97,7 +97,7 @@ class DashBTCMainNet(object):
 
 class DashTestNet(object):
     """Dash TestNet version bytes."""
-    NAME = "Dash Test Net"
+    NAME = "Dash"
     COIN = "DASH"
     TESTNET = True
     ADDRESS_MODE = ["BASE58"]
@@ -115,7 +115,7 @@ class DashTestNet(object):
 
 class DashInvertedTestNet(object):
     """Dash TestNet version bytes with inverted extended version bytes."""
-    NAME = "Dash Test Net"
+    NAME = "Dash"
     COIN = "DASH"
     TESTNET = True
     ADDRESS_MODE = ["BASE58"]
@@ -135,7 +135,7 @@ class OmniMainNet(object):
     """Bitcoin MainNet version bytes.
     From https://github.com/OmniLayer/omnicore/blob/develop/src/chainparams.cpp
     """
-    NAME = "Omni Main Net"
+    NAME = "Omni"
     COIN = "USDT"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -155,7 +155,7 @@ class OmniTestNet(object):
     """Bitcoin MainNet version bytes.
     From https://github.com/OmniLayer/omnicore/blob/develop/src/chainparams.cpp
     """
-    NAME = "Omni Test Net"
+    NAME = "Omni"
     COIN = "USDT"
     TESTNET = True
     ADDRESS_MODE = ["BASE58"]
@@ -175,7 +175,7 @@ class BitcoinMainNet(object):
     """Bitcoin MainNet version bytes.
     From https://github.com/bitcoin/bitcoin/blob/v0.9.0rc1/src/chainparams.cpp
     """
-    NAME = "Bitcoin Main Net"
+    NAME = "Bitcoin"
     COIN = "BTC"
     TESTNET = False
     ADDRESS_MODE = ["BECH32", "BASE58"]
@@ -196,7 +196,7 @@ class BitcoinTestNet(object):
     """Bitcoin TestNet version bytes.
     From https://github.com/bitcoin/bitcoin/blob/v0.9.0rc1/src/chainparams.cpp
     """
-    NAME = "Bitcoin Test Net"
+    NAME = "Bitcoin"
     COIN = "BTC"
     TESTNET = True
     ADDRESS_MODE = ["BECH32", "BASE58"]
@@ -221,7 +221,7 @@ class LitecoinMainNet(object):
 
     Extemded version bytes from https://bitcointalk.org/index.php?topic=453395.0
     """
-    NAME = "Litecoin Main Net"
+    NAME = "Litecoin"
     COIN = "LTC"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -251,7 +251,7 @@ class LitecoinBTCMainNet(object):
 
     Extended version bytes same as bitcoin's
     """
-    NAME = "Litecoin Main Net"
+    NAME = "Litecoin"
     COIN = "LTC"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -281,7 +281,7 @@ class LitecoinTestNet(object):
     Primary version bytes from:
     https://github.com/litecoin-project/litecoin/blob/master-0.8/src/base58.h
     """
-    NAME = "Litecoin Test Net"
+    NAME = "Litecoin"
     COIN = "LTC"
     TESTNET = True
     ADDRESS_MODE = ["BASE58"]
@@ -308,7 +308,7 @@ class DogecoinMainNet(object):
     Unofficial extended version bytes from
     https://bitcointalk.org/index.php?topic=409731
     """
-    NAME = "Dogecoin Main Net"
+    NAME = "Dogecoin"
     COIN = "DOGE"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -338,7 +338,7 @@ class DogecoinBTCMainNet(object):
     Extended version bytes are the same as for Bitocin mainnet,
     i.e. xpub/xprv, for wallet compatibility.
     """
-    NAME = "Dogecoin Main Net"
+    NAME = "Dogecoin"
     COIN = "DOGE"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -368,7 +368,7 @@ class DogecoinTestNet(object):
     Unofficial extended version bytes from
     https://bitcointalk.org/index.php?topic=409731
     """
-    NAME = "Dogecoin Test Net"
+    NAME = "Dogecoin"
     COIN = "DOGE"
     TESTNET = True
     ADDRESS_MODE = ["BASE58"]
@@ -392,8 +392,8 @@ class BlockCypherTestNet(object):
     """BlockCypher TestNet version bytes.
     From http://dev.blockcypher.com/#testing
     """
-    NAME = "BlockCypher Test Net"
-    COIN = "BlockCypher"
+    NAME = "BlockCypher"
+    COIN = "BCY"
     ADDRESS_MODE = ["BASE58"]
     SCRIPT_ADDRESS = 0x1f  # int(0x1f) = 31
     PUBKEY_ADDRESS = 0x1b  # int(0x1b) = 27  # Used to create payment addresses
@@ -409,7 +409,7 @@ class BlockCypherTestNet(object):
 
 class EthereumMainNet(object):
     """Ethereum MainNet version bytes."""
-    NAME = "Ethereum Main Net"
+    NAME = "Ethereum"
     COIN = "ETH"
     TESTNET = False
     ADDRESS_MODE = ["HEX"]

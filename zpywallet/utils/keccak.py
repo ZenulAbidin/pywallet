@@ -1,10 +1,16 @@
+"""
+The keccak module provides an implementation of the Keccak hash function, including various parameter presets
+such as Keccak224, Keccak256, Keccak384, and Keccak512. The module offers a hashlib-compatible interface for
+easy integration into existing codebases.
+"""
+
 from math import log
 from operator import xor
 from copy import deepcopy
 from functools import reduce
 from binascii import hexlify
 
-# The Keccak-f round constants.
+# The round constants used in the Keccak-f permutation.
 RoundConstants = [
   0x0000000000000001,   0x0000000000008082,   0x800000000000808A,   0x8000000080008000,
   0x000000000000808B,   0x0000000080000001,   0x8000000080008081,   0x8000000000008009,
@@ -14,6 +20,7 @@ RoundConstants = [
   0x8000000080008081,   0x8000000000008080,   0x0000000080000001,   0x8000000080008008
 ]
 
+# The rotation constants used in the Keccak-f permutation.
 RotationConstants = [
   [  0,  1, 62, 28, 27, ],
   [ 36, 44,  6, 55, 20, ],
@@ -22,9 +29,11 @@ RotationConstants = [
   [ 18,  2, 61, 56, 14, ]
 ]
 
+# Bit masks used for circular rotations in the Keccak-f permutation.
 Masks = [(1 << i) - 1 for i in range(65)]
 
 def bits2bytes(x):
+    """Converts the given number of bits to the corresponding number of bytes, rounding up if necessary."""
     return (int(x) + 7) // 8
 
 def rol(value, left, bits):
@@ -47,7 +56,8 @@ def ror(value, right, bits):
 
 def multirate_padding(used_bytes, align_bytes):
     """
-    The Keccak padding function.
+     Generates padding bytes according to the Keccak padding scheme,
+     ensuring alignment to the specified number of bytes.
     """
     padlen = align_bytes - used_bytes
     if padlen == 0:
@@ -60,8 +70,9 @@ def multirate_padding(used_bytes, align_bytes):
 
 def keccak_f(state):
     """
-    This is Keccak-f permutation.  It operates on and
-    mutates the passed-in KeccakState.  It returns nothing.
+    Performs the Keccak-f permutation on the given Keccak state. It applies multiple
+    rounds of theta, rho, pi, chi, and iota operations to mutate the state. It operates
+    on and mutates the passed-in KeccakState.  It returns nothing.
     """
     def f_round(A, RC):
         W, H = state.W, state.H
@@ -101,7 +112,10 @@ class KeccakState(object):
     """
     A keccak state container.
     
-    The state is stored as a 5x5 table of integers.
+     Represents the internal state of the Keccak algorithm.
+     It maintains the state as a 5x5 table of integers and provides methods for
+     manipulating the state, converting between byte sequences and lanes, and
+     formatting the state as a hexadecimal string.
     """
     W = 5
     H = 5
@@ -212,6 +226,11 @@ class KeccakState(object):
                 i += 8
 
 class KeccakSponge(object):
+    """
+    Implements the sponge construction of the Keccak algorithm. It absorbs
+    input data, applies the Keccak-f permutation, and produces output data
+    based on the specified bitrate and capacity.
+    """
     def __init__(self, bitrate, width, padfn, permfn):
         self.state = KeccakState(bitrate, width)
         self.padfn = padfn
@@ -219,14 +238,17 @@ class KeccakSponge(object):
         self.buffer = []
         
     def copy(self):
+        """ Creates a deep copy of the KeccakHash object, including the internal state. """
         return deepcopy(self)
         
     def absorb_block(self, bb):
+        """ Absorbs a block of data of the bitrate length into the sponge's internal state. """
         assert len(bb) == self.state.bitrate_bytes
         self.state.absorb(bb)
         self.permfn(self.state)
     
     def absorb(self, s):
+        """Absorbs input strings or bytes as byte data. """
         if type(s) is str:
             self.buffer += bytes(s, 'latin1')
         elif type(s) is bytes:
@@ -239,16 +261,25 @@ class KeccakSponge(object):
             self.buffer = self.buffer[self.state.bitrate_bytes:]
     
     def absorb_final(self):
+        """
+        Used to apply padding to the remaining input data and absorb it into
+        the sponge's internal state.
+        """
         padded = self.buffer + self.padfn(len(self.buffer), self.state.bitrate_bytes)
         self.absorb_block(padded)
         self.buffer = []
         
     def squeeze_once(self):
+        """Generates a single block of squeezed output data from the sponge's internal state."""
         rc = self.state.squeeze()
         self.permfn(self.state)
         return rc
     
     def squeeze(self, l):
+        """Generates squeezed output data of the specified length from the sponge's internal state.
+        
+        Args:
+            l (int): Length of squeezed data to return."""
         Z = self.squeeze_once()
         while len(Z) < l:
             Z += self.squeeze_once()
@@ -257,6 +288,10 @@ class KeccakSponge(object):
 class KeccakHash(object):
     """
     The Keccak hash function, with a hashlib-compatible interface.
+
+    Represents a Keccak hash object with customizable bitrate, capacity, and output length.
+    It provides methods for updating the hash state with input data and generating the
+    final hash value.
     """
     def __init__(self, bitrate_bits, capacity_bits, output_bits):
         # our in-absorption sponge. this is never given padding
@@ -277,18 +312,37 @@ class KeccakHash(object):
         return '<KeccakHash with r=%d, c=%d, image=%d>' % inf
     
     def copy(self):
+        """ Creates a deep copy of the KeccakHash object, including the internal state. """
         return deepcopy(self)
     
     def update(self, s):
+        """
+        Updates the hash state by absorbing the input data `s`. The input data can be either a string or bytes object.
+
+        Args:
+            s (str or bytes): The input data to update the hash state with.
+        """
         self.sponge.absorb(s)
     
     def digest(self):
+        """
+        Retrieves the final hash value as a bytes object. The hash state is finalized before generating the digest.
+
+        Returns:
+            bytes: The final hash value as a bytes object.
+        """
         finalised = self.sponge.copy()
         finalised.absorb_final()
         digest = bytes(finalised.squeeze(self.digest_size))
         return digest
     
     def hexdigest(self):
+        """
+        Retrieves the final hash value as a hex string. The hash state is finalized before generating the digest.
+
+        Returns:
+            str: The final hash value as a hex string.
+        """
         return hexlify(self.digest()).decode()
     
     @staticmethod
@@ -305,6 +359,10 @@ class KeccakHash(object):
         return create
 
 # SHA3 parameter presets
+# Keccak224: Creates a KeccakHash object with a bitrate of 1152 bits, a capacity of 448 bits, and an output length of 224 bits.
+# Keccak256: Creates a KeccakHash object with a bitrate of 1088 bits, a capacity of 512 bits, and an output length of 256 bits.
+# Keccak384: Creates a KeccakHash object with a bitrate of 832 bits, a capacity of 768 bits, and an output length of 384 bits.
+# Keccak512: Creates a KeccakHash object with a bitrate of 576 bits, a capacity of 1024 bits, and an output length of 512 bits.
 Keccak224 = KeccakHash.preset(1152, 448, 224)
 Keccak256 = KeccakHash.preset(1088, 512, 256)
 Keccak384 = KeccakHash.preset(832, 768, 384)

@@ -4,15 +4,10 @@ This module contains the methods for creating a crypto wallet.
 """
 
 from datetime import datetime
-import inspect
 from .utils import (
-    Wallet, HDPrivateKey, HDKey
+    Wallet
 )
 from .utils.utils import ensure_str
-
-def generate_mnemonic(strength=128):
-    _, seed = HDPrivateKey.master_key_from_entropy(strength=strength)
-    return seed
 
 
 def generate_child_id():
@@ -35,65 +30,7 @@ def generate_child_id():
         '%y%m%d')) + seconds_since_midnight*1000000) // 100)
 
 
-def create_address(network='btctest', xpub=None, child=None, path=0):
-    """
-    Creates a cryptocurrency address based on the provided parameters.
-
-    Args:
-        network (str): The network for which the address should be created. Defaults to 'btctest'.
-        xpub (str): The extended public key used for address generation.
-        child (int): The child ID to use for address generation. If not provided, a child ID will
-            be generated using the `generate_child_id` method.
-        path (int): The path value used in the address derivation. Defaults to 0.
-
-    Returns:
-        dict: A dictionary containing the generated address information, including the path, BIP32
-            path, and address itself.
-
-    Raises:
-        AssertionError: If the `xpub` argument is not provided.
-
-    Usage:
-        address_info = create_address(network='btctest', xpub='xpub...', child=123)
-    """
-    assert xpub is not None
-
-    if child is None:
-        child = generate_child_id()
-
-    if network == 'ethereum' or network.upper() == 'ETH':
-        acct_pub_key = HDKey.from_b58check(xpub)
-
-        keys = HDKey.from_path(acct_pub_key, f"{path}/{child}")
-        #'{change}/{index}'.format(change=path, index=child))
-
-        res = {
-            "path": "m/" + str(acct_pub_key.index) + "/" + str(keys[-1].index),
-            "bip32_path": "m/44'/60'/0'/" + str(acct_pub_key.index) + "/" + str(keys[-1].index),
-            "address": keys[-1].address(mode='hex')
-        }
-
-        if inspect.stack()[1][3] == "create_wallet":
-            res["xpublic_key"] = keys[-1].to_b58check()
-
-        return res
-
-    # else ...
-    wallet_obj = Wallet.deserialize(xpub, network=network.upper())
-    child_wallet = wallet_obj.get_child(child, is_prime=False)
-
-    net = Wallet.get_network(network)
-
-    return {
-        "path": "m/" + str(wallet_obj.child_number) + "/" +str(child_wallet.child_number),
-        "bip32_path": net.BIP32_PATH + str(wallet_obj.child_number) + "/" +
-        str(child_wallet.child_number), "address": child_wallet.address(),
-        # "xpublic_key": child_wallet.serialize_b58(private=False),
-        # "wif": child_wallet.export_to_wif() # needs private key
-    }
-
-
-def create_wallet(mnemonic=None, network='BTC', children=10):
+def create_wallet(mnemonic=None, network='BTC', children=10, strength=128):
     """Generate a new wallet class from a mnemonic phrase, optionally randomly generated
 
     Args:
@@ -113,13 +50,13 @@ def create_wallet(mnemonic=None, network='BTC', children=10):
         w = create_wallet(network='BTC', children=10)
     """
     if mnemonic is None:
-        mnemonic = generate_mnemonic()
+        return Wallet.from_random(strength=strength, network=network)
+    else:
+        return Wallet.from_mnemonic(mnemonic=mnemonic, network=network)
 
-    return Wallet.from_mnemonic(mnemonic=mnemonic, network=network)
 
 
-
-def create_wallet_json(network='BTC', mnemonic=None, children=10):
+def create_wallet_json(network='BTC', mnemonic=None, strength=128, children=10):
     """Generate a new wallet JSON from a mnemonic phrase, optionally randomly generated
 
     Args:
@@ -134,11 +71,16 @@ def create_wallet_json(network='BTC', mnemonic=None, children=10):
     Usage:
         w = create_wallet(network='BTC', children=1000)
     """
-    if mnemonic is None:
-        mnemonic = generate_mnemonic()
-
 
     net = Wallet.get_network(network)
+    
+    if mnemonic is None:
+        my_wallet = Wallet.from_random(strength=strength, network=network)
+        mnemonic = my_wallet.mnemonic_phrase
+    else:
+        my_wallet = Wallet.from_mnemonic(mnemonic=mnemonic, network=network)
+
+
     wallet = {
         "coin": net.COIN,
         "seed": mnemonic,
@@ -151,8 +93,6 @@ def create_wallet_json(network='BTC', mnemonic=None, children=10):
         "children": []
     }
 
-    my_wallet = Wallet.from_mnemonic(
-        network=network.upper(), mnemonic=mnemonic)
 
     # account level
     wallet["private_key"] = my_wallet.private_key.to_hex()
@@ -173,7 +113,7 @@ def create_wallet_json(network='BTC', mnemonic=None, children=10):
 
     wallet["address"] = my_wallet.address()
     if network != 'ethereum' and network.upper() != 'ETH':
-        wallet["wif"] = ensure_str(my_wallet.private_key.export_to_wif())
+        wallet["wif"] = ensure_str(my_wallet.private_key.to_wif())
 
     prime_child_wallet = my_wallet.get_child(0, is_prime=True)
     if have_private_base58:

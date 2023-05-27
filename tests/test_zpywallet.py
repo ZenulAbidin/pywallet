@@ -7,8 +7,7 @@ import binascii
 import unittest
 from zpywallet import wallet
 from zpywallet.utils.bip32 import Wallet
-from zpywallet.utils.keys import IncompatibleNetworkException
-from zpywallet.utils.ecdsa import InvalidKeyDataException
+from zpywallet.utils.keys import IncompatibleNetworkException, InvalidKeyDataException
 
 
 class TestZPyWallet(unittest.TestCase):
@@ -149,7 +148,7 @@ class TestZPyWallet(unittest.TestCase):
         with self.assertRaises(InvalidKeyDataException):
             Wallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzFAzHGBP2UuGCqWLTAPLcMtD5SDKr24z3aiUvKr9bJpdrcLg1y3G")
 
-        with self.assertRaises(InvalidKeyDataException):
+        with self.assertRaises(ValueError):
             Wallet.deserialize("xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6Q5JXayek4PRsn35jii4veMimro1xefsM58PgBMrvdYre8QyULY")
 
         with self.assertRaises(ValueError):

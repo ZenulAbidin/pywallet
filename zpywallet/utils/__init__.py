@@ -3,17 +3,11 @@
 
 from .bip32 import Wallet
 from .keys import (
-    HDPrivateKey, HDPublicKey, HDKey,
-    PrivateKey, PublicKey, Signature
+    PrivateKey, PublicKey
 )
 
 __all__ = [
     'Wallet',
-
-    'HDPrivateKey',
-    'HDPublicKey',
-    'HDKey',
     'PrivateKey',
     'PublicKey',
-    'Signature',
 ]

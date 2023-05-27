@@ -1,5 +1,2 @@
 six>=1.8.0
-# We would like to move away from `ecdsa` and use `coincurve` instead
-# which uses the super-fast libsecp256k1.
-ecdsa>=0.11
 coincurve==18.0.0

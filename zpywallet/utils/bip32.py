@@ -7,14 +7,13 @@ import hmac
 from os import urandom
 import time
 
-from ecdsa import SECP256k1
-from ecdsa.ecdsa import Public_key as _ECDSA_Public_key
+import coincurve
 import six
 
 from .base58 import b58encode_check, b58decode_check
 from ..mnemonic.mnemonic import Mnemonic
-from .keys import incompatible_network_exception_factory, PrivateKey, PublicKey, PublicPair
-from .ecdsa import InvalidKeyDataException
+from .keys import incompatible_network_exception_factory, PrivateKey, PublicKey, Point, secp256k1
+from .keys import InvalidKeyDataException
 from .utils import ensure_bytes, ensure_str, hash160, is_hex_string, long_or_int, long_to_hex
 
 # import all the networks
@@ -58,11 +57,17 @@ class Wallet(object):
                  private_key=None,
                  public_pair=None,
                  public_key=None,
+                 mnemonic=None,
                  network="btc"):
         """Construct a new BIP32 compliant wallet.
 
         You probably don't want to use this init methd. Instead use one
-        of the 'from_mnemonic' or 'deserialize' cosntructors.
+        of the class methods for creating a wallet.
+
+        In particular, the mnemonic is not used to generate the wallet in
+        this constructor and its only purpose here is for storage. The Wallet
+        object deals with master private keys for creating things, which are generated
+        in the class methods.
         """
 
         if (not (private_exponent or private_key) and
@@ -70,17 +75,18 @@ class Wallet(object):
             raise InsufficientKeyDataError(
                 "You must supply one of private_exponent or public_pair")
 
+        self.mnemonic = mnemonic
         self.private_key = None
         self.public_key = None
         if private_key:
             self.private_key = private_key
         elif private_exponent:
-            self.private_key = PrivateKey(private_exponent)
+            self.private_key = PrivateKey.from_int(private_exponent)
 
         if public_key:
             self.public_key = public_key
         elif public_pair:
-            self.public_key = PublicKey(public_pair.x, public_pair.y)
+            self.public_key = PublicKey.from_point(public_pair)
         else:
             self.public_key = self.private_key.public_key
 
@@ -133,11 +139,11 @@ class Wallet(object):
 
         DO NOT share this private key with anyone.
         """
-        return ensure_bytes(self.private_key.get_key())
+        return ensure_bytes(self.private_key.to_hex())
 
     def get_public_key_hex(self, compressed=True):
         """Get the sec1 representation of the public key."""
-        return hexlify(ensure_bytes(self.public_key.get_key(compressed)))
+        return ensure_bytes(self.public_key.to_hex(compressed))
 
     @property
     def identifier(self):
@@ -152,6 +158,15 @@ class Wallet(object):
         """
         key = self.get_public_key_hex()
         return ensure_bytes(hexlify(hash160(unhexlify(key))))
+    
+    @property
+    def mnemonic_phrase(self):
+        """Returns the mnemonic phrase for this wallet, if specified.
+        
+        WARNING: Never share your mnemonic phrase with anyone. They can
+        use it to steal your assets.
+        """
+        return self.mnemonic
 
     @property
     def fingerprint(self):
@@ -319,12 +334,12 @@ class Wallet(object):
         # Split I into its 32 Byte components.
         ichild_left, ichild_right = ichild[:32], ichild[32:]
 
-        if long_or_int(hexlify(ichild_left), 16) >= SECP256k1.order:
+        if long_or_int(hexlify(ichild_left), 16) >= secp256k1.N:
             raise InvalidPrivateKeyError("The derived key is too large.")
 
         c_i = hexlify(ichild_right)
         private_exponent = None
-        public_pair = None
+        point = None
         if self.private_key:
             # Use private information for derivation
             # I_L is added to the current key's secret exponent (mod n), where
@@ -332,16 +347,13 @@ class Wallet(object):
             private_exponent = (
                 (long_or_int(hexlify(ichild_left), 16) +
                  long_or_int(ensure_bytes(self.private_key.to_hex()), 16))
-                % SECP256k1.order)
+                % secp256k1.N)
             # I_R is the child's chain code
         else:
             # Only use public information for this derivation
-            gen = SECP256k1.generator
-            ichild_left_long = long_or_int(hexlify(ichild_left), 16)
-            point = (_ECDSA_Public_key(gen, gen * ichild_left_long).point +
-                     self.public_key.to_point())
+            gen = coincurve.PublicKey.from_point(secp256k1.Gx, secp256k1.Gy)
+            point = Point(*gen.multiply(ichild_left).add(self.public_key.to_bytes()).point())
             # I_R is the child's chain code
-            public_pair = PublicPair(point.x(), point.y())
 
         child = self.__class__(
             chain_code=c_i,
@@ -349,10 +361,8 @@ class Wallet(object):
             parent_fingerprint=self.fingerprint,
             child_number=child_number_hex,
             private_exponent=private_exponent,
-            public_pair=public_pair,
+            public_pair=point,
             network=self.network)
-        if child.public_key.point.infinity:
-            raise InfinityPointException("The point at infinity is invalid.")
         if not as_private:
             return child.public_copy()
         return child
@@ -364,7 +374,7 @@ class Wallet(object):
             depth=self.depth,
             parent_fingerprint=self.parent_fingerprint,
             child_number=self.child_number,
-            public_pair=self.public_key.to_public_pair(),
+            public_pair=self.public_key.to_point(),
             network=self.network)
 
     def crack_private_key(self, child_private_key):
@@ -408,7 +418,7 @@ class Wallet(object):
         # Public derivation is the same as private derivation plus some offset
         # knowing the child's private key allows us to find this offset just
         # by subtracting the child's private key from the parent I_L data
-        privkey = PrivateKey(long_or_int(hexlify(ichild_left), 16))
+        privkey = PrivateKey.from_bytes(ichild_left)
         parent_private_key = child_private_key.private_key - privkey
         return self.__class__(
             chain_code=self.chain_code,
@@ -540,7 +550,7 @@ class Wallet(object):
                     version)
             exponent = key_data[1:]
             iexponent = long_or_int(hexlify(exponent), 16)
-            if iexponent < 1 or iexponent >= SECP256k1.order:
+            if iexponent < 1 or iexponent >= secp256k1.N:
                 raise InvalidKeyDataException("Private key is out of range")
         elif point_type in [2, 3, 4]:
             # Compressed public coordinates
@@ -548,7 +558,7 @@ class Wallet(object):
                 raise incompatible_network_exception_factory(
                     network.NAME, unhexlify(f"{network.EXT_PUBLIC_KEY:x}".zfill(8)),
                     version)
-            pubkey = PublicKey.from_hex(key_data)
+            pubkey = PublicKey.from_bytes(key_data)
             # Even though this was generated from a compressed pubkey, we
             # want to store it as an uncompressed pubkey
             pubkey.compressed = False
@@ -571,10 +581,11 @@ class Wallet(object):
                    network=network)
 
     @classmethod
-    def from_mnemonic(cls, mnemonic, network="BTC"):
+    def from_mnemonic(cls, mnemonic, passphrase='', network="BTC"):
         """Generate a new PrivateKey from a secret key.
 
         :param mnemonic: The key to use to generate this wallet.
+        :param passphrase: An optional passphrase for this mnemonic.
         :param network: The network to use. Defaults to Bitcoin mainnet.
         
 
@@ -582,7 +593,7 @@ class Wallet(object):
         """
         network = Wallet.get_network(network)
         mne = Mnemonic(language='english')
-        seed = ensure_bytes(mne.to_seed(mnemonic))
+        seed = ensure_bytes(mne.to_seed(mnemonic, passphrase))
 
         # Given a seed S of at least 128 bits, but 256 is advised
         # Calculate I = HMAC-SHA512(key="Bitcoin seed", msg=S)
@@ -591,7 +602,7 @@ class Wallet(object):
         Il, Ir = I[:32], I[32:]
         # Use IL as master secret key, and IR as master chain code.
         return cls(private_exponent=long_or_int(hexlify(Il), 16),
-                   chain_code=hexlify(Ir),
+                   chain_code=hexlify(Ir), mnemonic=mnemonic,
                    network=network)
 
     @classmethod
@@ -649,6 +660,34 @@ class Wallet(object):
         return cls(private_exponent=long_or_int(hexlify(Il), 16),
                    chain_code=hexlify(Ir),
                    network=network)
+    
+    @classmethod
+    def from_random(cls, passphrase='', strength=128, network=BitcoinMainNet):
+        """ Generates a master key from system entropy.
+
+        Args:
+            :param strength (int): Amount of entropy desired, in bits.
+                This should be a multiple of 32 between 128 and 256.
+                It directly affects the length of the mnemonic exported
+                (each additional 32 bits adds an extra three words at the end).
+            passphrase (str): An optional passphrase for the generated
+               mnemonic string.
+            :param network: The network to use for things like defining key
+                key paths and supported address formats. Defaults to Bitcoin mainnet.
+
+        Returns:
+            Wallet: The wallet object created.
+        """
+        if strength % 32 != 0:
+            raise ValueError("strength must be a multiple of 32")
+        if strength < 128 or strength > 256:
+            raise ValueError("strength should be >= 128 and <= 256")
+        entropy = urandom(strength // 8)
+        mne = Mnemonic(language='english')
+        mnemonic = mne.to_mnemonic(entropy)
+        return cls.from_mnemonic(
+            mnemonic, passphrase, network=network)
+
 
     def __eq__(self, other):
         attrs = [
