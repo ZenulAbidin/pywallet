@@ -17,7 +17,7 @@ class BitcoinCashMainNet(object):
     BIP32_PATH = "m/44'/145'/0'/"
 
     EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
+    EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
@@ -45,7 +45,7 @@ class DashMainNet(object):
     BIP32_PATH = "m/44'/5'/0'/"
 
     EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
+    EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
@@ -68,7 +68,7 @@ class DashInvertedMainNet(object):
     BIP32_PATH = "m/44'/5'/0'/"
 
     EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
+    EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
@@ -90,7 +90,7 @@ class DashBTCMainNet(object):
     BIP32_PATH = "m/44'/5'/0'/"
 
     EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
+    EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
@@ -109,7 +109,7 @@ class DashTestNet(object):
     BIP32_PATH = "m/44'/1'/0'/"
 
     EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
+    EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
@@ -127,13 +127,15 @@ class DashInvertedTestNet(object):
     BIP32_PATH = "m/44'/1'/0'/"
 
     EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
+    EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
 class OmniMainNet(object):
     """Bitcoin MainNet version bytes.
     From https://github.com/OmniLayer/omnicore/blob/develop/src/chainparams.cpp
+
+    Omni mainnet will 
     """
     NAME = "Omni"
     COIN = "USDT"
@@ -146,10 +148,10 @@ class OmniMainNet(object):
     EXT_SECRET_KEY = 0x0488ADE4  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/0'/0'/"
 
-    EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
-    BIP32_SEGWIT_PATH = None # P2WPKH not supported
-    BECH32_PREFIX = None # Bech32 not supported
+    EXT_SEGWIT_PUBLIC_KEY = 0x04b24746 # Used to serialize public keys in BIP32 segwit (P2WPKH)
+    EXT_SEGWIT_SECRET_KEY = 0x04b2430c # Used to serialize private keys in BIP32 segwit (P2WPKH)
+    BIP32_SEGWIT_PATH = "m/84'/0'/0'/"
+    BECH32_PREFIX = "o"
 
 class OmniTestNet(object):
     """Bitcoin MainNet version bytes.
@@ -166,10 +168,10 @@ class OmniTestNet(object):
     EXT_SECRET_KEY = 0x04358394  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/0'/0'/"
 
-    EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
-    BIP32_SEGWIT_PATH = None # P2WPKH not supported
-    BECH32_PREFIX = None # Bech32 not supported
+    EXT_SEGWIT_PUBLIC_KEY = 0x045f1cf6 # Used to serialize public keys in BIP32 segwit (P2WPKH)
+    EXT_SEGWIT_SECRET_KEY = 0x045f18bc # Used to serialize private keys in BIP32 segwit (P2WPKH)
+    BIP32_SEGWIT_PATH = "m/84'/1'/0'/"
+    BECH32_PREFIX = "to"
 
 class BitcoinMainNet(object):
     """Bitcoin MainNet version bytes.
@@ -188,7 +190,7 @@ class BitcoinMainNet(object):
     BIP32_PATH = "m/44'/0'/0'/"
 
     EXT_SEGWIT_PUBLIC_KEY = 0x04b24746 # Used to serialize public keys in BIP32 segwit (P2WPKH)
-    EXT_SEGWIT_PRIVATE_KEY = 0x04b2430c # Used to serialize private keys in BIP32 segwit (P2WPKH)
+    EXT_SEGWIT_SECRET_KEY = 0x04b2430c # Used to serialize private keys in BIP32 segwit (P2WPKH)
     BIP32_SEGWIT_PATH = "m/84'/0'/0'/"
     BECH32_PREFIX = "bc"
 
@@ -209,7 +211,7 @@ class BitcoinTestNet(object):
     BIP32_PATH = "m/44'/1'/0'/"
 
     EXT_SEGWIT_PUBLIC_KEY = 0x045f1cf6 # Used to serialize public keys in BIP32 segwit (P2WPKH)
-    EXT_SEGWIT_PRIVATE_KEY = 0x045f18bc # Used to serialize private keys in BIP32 segwit (P2WPKH)
+    EXT_SEGWIT_SECRET_KEY = 0x045f18bc # Used to serialize private keys in BIP32 segwit (P2WPKH)
     BIP32_SEGWIT_PATH = "m/84'/1'/0'/"
     BECH32_PREFIX = "tb"
 
@@ -239,9 +241,9 @@ class LitecoinMainNet(object):
     BIP32_PATH = "m/44'/2'/0'/"
 
     EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
+    EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
-    BECH32_PREFIX = None # Bech32 not supported
+    BECH32_PREFIX = "None" # Bech32 not supported
 
 class LitecoinBTCMainNet(object):
     """Litecoin MainNet version bytes
@@ -271,15 +273,19 @@ class LitecoinBTCMainNet(object):
     BIP32_PATH = "m/44'/2'/0'/"
 
     EXT_SEGWIT_PUBLIC_KEY = 0x04b24746 # Used to serialize public keys in BIP32 segwit (P2WPKH)
-    EXT_SEGWIT_PRIVATE_KEY = 0x04b2430c # Used to serialize private keys in BIP32 segwit (P2WPKH)
+    EXT_SEGWIT_SECRET_KEY = 0x04b2430c # Used to serialize private keys in BIP32 segwit (P2WPKH)
     BIP32_SEGWIT_PATH = "m/84'/0'/0'/"
-    BECH32_PREFIX = None # Bech32 not supported
+    BECH32_PREFIX = "ltc"
 
 class LitecoinTestNet(object):
     """Litecoin TestNet version bytes
 
     Primary version bytes from:
     https://github.com/litecoin-project/litecoin/blob/master-0.8/src/base58.h
+
+    Litecoin testnet extended version bytes for legacy are the same as for Bitcoin testnet
+    so we will just reuse the segwit for Bitcoin testnet as well. There is no official document
+    I could find that supports this though.
     """
     NAME = "Litecoin"
     COIN = "LTC"
@@ -293,10 +299,10 @@ class LitecoinTestNet(object):
     EXT_SECRET_KEY = 0x0436ef7d
     BIP32_PATH = "m/44'/1'/0'/"
 
-    EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
-    BIP32_SEGWIT_PATH = None # P2WPKH not supported
-    BECH32_PREFIX = None # Bech32 not supported
+    EXT_SEGWIT_PUBLIC_KEY = 0x045f1cf6 # Used to serialize public keys in BIP32 segwit (P2WPKH)
+    EXT_SEGWIT_SECRET_KEY = 0x045f18bc # Used to serialize private keys in BIP32 segwit (P2WPKH)
+    BIP32_SEGWIT_PATH = "m/84'/1'/0'/"
+    BECH32_PREFIX = "tltc"
 
 
 class DogecoinMainNet(object):
@@ -324,7 +330,7 @@ class DogecoinMainNet(object):
     BIP32_PATH = "m/44'/3'/0'/"
 
     EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
+    EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
@@ -354,7 +360,7 @@ class DogecoinBTCMainNet(object):
     BIP32_PATH = "m/44'/3'/0'/"
 
     EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
+    EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
@@ -383,7 +389,7 @@ class DogecoinTestNet(object):
     BIP32_PATH = "m/44'/1'/0'/"
 
     EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
+    EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
@@ -403,7 +409,7 @@ class BlockCypherTestNet(object):
     BIP32_PATH = "m/44'/1'/0'/"
 
     EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
+    EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
@@ -424,6 +430,6 @@ class EthereumMainNet(object):
     BIP32_PATH = None  # Ethereum does not use BIP32
 
     EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_PRIVATE_KEY = None
+    EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
