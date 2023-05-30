@@ -18,18 +18,40 @@ ZPyWallet
     :target: https://codecov.io/gh/ZenulAbidin/zpywallet
     :alt: Code coverage
 
-**Simple BIP32 (HD) wallet creation for: BTC, BCH, ETH, LTC, DASH, USDT (Omni), DOGE**
+
+ZPyWallet is a Python-based hierarchical deterministic (HD) wallet generator. HD wallets allow you to 
+generate a tree-like structure of cryptographic key pairs from a single seed phrase, providing a
+convenient way to manage multiple accounts or addresses securely.
 
 BIP32 (or HD for "hierarchical deterministic") wallets allow you to create
 child wallets which can only generate public keys and don't expose a
 private key to an insecure server.
 
-This library simplifies the process of creating new wallets for the
-BTC, BCH, ETH, LTC, DASH, USDT (Omni) and DOGE cryptocurrencies.
-In addition, it can also create Bitcoin Bech32 addresses for all supported
-witness versions.
 
-This is a fork of `PyWallet <https://github.com/ranaroussi/pywallet>` with support for more coins, and some bugfixes.
+Features
+========
+
+- Simple BIP32 (HD) wallet creation for BTC, BCH, ETH, LTC, DASH, DOGE, and many other networks
+- Generate a hierarchical deterministic wallet from a mnemonic seed phrase.
+- Derive multiple accounts or addresses from the generated wallet.
+- Support for popular cryptocurrencies such as Bitcoin, Ethereum, and more.
+- BIP32 and BIP39 compliant.
+- Secure key generation using the industry-standard libsecp256k1 library, resistant to side-channel attacks.
+- Supports generating P2WPKH (segwit) keys and bech32 addresses for supported networks
+- Sign and verify messages in Bitcoin-Qt and RFC2440 format
+
+
+
+History
+=======
+
+ZPyWallet started out as a fork of `PyWallet <https://github.com/ranaroussi/pywallet>` with elements of
+`Bitmerchant <https://github.com/sbuss/bitmerchant>`, just to simply make these modules run. At the time,
+it was just an HD wallet generator. However, as time went by, I discovered serious bugs in both programs,
+such as incorrect master private key genration, and the use of ECDSA code that is vulnerable to side-channel
+attacks, Thus I have embarked on a complete rewrite of the codebase so that it follows crypto security best
+practices. And thus we arrive to the present day: A robust wallet generator that supports altcoins, segwit,
+sign/verify, and can be used as a backend to implement custom wallet software.
 
 Enjoy!
 
@@ -42,7 +64,18 @@ Install via PiP:
 
 .. code:: bash
 
-   $ sudo pip install zpywallet
+   $ pip install zpywallet
+
+Or build directly:
+
+.. code:: bash
+
+   $ git clone https://github.com/ZenulAbidin/zpywallet
+   $ cd zpywallet
+   # Developers should also run "pip install -r requirements-dev.txt"
+   $ python setup.py install
+
+
 
 
 Example code:
@@ -59,11 +92,9 @@ The following code creates a new Bitcoin HD wallet:
 
     from zpywallet import wallet
 
-    # generate 12 word mnemonic seed
-    seed = wallet.generate_mnemonic()
-
-    # create bitcoin wallet
-    w = wallet.create_wallet(network="BTC", seed=seed, children=1)
+    # creates a wallet with a new, random mnemonic phrase.
+    # By default, it creates Bitcoin Mainnet wallets.
+    w = wallet.create_wallet_json(children=1)
 
     print(w)
 
@@ -74,18 +105,20 @@ Output looks like this:
     $ python create_btc_wallet.py
 
     {
-      "coin": "BTC",
-      "seed": "guess tiny intact poet process segment pelican bright assume avocado view lazy",
-      "address": "1HwPm2tcdakwkTTWU286crWQqTnbEkD7av",
-      "xprivate_key": "xprv9s21ZrQH143K2Dizn667UCo9oYPdTPSMWq7D5t929aXf1kfnmW79CryavzBxqbWfrYzw8jbyTKvsiuFNwr1JL2qfrUy2Kbwq4WbBPfxYGbg",
-      "xpublic_key": "xpub661MyMwAqRbcEhoTt7d7qLjtMaE7rrACt42otGYdhv4dtYzwK3RPkfJ4nEjpFQDdT8JjT3VwQ3ZKjJaeuEdpWmyw16sY9SsoY68PoXaJvfU",
-      "wif": "L1EnVJviG6jR2oovFbfxZoMp1JknTACKLzsTKqDNUwATCWpY1Fp4",
-      "children": [{
-         "address": "1E3btRwsoJx2jUcMnATyx7poHhV2tomL8g",
-         "path": "m/0",
-         "xpublic_key": "xpub69Fho5TtAbdoXyWzgUV1ZYst9K4bVfoGNLZxQ9u5js4Rb1jEyUjDtoATXbWvAcV8cERCMMnH8wYRVVUsRDSfaMjLqaY3TvD7Am9ALjq5PsG",
-         "wif": "KysRDiwJNkS9VPzy1UH76DrCDizsWKtEooSzikich792RVzcUaJP"
-     }]
+        'address': 'bc1qjvugs62gt5w97rv4sw3kkhnmv2s2kg58lucmux',
+        'children': [{'address': 'bc1q5vyxj4a6c2v4p9dxrd59vztfussg9hdywr5yrn',
+                    'bip32_path': "m/44'/0'/0'/0",
+                    'path': 'm/0',
+                    'xpublic_key': 'xpub68yG1oCYQLpAKxj3DPo6cvqAzNEeUFMhMfEhXcEyem1vqK87QeaQH8o7uUw8fYkhtuVcMiJrxbLFDyESnK8YPQ97fSzPpPLTiauEWyqTX76'}],
+        'coin': 'BTC',
+        'private_key': '45471d4504a3631425371a590d168fa0df4f01c7fe5df2b355da6434145b6915',
+        'public_key': '0286e42376ab09ce71b2be8174f2ebbf2f79fef9ca0c255838c2016951b7b4411f',
+        'seed': 'spring ahead flat scheme can opera genre tribe airport friend nurse '
+                'exclude',
+        'wif': '5JLoBxMCZCAqnue56GZZLquzPwob6XHdJttKJn19qGShKQgE2xM',
+        'xprivate_key': 'xprv9s21ZrQH143K28nnAjfgJ9eRCmQMYuBtbKWVZLqsEc7aBYh81uLFHQoKt2dZdSyKAu6KaFSiqjWyZejrtx3FmRjRaf1KsBFgkNM4CMm66Jh',
+        'xpublic_key': 'xpub661MyMwAqRbcEcsFGmCgfHb9koEqxMujxYS6MjFUnweZ4M2GZSeVqD7ojJAE5QvmbXn16QPHcHLk5bkdkqXtcV1nj1aVyRqax9NeaTAnhH6',
+        'xpublic_key_prime': 'xpub68yG1oCgk1M8XBxmkp6f6JgRdTyX6XJd7a6LmDG14DomrswTMkxGiByKiwpf5p6szSqDciybesxjDC7yKBrgbaczQe6q1puBHbvfKxg1uqr'
     }
 
 Similarly, you can do the same for an Ethereum wallet:
@@ -95,34 +128,31 @@ Similarly, you can do the same for an Ethereum wallet:
     # create_eth_wallet.py
 
     from zpywallet import wallet
-
-    seed = wallet.generate_mnemonic()
-    w = wallet.create_wallet(network="ETH", seed=seed, children=1)
+    
+    w = wallet.create_wallet_json(network="ETH", children=1)
 
     print(w)
 
-Output looks like this (no WIF for Ethereum):
+Output looks like this (no WIF or xpub/prv for Ethereum as its not supported):
 
 .. code:: bash
 
     $ python create_eth_wallet.py
 
     {
-      "coin": "ETH",
-      "seed": "traffic happy world clog clump cattle great toy game absurd alarm auction",
-      "address": "0x3b777f60eb04fcb13e6b27e468532e491409722e",
-      "xprivate_key": "xprv9yTuSjwb95QZznV6epMWpb4Kpc2S8ZRaQuAf5B697YXtQD2tDmmJ5KvwJWVjtbVrdJ1WBKNnuodrpTKGfHfiPSEgrAxUjL5RP1gQwwT3fFx",
-      "xpublic_key": "xpub6GhhMtkVjoPi5DKtqapKzMzrzdGjo1EPc7Ka6KdeoXYdCrTBH1Hu1wKysm8boWSy8VeTKVJi6gQJ2qJ4YG2ZhvFDcUUgMJrFCJWN1PGtBry",
-      "wif": "",
-      "children": [{
-        "address": "0x87eb82d43fa7316df0a989c0d951a9037ed02f9b",
-        "path": "m/0",
-        "xpublic_key": "xpub6LnpVXD73jNuAYXxzQCnEY6wXQspwkiAEkZWoX4BW9Tzx6KbUrMUYAU1Yvw4kebPHSPiEJPo8irHWHSwQR6WuVwUj85xURsugPWeJVH6sau",
-        "wif": ""
-      }]
-    }
+        'address': '0x8dbe02c146eacbe410f63348f489a16160deb6f0',
+        'children': [{'address': '0xdd030270458ad17b125c200bb2f11d0fdbf7e05c',
+                    'path': 'm/0'}],
+        'coin': 'ETH',
+        'private_key': '85b41c45f425dd1f7f431326449afc0564b2d110f7f89563f1a1ee4055a4ce39',
+        'public_key': '026e93d77ee81bd28e2d2e0962928a00ee27a20f0da2b7437db8bce39e23c6d873',
+        'seed': 'admit push digital opinion system snap announce help gas business '
+                'trigger please',
+        'wif': '',
+        'xprivate_key': '',
+        'xpublic_key': ''}
 
-\* Valid options for `network` are: BTC, BTG, BCH, LTC, DASH, DOGE
+Consult the documentation for more information about the API.
 
 Create Child Wallet
 -------------------
@@ -138,17 +168,15 @@ Example:
     # create_child_wallet.py
 
     from zpywallet import wallet
+    from zpywallet.utils.bip32 import Wallet
 
-    WALLET_PUBKEY = 'YOUR WALLET XPUB'
+    w = Wallet.from_mnemonic(wallet.generate_mnemonic())
 
     # generate address for specific user (id = 10)
-    user_addr = wallet.create_address(network="BTC", xpub=WALLET_PUBKEY, child=10)
+    child_w = w.get_child_for_path("m/10")
+    user_addr = child_w.address()
 
-    # or generate a random address, based on timestamp
-    rand_addr = wallet.create_address(network="BTC", xpub=WALLET_PUBKEY)
-
-    print("User Address\n", user_addr)
-    print("Random Address\n", rand_addr)
+    print(f"User Address: {user_addr}")
 
 Output looks like this:
 
@@ -156,17 +184,7 @@ Output looks like this:
 
     $ python create_child_wallet.py
 
-    User Address
-    {
-      "address": "13myudz3WhpBezoZue6cwRUoHrzWs4vCrb",
-      "path": "m/0/395371597"
-    }
-    Random Address
-    {
-      "address": "1KpS2wC5J8bDsGShXDHD7qdGvnic1h27Db",
-      "path": "m/0/394997119"
-    }
-
+    User Address: bc1qdwfh4duva4hvzva9cdyguh9c9k2hez3r7taerg
 -----
 
 CONTRIBUTING
@@ -176,13 +194,12 @@ Bugfixes and enhancements are welcome. Please read CONTRIBUTING.md for contribut
 
 At the moment, I'm not accepting pull requests for new coins unless they are big and historic coins such as Tether (ERC20), BNB and XMR.
 
-IMPORTANT
-=========
+SECURITY
+========
 
-I **highly** recommend that you familiarize yourself with the Blockchain technology and
-be aware of security issues.
-Reading `Mastering Bitcoin <https://github.com/bitcoinbook/bitcoinbook>`_ and going over
-Steven Buss's security notes on the `Bitmerchant repository <https://github.com/sbuss/bitmerchant>`_
-is a good start.
+This module has been hardened against various types of attacks:
 
-Enjoy!
+- Runtime dependencies are kept to an absolute minimum. Only modules that have compile-time native
+  code are installed using pip. The rest are hardcoded directly into ZPyWallet. This prevents many kinds
+  of supply chain attacks.
+- Coincurve is using libsecp256k1, which protects keys from various power and RF frequency analysis side-channels.
