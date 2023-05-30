@@ -1,2 +1,3 @@
 six>=1.8.0
 coincurve==18.0.0
+pycryptodomex==3.18.0
