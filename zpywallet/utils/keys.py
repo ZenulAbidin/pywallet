@@ -14,8 +14,6 @@ import binascii
 import hashlib
 from hashlib import sha256
 import random
-import codecs
-import os
 from collections import namedtuple
 
 import six
@@ -26,7 +24,7 @@ from .base58 import b58encode_check, b58decode_check
 from .bech32 import encode as bech32_encode
 from .ripemd160 import ripemd160
 from .utils import chr_py2
-from .utils import ensure_bytes, ensure_str, long_or_int
+from .utils import ensure_bytes, ensure_str
 from ..network import BitcoinMainNet
 
 
@@ -100,22 +98,6 @@ def decode_der_signature(signature):
     return r, s
 
 
-def rand_bytes(n, secure=True):
-    """ Returns n random bytes.
-    Args:
-        n (int): number of bytes to return.
-        secure (bool): If True, uses os.urandom to generate
-            cryptographically secure random bytes. Otherwise, uses
-            random.randint() which generates pseudo-random numbers.
-    Returns:
-        b (bytes): n random bytes.
-    """
-    if secure:
-        return os.urandom(n)
-    else:
-        return bytes([random.randint(0, 255) for i in range(n)])
-
-
 def address_to_key_hash(s):
     """ Given a Bitcoin address decodes the version and
     RIPEMD-160 hash of the public key.
@@ -129,30 +111,6 @@ def address_to_key_hash(s):
     version = n[0]
     h160 = n[1:]
     return version, h160
-
-
-def get_bytes(s):
-    """Returns the byte representation of a hex- or byte-string."""
-    if isinstance(s, bytes):
-        b = s
-    elif isinstance(s, str):
-        b = bytes.fromhex(s)
-    else:
-        raise TypeError("s must be either 'bytes' or 'str'!")
-
-    return b
-
-
-def bytes_to_str(b):
-    """ Converts bytes into a hex-encoded string.
-    Args:
-        b (bytes): bytes to encode
-    Returns:
-        h (str): hex-encoded string corresponding to b.
-    """
-    return codecs.encode(b, 'hex_codec').decode('ascii')
-
-
 
 
 class PrivateKey:
@@ -276,7 +234,7 @@ class PrivateKey:
         """
         password = ensure_bytes(password) + ensure_bytes(salt)
         key = sha256(password).hexdigest()
-        return PrivateKey.from_int(long_or_int(key, 16), network)
+        return PrivateKey.from_int(int(key, 16), network)
 
     @classmethod
     def from_wif(cls, wif, network=BitcoinMainNet):
@@ -479,11 +437,15 @@ class PrivateKey:
     def to_wif(self, compressed=False):
         """Export a key to WIF.
 
-        :param compressed: False if you want a standard WIF export (the most
-            standard option). True if you want the compressed form (Note that
-            not all clients will accept this form). Defaults to None, which
-            in turn uses the self.compressed attribute.
-        :type compressed: bool
+        Args:
+            :param compressed: False if you want a standard WIF export (the most
+                standard option). True if you want the compressed form (Note that
+                not all clients will accept this form). Defaults to None, which
+                in turn uses the self.compressed attribute.
+            :type compressed: bool
+
+        Returns:
+            str: THe WIF string
 
         See https://en.bitcoin.it/wiki/Wallet_import_format for a full
         description.
@@ -499,7 +461,7 @@ class PrivateKey:
         if compressed:
             extended_key_bytes += b'\01'
         # And return the base58-encoded result with a checksum
-        return b58encode_check(extended_key_bytes)
+        return b58encode_check(extended_key_bytes).decode()
 
 
     def to_hex(self):
@@ -686,7 +648,7 @@ class PublicKey:
         Returns:
             b (str): A hexadecimal string.
         """
-        return binascii.hexlify(self.to_bytes(compressed))
+        return ensure_str(binascii.hexlify(self.to_bytes(compressed)))
 
     def __bytes__(self):
         return self.to_bytes(compressed=True)
@@ -709,7 +671,7 @@ class PublicKey:
         """
         return self.ripe_compressed if compressed else self.ripe
 
-    def keccak256(self, compressed=True):
+    def keccak256(self):
         """ Return the Keccak-256 hash of the SHA-256 hash of the
         public key. Only defined if hex addresses are supported by
         the network.
@@ -717,8 +679,8 @@ class PublicKey:
         Returns:
             bytes: Keccak-256 byte string.
         """
-        return self.ripe_compressed if compressed else self.ripe
-
+        return self.keccak
+    
     def base58_address(self, compressed=True):
         """ Address property that returns a base58 encoding of the public key.
 
