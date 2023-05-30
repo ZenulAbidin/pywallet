@@ -3,10 +3,8 @@ import re
 
 import six
 
+from Cryptodome.Cipher import AES
 from .ripemd160 import ripemd160
-
-if six.PY3:
-    long = int
 
 
 def ensure_bytes(data):
@@ -51,7 +49,26 @@ def long_to_hex(l, size):
     f_str = "{0:0%sx}" % size
     return ensure_bytes(f_str.format(l).lower())
 
+def encrypt(raw, passphrase):
+    """
+    Encrypt text with the passphrase
+    @param raw: string Text to encrypt
+    @param passphrase: string Passphrase
+    @type raw: string
+    @type passphrase: string
+    @rtype: string
+    """
+    cipher = AES.new(passphrase, AES.MODE_CBC, b'\x00'*16)
+    return cipher.encrypt(raw)
 
-def long_or_int(val, *args):
-    return long(val, *args)
-
+def decrypt(enc, passphrase):
+    """
+    Decrypt encrypted text with the passphrase
+    @param enc: string Text to decrypt
+    @param passphrase: string Passphrase
+    @type enc: string
+    @type passphrase: string
+    @rtype: string
+    """
+    cipher = AES.new(passphrase, AES.MODE_CBC, b'\x00'*16)
+    return cipher.decrypt(enc)
