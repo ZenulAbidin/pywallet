@@ -3,31 +3,28 @@
 This module contains the methods for creating a crypto wallet.
 """
 
-from datetime import datetime
+from os import urandom
+
+from .mnemonic import Mnemonic
 from .utils import (
     Wallet
 )
+
+from .utils.keys import (
+    PrivateKey
+)
 from .utils.utils import ensure_str
 
-
-def generate_child_id():
-    """
-    Generates a child ID based on the current timestamp and returns it as an integer.
-
-    The child ID is calculated by combining the current date and the number of seconds
-    since midnight, scaled to fit within the range of an integer.
-
-    Returns:
-        int: The generated child ID.
-
-    Usage:
-        child_id = generate_child_id()
-    """
-    now = datetime.now()
-    seconds_since_midnight = (now - now.replace(
-        hour=0, minute=0, second=0, microsecond=0)).total_seconds()
-    return int((int(now.strftime(
-        '%y%m%d')) + seconds_since_midnight*1000000) // 100)
+def generate_mnemonic(strength=128):
+    """Creates a new seed phrase of the specified length"""
+    if strength % 32 != 0:
+        raise ValueError("strength must be a multiple of 32")
+    if strength < 128 or strength > 256:
+        raise ValueError("strength should be >= 128 and <= 256")
+    entropy = urandom(strength // 8)
+    mne = Mnemonic(language='english')
+    mnemonic = mne.to_mnemonic(entropy)
+    return mnemonic
 
 
 def create_wallet(mnemonic=None, network='BTC', children=10, strength=128):
@@ -132,3 +129,22 @@ def create_wallet_json(network='BTC', mnemonic=None, strength=128, children=10):
         wallet["children"].append(data)
 
     return wallet
+
+def create_keypair(network='BTC'):
+    """Generates a random private/public keypair.
+
+    Args:
+    :param network: The network to create this wallet for
+
+    Return:
+        PrivateKey, PublicKey: a tuple of a private key and public key.
+    
+    Usage:
+        w = create_wallet(network='BTC', children=10)
+    """
+
+    net = Wallet.get_network(network)
+    random_bytes = urandom(32)
+    prv = PrivateKey(random_bytes, network=net)
+    pub = prv.public_key
+    return prv, pub

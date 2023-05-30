@@ -14,7 +14,7 @@ from .base58 import b58encode_check, b58decode_check
 from ..mnemonic.mnemonic import Mnemonic
 from .keys import incompatible_network_exception_factory, PrivateKey, PublicKey, Point, secp256k1
 from .keys import InvalidKeyDataException
-from .utils import ensure_bytes, ensure_str, hash160, is_hex_string, long_or_int, long_to_hex
+from .utils import ensure_bytes, ensure_str, hash160, is_hex_string, long_to_hex
 
 # import all the networks
 from ..network import *
@@ -107,15 +107,15 @@ class Wallet(object):
             else:
                 raise ValueError("Invalid parameter type")
 
-        def hex_long_or_int(val):
+        def hex_int(val):
             if isinstance(val, six.integer_types):
-                return long_or_int(val)
+                return int(val)
             elif (isinstance(val, six.string_types) or
                     isinstance(val, six.binary_type)):
                 val = ensure_bytes(val)
                 if not is_hex_string(val):
                     val = hexlify(val)
-                return long_or_int(val, 16)
+                return int(val, 16)
             else:
                 raise ValueError("parameter must be an int or long")
 
@@ -123,14 +123,14 @@ class Wallet(object):
             self.network = Wallet.get_network(network)
         else:
             self.network = network
-        self.depth = hex_long_or_int(depth)
+        self.depth = hex_int(depth)
         if (isinstance(parent_fingerprint, six.string_types) or
                 isinstance(parent_fingerprint, six.binary_type)):
             val = ensure_bytes(parent_fingerprint)
             if val.startswith(b"0x"):
                 parent_fingerprint = val[2:]
         self.parent_fingerprint = b"0x" + hex_check_length(parent_fingerprint, 8)
-        self.child_number = hex_long_or_int(child_number)
+        self.child_number = hex_int(child_number)
         self.chain_code = hex_check_length(chain_code, 64)
 
     def get_private_key_hex(self):
@@ -239,7 +239,7 @@ class Wallet(object):
                 is_prime = True
                 part = part.replace("'", "").replace("p", "")
             try:
-                child_number = long_or_int(part)
+                child_number = int(part)
             except ValueError as exc:
                 raise InvalidPathError(f"{path} is not a valid path") from exc
             child = child.get_child(child_number, is_prime)
@@ -334,7 +334,7 @@ class Wallet(object):
         # Split I into its 32 Byte components.
         ichild_left, ichild_right = ichild[:32], ichild[32:]
 
-        if long_or_int(hexlify(ichild_left), 16) >= secp256k1.N:
+        if int(hexlify(ichild_left), 16) >= secp256k1.N:
             raise InvalidPrivateKeyError("The derived key is too large.")
 
         c_i = hexlify(ichild_right)
@@ -345,8 +345,8 @@ class Wallet(object):
             # I_L is added to the current key's secret exponent (mod n), where
             # n is the order of the ECDSA curve in use.
             private_exponent = (
-                (long_or_int(hexlify(ichild_left), 16) +
-                 long_or_int(ensure_bytes(self.private_key.to_hex()), 16))
+                (int(hexlify(ichild_left), 16) +
+                 int(ensure_bytes(self.private_key.to_hex()), 16))
                 % secp256k1.N)
             # I_R is the child's chain code
         else:
@@ -428,7 +428,7 @@ class Wallet(object):
             private_key=parent_private_key,
             network=self.network)
 
-    def serialize(self, private=True):
+    def serialize(self, private=True, segwit=False):
         """Serialize this key.
 
         :param private: Whether or not the serialized key should contain
@@ -437,23 +437,38 @@ class Wallet(object):
             private=False if you are, for example, running an e-commerce
             website and want to accept bitcoin payments. See the README
             for more information.
+        :param segwit: Whether to use segwit extended version bytes instead of
+            legacy extended version bytes. Only for networks which support Segwit,
+            therefore the default value is False.
         :type private: bool, defaults to True
 
         See the spec in `deserialize` for more details.
         """
         if private and not self.private_key:
             raise ValueError("Cannot serialize a public key as private")
-
+        
         if private:
-            if not self.network.EXT_SECRET_KEY:
-                raise ValueError("Network does not support private key serialization")
-            network_version = long_to_hex(
-                self.network.EXT_SECRET_KEY, 8)
+            if segwit:
+                if not self.network.EXT_SEGWIT_SECRET_KEY:
+                    raise ValueError("Segwit is not supported on this network")
+                network_version = long_to_hex(
+                    self.network.EXT_SEGWIT_SECRET_KEY, 8)
+            else:
+                if not self.network.EXT_SECRET_KEY:
+                    raise ValueError("Network does not support private key serialization")
+                network_version = long_to_hex(
+                    self.network.EXT_SECRET_KEY, 8)
         else:
-            if not self.network.EXT_PUBLIC_KEY:
-                raise ValueError("Network does not support public key serialization")
-            network_version = long_to_hex(
-                self.network.EXT_PUBLIC_KEY, 8)
+            if segwit:
+                if not self.network.EXT_SEGWIT_PUBLIC_KEY:
+                    raise ValueError("Segwit is not supported on this network")
+                network_version = long_to_hex(
+                    self.network.EXT_SEGWIT_PUBLIC_KEY, 8)
+            else:
+                if not self.network.EXT_PUBLIC_KEY:
+                    raise ValueError("Network does not support private key serialization")
+                network_version = long_to_hex(
+                    self.network.EXT_PUBLIC_KEY, 8)
         depth = long_to_hex(self.depth, 2)
         parent_fingerprint = self.parent_fingerprint[2:]  # strip leading 0x
         child_number = long_to_hex(self.child_number, 8)
@@ -467,10 +482,10 @@ class Wallet(object):
             ret += self.get_public_key_hex(compressed=True)
         return ensure_bytes(ret.lower())
 
-    def serialize_b58(self, private=True):
+    def serialize_b58(self, private=True, segwit=False):
         """Encode the serialized node in base58."""
         return ensure_str(
-            b58encode_check(unhexlify(self.serialize(private))))
+            b58encode_check(unhexlify(self.serialize(private, segwit))))
 
     def address(self, compressed=True, witness_version=0):
         """Create a public address from this Wallet.
@@ -532,11 +547,11 @@ class Wallet(object):
         version, depth, parent_fingerprint, child, chain_code, key_data = (
             key[:4], key[4], key[5:9], key[9:13], key[13:45], key[45:])
 
-        if long_or_int(depth) == 0 and long_or_int(hexlify(parent_fingerprint), 16) != 0:
+        if int(depth) == 0 and int(hexlify(parent_fingerprint), 16) != 0:
             raise InvalidKeyDataException("Zero depth with non-zero parent fingerprint")
-        if long_or_int(depth) == 0 and long_or_int(hexlify(child)) != 0:
+        if int(depth) == 0 and int(hexlify(child)) != 0:
             raise InvalidKeyDataException("Zero depth with non-zero index")
-        version_long = long_or_int(hexlify(version), 16)
+        version_long = int(hexlify(version), 16)
         exponent = None
         pubkey = None
         point_type = key_data[0]
@@ -549,7 +564,7 @@ class Wallet(object):
                     network.NAME, unhexlify(f"{network.EXT_SECRET_KEY:x}".zfill(8)),
                     version)
             exponent = key_data[1:]
-            iexponent = long_or_int(hexlify(exponent), 16)
+            iexponent = int(hexlify(exponent), 16)
             if iexponent < 1 or iexponent >= secp256k1.N:
                 raise InvalidKeyDataException("Private key is out of range")
         elif point_type in [2, 3, 4]:
@@ -565,18 +580,18 @@ class Wallet(object):
         else:
             raise ValueError(f"Invalid key_data prefix, got {point_type}")
 
-        def bytes_long_or_int(byte_seq):
+        def bytes_int(byte_seq):
             if byte_seq is None:
                 return byte_seq
             elif isinstance(byte_seq, six.integer_types):
                 return byte_seq
-            return long_or_int(hexlify(byte_seq), 16)
+            return int(hexlify(byte_seq), 16)
 
-        return cls(depth=bytes_long_or_int(depth),
-                   parent_fingerprint=bytes_long_or_int(parent_fingerprint),
-                   child_number=bytes_long_or_int(child),
-                   chain_code=bytes_long_or_int(chain_code),
-                   private_exponent=bytes_long_or_int(exponent),
+        return cls(depth=bytes_int(depth),
+                   parent_fingerprint=bytes_int(parent_fingerprint),
+                   child_number=bytes_int(child),
+                   chain_code=bytes_int(chain_code),
+                   private_exponent=bytes_int(exponent),
                    public_key=pubkey,
                    network=network)
 
@@ -601,7 +616,7 @@ class Wallet(object):
         # Split I into two 32-byte sequences, IL and IR.
         Il, Ir = I[:32], I[32:]
         # Use IL as master secret key, and IR as master chain code.
-        return cls(private_exponent=long_or_int(hexlify(Il), 16),
+        return cls(private_exponent=int(hexlify(Il), 16),
                    chain_code=hexlify(Ir), mnemonic=mnemonic,
                    network=network)
 
@@ -634,7 +649,7 @@ class Wallet(object):
         # Split I into two 32-byte sequences, IL and IR.
         Il, Ir = I[:32], I[32:]
         # Use IL as master secret key, and IR as master chain code.
-        return cls(private_exponent=long_or_int(hexlify(Il), 16),
+        return cls(private_exponent=int(hexlify(Il), 16),
                    chain_code=hexlify(Ir),
                    network=network)
 
@@ -657,7 +672,7 @@ class Wallet(object):
         # Split I into two 32-byte sequences, IL and IR.
         Il, Ir = I[:32], I[32:]
         # Use IL as master secret key, and IR as master chain code.
-        return cls(private_exponent=long_or_int(hexlify(Il), 16),
+        return cls(private_exponent=int(hexlify(Il), 16),
                    chain_code=hexlify(Ir),
                    network=network)
     
