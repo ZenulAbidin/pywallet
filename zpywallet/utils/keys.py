@@ -26,34 +26,7 @@ from .ripemd160 import ripemd160
 from .utils import chr_py2
 from .utils import ensure_bytes, ensure_str
 from ..network import BitcoinMainNet
-
-
-
-class InvalidKeyDataException(Exception):
-    pass
-
-
-class KeyParseError(Exception):
-    pass
-
-
-def incompatible_network_exception_factory(
-        network_name, expected_prefix, given_prefix):
-    return IncompatibleNetworkException(
-        f"Incorrect network. {network_name} expects a byte prefix of "
-        f"{expected_prefix}, but you supplied {given_prefix}")
-
-
-class ChecksumException(Exception):
-    pass
-
-
-class IncompatibleNetworkException(Exception):
-    pass
-
-
-class InvalidChildException(Exception):
-    pass
+from ..errors import incompatible_network_bytes_exception_factory, ChecksumException, unsupported_feature_exception_factory
 
 
 Point = namedtuple('Point', ['x', 'y'])
@@ -270,7 +243,7 @@ class PrivateKey:
         if not isinstance(network_bytes, six.integer_types):
             network_bytes = ord(network_bytes)
         if network_bytes != network.SECRET_KEY:
-            raise incompatible_network_exception_factory(
+            raise incompatible_network_bytes_exception_factory(
                 network_name=network.NAME,
                 expected_prefix=network.SECRET_KEY,
                 given_prefix=network_bytes)
@@ -323,7 +296,7 @@ class PrivateKey:
         elif isinstance(message, bytes):
             msg = message
         else:
-            raise TypeError("message must be either str or bytes!")
+            raise TypeError("message must be either str or bytes")
 
         return self._key.sign(msg)
 
@@ -348,7 +321,7 @@ class PrivateKey:
         elif isinstance(message, bytes):
             msg = message
         else:
-            raise TypeError("message must be either str or bytes!")
+            raise TypeError("message must be either str or bytes")
 
         return base64.b64encode(self._key.sign(msg)).decode() # decode is to convert from bytes to str
 
@@ -390,7 +363,7 @@ class PrivateKey:
         elif isinstance(message, bytes):
             msg = message
         else:
-            raise TypeError("message must be either str or bytes!")
+            raise TypeError("message must be either str or bytes")
 
         sig = base64.b64encode(self._key.sign(msg)).decode()
         address = self._public_key.address()
@@ -424,7 +397,7 @@ class PrivateKey:
         elif isinstance(message, bytes):
             msg = message
         else:
-            raise TypeError("message must be either str or bytes!")
+            raise TypeError("message must be either str or bytes")
 
         der = self._key.sign(msg)
         z = sha256(msg).digest()
@@ -694,7 +667,7 @@ class PublicKey:
         if not self.network or not self.network.ADDRESS_MODE:
             raise TypeError("Invalid network parameter")
         elif "BASE58" not in self.network.ADDRESS_MODE:
-            raise TypeError("Base58 addresses are not supported for this network")
+            raise unsupported_feature_exception_factory(self.network.NAME, "base58 addresses")
 
         # Put the version byte in front, 0x00 for Mainnet, 0x6F for testnet
         version = bytes([self.network.PUBKEY_ADDRESS])
@@ -719,7 +692,7 @@ class PublicKey:
         if not self.network or not self.network.ADDRESS_MODE:
             raise TypeError("Invalid network parameter")
         elif "BECH32" not in self.network.ADDRESS_MODE:
-            raise TypeError("Bech32 addresses are not supported for this network")
+            raise unsupported_feature_exception_factory(self.network.NAME, "bech32 addresses")
 
         if not self.network.BECH32_PREFIX:
             raise ValueError("Network does not support Bech32")
@@ -732,7 +705,7 @@ class PublicKey:
         if not self.network or not self.network.ADDRESS_MODE:
             raise TypeError("Invalid network parameter")
         elif "HEX" not in self.network.ADDRESS_MODE:
-            raise TypeError("HExadecimal addresses are not supported for this network")
+            raise unsupported_feature_exception_factory(self.network.NAME, "hexadecimal addresses")
 
         version = '0x'
         return version + binascii.hexlify(self.keccak[12:]).decode('ascii')
@@ -747,4 +720,5 @@ class PublicKey:
         elif self.network.ADDRESS_MODE[0] == "HEX":
             return self.hex_address()
         else:
-            raise TypeError("Network does not support any address type")
+            # How is this possible??
+            raise unsupported_feature_exception_factory(self.network.NAME, "addresses")

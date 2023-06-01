@@ -6,7 +6,7 @@ This module contains the methods for creating a crypto wallet.
 from os import urandom
 
 from .mnemonic import Mnemonic
-from .utils import (
+from .utils.bip32 import (
     Wallet
 )
 
@@ -70,7 +70,7 @@ def create_wallet_json(network='BTC', mnemonic=None, strength=128, children=10):
     """
 
     net = Wallet.get_network(network)
-    
+
     if mnemonic is None:
         my_wallet = Wallet.from_random(strength=strength, network=network)
         mnemonic = my_wallet.mnemonic_phrase
@@ -102,7 +102,7 @@ def create_wallet_json(network='BTC', mnemonic=None, strength=128, children=10):
         wallet["xprivate_key"] = my_wallet.serialize_b58(private=True)
     except ValueError:
         have_private_base58 = False
-    
+
     try:
         wallet["xpublic_key"] = my_wallet.serialize_b58(private=False)
     except ValueError:

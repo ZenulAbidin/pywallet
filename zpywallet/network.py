@@ -131,47 +131,6 @@ class DashInvertedTestNet(object):
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
-class OmniMainNet(object):
-    """Bitcoin MainNet version bytes.
-    From https://github.com/OmniLayer/omnicore/blob/develop/src/chainparams.cpp
-
-    Omni mainnet will 
-    """
-    NAME = "Omni"
-    COIN = "USDT"
-    TESTNET = False
-    ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x05  # int(0x05) = 5
-    PUBKEY_ADDRESS = 0x00  # int(0x00) = 0  # Used to create payment addresses
-    SECRET_KEY = 0x80      # int(0x80) = 128  # Used for WIF format
-    EXT_PUBLIC_KEY = 0x0488B21E  # Used to serialize public BIP32 addresses
-    EXT_SECRET_KEY = 0x0488ADE4  # Used to serialize private BIP32 addresses
-    BIP32_PATH = "m/44'/0'/0'/"
-
-    EXT_SEGWIT_PUBLIC_KEY = 0x04b24746 # Used to serialize public keys in BIP32 segwit (P2WPKH)
-    EXT_SEGWIT_SECRET_KEY = 0x04b2430c # Used to serialize private keys in BIP32 segwit (P2WPKH)
-    BIP32_SEGWIT_PATH = "m/84'/0'/0'/"
-    BECH32_PREFIX = "o"
-
-class OmniTestNet(object):
-    """Bitcoin MainNet version bytes.
-    From https://github.com/OmniLayer/omnicore/blob/develop/src/chainparams.cpp
-    """
-    NAME = "Omni"
-    COIN = "USDT"
-    TESTNET = True
-    ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0xc4  # int(0xc4) = 196
-    PUBKEY_ADDRESS = 0x6f  # int(0x6f) = 111  # Used to create payment addresses
-    SECRET_KEY = 0xef      # int(0xef) = 239  # Used for WIF format
-    EXT_PUBLIC_KEY = 0x043587CF  # Used to serialize public BIP32 addresses
-    EXT_SECRET_KEY = 0x04358394  # Used to serialize private BIP32 addresses
-    BIP32_PATH = "m/44'/0'/0'/"
-
-    EXT_SEGWIT_PUBLIC_KEY = 0x045f1cf6 # Used to serialize public keys in BIP32 segwit (P2WPKH)
-    EXT_SEGWIT_SECRET_KEY = 0x045f18bc # Used to serialize private keys in BIP32 segwit (P2WPKH)
-    BIP32_SEGWIT_PATH = "m/84'/1'/0'/"
-    BECH32_PREFIX = "to"
 
 class BitcoinMainNet(object):
     """Bitcoin MainNet version bytes.
@@ -433,3 +392,5 @@ class EthereumMainNet(object):
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
+
+#TODO support Monero, ZCash

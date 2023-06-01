@@ -7,7 +7,7 @@ import binascii
 import unittest
 from zpywallet import wallet
 from zpywallet.utils.bip32 import Wallet
-from zpywallet.utils.keys import IncompatibleNetworkException, InvalidKeyDataException
+from zpywallet.errors import IncompatibleNetworkException
 
 
 class TestZPyWallet(unittest.TestCase):
@@ -35,7 +35,7 @@ class TestZPyWallet(unittest.TestCase):
 
     def test_001_bip32(self):
         """Test BIP32 confirmance."""
-        
+
         hdw = Wallet.from_master_seed(binascii.unhexlify("000102030405060708090a0b0c0d0e0f"), network="btc")
         assert hdw.serialize_b58(private=False) == "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8"
         assert hdw.serialize_b58(private=True) == "xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHi"
@@ -114,7 +114,7 @@ class TestZPyWallet(unittest.TestCase):
         """Test BIP32 confirmance - invalid HD keys."""
         with self.assertRaises(IncompatibleNetworkException):
             Wallet.deserialize("xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6LBpB85b3D2yc8sfvZU521AAwdZafEz7mnzBBsz4wKY5fTtTQBm")
-        
+
         with self.assertRaises(IncompatibleNetworkException):
             Wallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzFGTQQD3dC4H2D5GBj7vWvSQaaBv5cxi9gafk7NF3pnBju6dwKvH")
 
@@ -129,17 +129,17 @@ class TestZPyWallet(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             Wallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzFAzHGBP2UuGCqWLTAPLcMtD9y5gkZ6Eq3Rjuahrv17fEQ3Qen6J")
-            
-        with self.assertRaises(InvalidKeyDataException):
+
+        with self.assertRaises(ValueError):
             Wallet.deserialize("xprv9s2SPatNQ9Vc6GTbVMFPFo7jsaZySyzk7L8n2uqKXJen3KUmvQNTuLh3fhZMBoG3G4ZW1N2kZuHEPY53qmbZzCHshoQnNf4GvELZfqTUrcv")
 
-        with self.assertRaises(InvalidKeyDataException):
+        with self.assertRaises(ValueError):
             Wallet.deserialize("xpub661no6RGEX3uJkY4bNnPcw4URcQTrSibUZ4NqJEw5eBkv7ovTwgiT91XX27VbEXGENhYRCf7hyEbWrR3FewATdCEebj6znwMfQkhRYHRLpJ")
 
-        with self.assertRaises(InvalidKeyDataException):
+        with self.assertRaises(ValueError):
             Wallet.deserialize("xprv9s21ZrQH4r4TsiLvyLXqM9P7k1K3EYhA1kkD6xuquB5i39AU8KF42acDyL3qsDbU9NmZn6MsGSUYZEsuoePmjzsB3eFKSUEh3Gu1N3cqVUN")
 
-        with self.assertRaises(InvalidKeyDataException):
+        with self.assertRaises(ValueError):
             Wallet.deserialize("xpub661MyMwAuDcm6CRQ5N4qiHKrJ39Xe1R1NyfouMKTTWcguwVcfrZJaNvhpebzGerh7gucBvzEQWRugZDuDXjNDRmXzSZe4c7mnTK97pTvGS8")
 
         with self.assertRaises(IncompatibleNetworkException):
@@ -148,10 +148,10 @@ class TestZPyWallet(unittest.TestCase):
         with self.assertRaises(IncompatibleNetworkException):
             Wallet.deserialize("DMwo58pR1QLEFihHiXPVykYB6fJmsTeHvyTp7hRThAtCX8CvYzgPcn8XnmdfHPmHJiEDXkTiJTVV9rHEBUem2mwVbbNfvT2MTcAqj3nesx8uBf9")
 
-        with self.assertRaises(InvalidKeyDataException):
+        with self.assertRaises(ValueError):
             Wallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzF93Y5wvzdUayhgkkFoicQZcP3y52uPPxFnfoLZB21Teqt1VvEHx")
 
-        with self.assertRaises(InvalidKeyDataException):
+        with self.assertRaises(ValueError):
             Wallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzFAzHGBP2UuGCqWLTAPLcMtD5SDKr24z3aiUvKr9bJpdrcLg1y3G")
 
         with self.assertRaises(ValueError):
@@ -203,3 +203,7 @@ class TestZPyWallet(unittest.TestCase):
         assert hdw4.public_key.bech32_address(compressed=True, witness_version=0) == \
             "bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el"
 
+    def test_007_brainwallet(self):
+        """Tests brainwallet generation."""
+        w = Wallet.from_brainwallet("crazy horse battery staple", network="btc")
+        assert w.private_key.to_wif(compressed=True) == "KzJp5B7mDpZ7kMHv67GowQRys9W9Hbaa5Rzj4PCoiyXfTk1fGAvH"

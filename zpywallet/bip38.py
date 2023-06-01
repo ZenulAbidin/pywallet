@@ -6,7 +6,6 @@ import scrypt
 from .utils.keys import PrivateKey
 from .utils.utils import encrypt, decrypt
 
-    
 class Bip38PrivateKey:
     BLOCK_SIZE = 16
     KEY_LEN = 32
@@ -28,7 +27,7 @@ class Bip38PrivateKey:
         self.addresshash = addresshash
         self.encryptedhalf1 = encryptedhalf1
         self.encryptedhalf2 = encryptedhalf2
-        encrypted_privkey = (b'\x01\x42' + self.flagbyte + self.addresshash + self.encryptedhalf1 + self.encryptedhalf2)
+        encrypted_privkey = b'\x01\x42' + self.flagbyte + self.addresshash + self.encryptedhalf1 + self.encryptedhalf2
         encrypted_privkey += hashlib.sha256(hashlib.sha256(encrypted_privkey).digest()).digest()[:4] # b58check for encrypted privkey
         self._encrypted_privkey = base58.b58encode(encrypted_privkey)
 

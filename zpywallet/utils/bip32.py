@@ -12,8 +12,9 @@ import six
 
 from .base58 import b58encode_check, b58decode_check
 from ..mnemonic.mnemonic import Mnemonic
-from .keys import incompatible_network_exception_factory, PrivateKey, PublicKey, Point, secp256k1
-from .keys import InvalidKeyDataException
+from .keys import PrivateKey, PublicKey, Point, secp256k1
+from ..errors import incompatible_network_bytes_exception_factory, InvalidChildException, \
+    InvalidPathError, WatchOnlyWalletError, SegwitError, unsupported_feature_exception_factory
 from .utils import ensure_bytes, ensure_str, hash160, is_hex_string, long_to_hex
 
 # import all the networks
@@ -72,7 +73,7 @@ class Wallet(object):
 
         if (not (private_exponent or private_key) and
                 not (public_pair or public_key)):
-            raise InsufficientKeyDataError(
+            raise ValueError(
                 "You must supply one of private_exponent or public_pair")
 
         self.mnemonic = mnemonic
@@ -92,7 +93,7 @@ class Wallet(object):
 
         if (self.private_key and self.private_key.public_key !=
                 self.public_key):
-            raise KeyMismatchError(
+            raise ValueError(
                 "Provided private and public values do not match")
 
         def hex_check_length(val, hex_len):
@@ -158,7 +159,7 @@ class Wallet(object):
         """
         key = self.get_public_key_hex()
         return ensure_bytes(hexlify(hash160(unhexlify(key))))
-    
+
     @property
     def mnemonic_phrase(self):
         """Returns the mnemonic phrase for this wallet, if specified.
@@ -292,7 +293,7 @@ class Wallet(object):
         # Note: If this boundary check gets removed, then children above
         # the boundary should use private (prime) derivation.
         if abs(child_number) >= boundary:
-            raise ValueError(f"Invalid child number {child_number}")
+            raise InvalidPathError(f"Invalid child number {child_number}")
 
         # If is_prime isn't set, then we can infer it from the child_number
         if is_prime is None:
@@ -309,7 +310,7 @@ class Wallet(object):
                 raise ValueError(f"Invalid child number. Must be between 0 and {boundary}")
 
         if not self.private_key and is_prime:
-            raise ValueError(
+            raise WatchOnlyWalletError(
                 "Cannot compute a prime child without a private key")
 
         if is_prime:
@@ -335,7 +336,7 @@ class Wallet(object):
         ichild_left, ichild_right = ichild[:32], ichild[32:]
 
         if int(hexlify(ichild_left), 16) >= secp256k1.N:
-            raise InvalidPrivateKeyError("The derived key is too large.")
+            raise InvalidPathError("The derived key is too large.")
 
         c_i = hexlify(ichild_right)
         private_exponent = None
@@ -399,12 +400,11 @@ class Wallet(object):
         Implementation details from:
           http://bitcoinmagazine.com/8396/deterministic-wallets-advantages-flaw/
         """
-        if self.private_key:
-            raise AssertionError("You already know the private key")
+
         if child_private_key.parent_fingerprint != self.fingerprint:
-            raise ValueError("This is not a valid child")
+            raise InvalidChildException("This is not a valid child")
         if child_private_key.child_number >= 0x80000000:
-            raise ValueError(
+            raise InvalidChildException(
                 "Cannot crack private keys from private derivation")
 
         # Duplicate the public child derivation
@@ -444,29 +444,28 @@ class Wallet(object):
 
         See the spec in `deserialize` for more details.
         """
-        if private and not self.private_key:
-            raise ValueError("Cannot serialize a public key as private")
-        
         if private:
-            if segwit:
+            if not self.private_key:
+                raise WatchOnlyWalletError("Private key is not available")
+            elif segwit:
                 if not self.network.EXT_SEGWIT_SECRET_KEY:
-                    raise ValueError("Segwit is not supported on this network")
+                    raise SegwitError("Segwit is not supported on this network")
                 network_version = long_to_hex(
                     self.network.EXT_SEGWIT_SECRET_KEY, 8)
             else:
                 if not self.network.EXT_SECRET_KEY:
-                    raise ValueError("Network does not support private key serialization")
+                    raise unsupported_feature_exception_factory(self.network.NAME, "private key serialization")
                 network_version = long_to_hex(
                     self.network.EXT_SECRET_KEY, 8)
         else:
             if segwit:
                 if not self.network.EXT_SEGWIT_PUBLIC_KEY:
-                    raise ValueError("Segwit is not supported on this network")
+                    raise SegwitError("Segwit is not supported on this network")
                 network_version = long_to_hex(
                     self.network.EXT_SEGWIT_PUBLIC_KEY, 8)
             else:
                 if not self.network.EXT_PUBLIC_KEY:
-                    raise ValueError("Network does not support private key serialization")
+                    raise unsupported_feature_exception_factory(self.network.NAME, "public key serialization")
                 network_version = long_to_hex(
                     self.network.EXT_PUBLIC_KEY, 8)
         depth = long_to_hex(self.depth, 2)
@@ -548,9 +547,9 @@ class Wallet(object):
             key[:4], key[4], key[5:9], key[9:13], key[13:45], key[45:])
 
         if int(depth) == 0 and int(hexlify(parent_fingerprint), 16) != 0:
-            raise InvalidKeyDataException("Zero depth with non-zero parent fingerprint")
+            raise ValueError("Zero depth with non-zero parent fingerprint")
         if int(depth) == 0 and int(hexlify(child)) != 0:
-            raise InvalidKeyDataException("Zero depth with non-zero index")
+            raise ValueError("Zero depth with non-zero index")
         version_long = int(hexlify(version), 16)
         exponent = None
         pubkey = None
@@ -560,17 +559,17 @@ class Wallet(object):
         if point_type == 0:
             # Private key
             if version_long != network.EXT_SECRET_KEY:
-                raise incompatible_network_exception_factory(
+                raise incompatible_network_bytes_exception_factory(
                     network.NAME, unhexlify(f"{network.EXT_SECRET_KEY:x}".zfill(8)),
                     version)
             exponent = key_data[1:]
             iexponent = int(hexlify(exponent), 16)
             if iexponent < 1 or iexponent >= secp256k1.N:
-                raise InvalidKeyDataException("Private key is out of range")
+                raise ValueError("Private key is out of range")
         elif point_type in [2, 3, 4]:
             # Compressed public coordinates
             if version_long != network.EXT_PUBLIC_KEY:
-                raise incompatible_network_exception_factory(
+                raise incompatible_network_bytes_exception_factory(
                     network.NAME, unhexlify(f"{network.EXT_PUBLIC_KEY:x}".zfill(8)),
                     version)
             pubkey = PublicKey.from_bytes(key_data)
@@ -675,7 +674,7 @@ class Wallet(object):
         return cls(private_exponent=int(hexlify(Il), 16),
                    chain_code=hexlify(Ir),
                    network=network)
-    
+
     @classmethod
     def from_random(cls, passphrase='', strength=128, network=BitcoinMainNet):
         """ Generates a master key from system entropy.
@@ -767,10 +766,6 @@ class Wallet(object):
             response = DashTestNet
         elif network == 'dash_testnet_inverted':
             response = DashInvertedTestNet
-        elif network == 'omni':
-            response = OmniMainNet
-        elif network == 'omni_testnet' or network == 'omnitest':
-            response = OmniTestNet
         elif network == 'ethereum' or network == 'eth':
             response = EthereumMainNet
         elif network == 'blockcypher_testnet' or network == 'bcytest':
@@ -803,39 +798,3 @@ class Wallet(object):
             user_entropy = str(user_entropy)  # allow for int/long
             seed += user_entropy
         return cls.from_mnemonic(seed, network=network)
-
-
-class InvalidPathError(Exception):
-    """
-    Raised when the provided derivation path is invalid.
-    """
-
-
-class InsufficientKeyDataError(ValueError):
-    """
-    Exception raised when there is insufficient key data for a specific operation.
-    """
-
-
-class InvalidPrivateKeyError(ValueError):
-    """
-    Raised when a private key is out of range.
-    """
-
-
-class InvalidPublicKeyError(ValueError):
-    """
-    Raised when a public key is outside of the curve.
-    """
-
-
-class KeyMismatchError(ValueError):
-    """
-    Raised when the public key and private key don't match
-    """
-
-
-class InfinityPointException(Exception):
-    """
-    Raised when the point at infinity is encountered.
-    """
