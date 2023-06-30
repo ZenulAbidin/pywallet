@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+enum Network {
+    BITCOIN_MAINNET = 0;
+    BITCOIN_TESTNET = 1;
+    LITECOIN_MAINNET = 2;
+    LITECOIN_BTC_MAINNET = 3;
+    LITECOIN_TESTNET = 4;
+    ETHEREUM_MAINNET = 5;
+    DOGECOIN_MAINNET = 6;
+    DOGECOIN_BTC_MAINNET = 7;
+    DOGECOIN_TESTNET = 8;
+    DASH_MAINNET = 9;
+    DASH_INVERTED_MAINNET = 10;
+    DASH_BTC_MAINNET = 11;
+    DASH_TESTNET = 12;
+    DASH_INVERTED_TESTNET = 13;
+    BITCOIN_CASH_MAINNET = 14;
+    BLOCKCYPHER_TESTNET = 15;
+}
+
+enum CryptoProvider {
+    option allow_alias = true;
+    BLOCKCHAIN_INFO = 0;
+    ESPLORA = 1;
+    BLOCKSTREAM = 1;
+    BLOCKCYPHER = 2;
+    BLOCKCHAIR = 3;
+    BTC_COM = 4;
+    ELECTRUM = 5;
+    ELECTRUM_LTC = 6;
+    FULLNODE_LEGACY = 7;
+    FULLNODE_DESCRIPTORS = 8;
+    FULLNODE_ETH = 9;
+}
+
+message Wallet {
+    Network network = 1;
+    bytes encrypted_seed_phrase = 2;
+    fixed32 height = 3;
+    fixed32 receive_gap_limit = 4;
+    fixed32 send_gap_limit = 5;
+    string transaction_history = 6; // JSON
+    bool segwit = 7; // Toggles between Legacy and Native Segwit for supported networks
+    CryptoProvider setting_default_crypto_provider = 8;
+}
+
