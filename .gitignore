@@ -1,7 +1,8 @@
 *.pyc
 .idea
-__pycache__/*
-zpywallet/__pycache__/*
+__pycache__
+zpywallet/__pycache__
+tests/__pycache__
 dist
 /build
 /docs/build/doctrees/*
@@ -13,3 +14,5 @@ zpywallet.egg-info
 Icon
 /notes.txt
 .tox
+.benchmarks
+.pytest_cache
