@@ -33,7 +33,7 @@ class Bip38PrivateKey:
 
     @property
     def base58(self):
-        return self._encrypted_privkey
+        return self._encrypted_privkey.decode()
         
 
     def private_key(self, passphrase, compressed=True, segwit=False, witness_version=0):
