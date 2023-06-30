@@ -1,4 +1,6 @@
-six>=1.8.0
 coincurve==18.0.0
-pycryptodomex==3.18.0
+cryptography==41.0.1
 scrypt==0.8.20
+requests==2.31.0
+git+https://github.com/spesmilo/electrum.git@4.4.4
+git+https://github.com/pooler/electrum-ltc.git@4.2.2.1
