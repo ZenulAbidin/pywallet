@@ -1,31 +1,24 @@
 from hashlib import sha256
 import re
+import datetime
 
-import six
-
-from Cryptodome.Cipher import AES
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
 from .ripemd160 import ripemd160
 
 
 def ensure_bytes(data):
-    if not isinstance(data, six.binary_type):
+    if not isinstance(data, bytes):
         return data.encode('utf-8')
     return data
 
 
 def ensure_str(data):
-    if isinstance(data, six.binary_type):
+    if isinstance(data, bytes):
         return data.decode('utf-8')
-    elif not isinstance(data, six.string_types):
+    elif not isinstance(data, str):
         raise ValueError("Invalid value for string")
     return data
-
-
-def chr_py2(num):
-    """Ensures that python3's chr behavior matches python2."""
-    if six.PY3:
-        return bytes([num])
-    return chr(num)
 
 
 def hash160(data):
@@ -36,7 +29,7 @@ def hash160(data):
 def is_hex_string(string):
     """Check if the string is only composed of hex characters."""
     pattern = re.compile(r'[A-Fa-f0-9]+')
-    if isinstance(string, six.binary_type):
+    if isinstance(string, bytes):
         string = str(string)
     return pattern.match(string) is not None
 
@@ -56,19 +49,36 @@ def encrypt(raw, passphrase):
     @param passphrase: string Passphrase
     @type raw: string
     @type passphrase: string
-    @rtype: string
+    @rtype: bytes
     """
-    cipher = AES.new(passphrase, AES.MODE_CBC, b'\x00'*16)
-    return cipher.encrypt(raw)
+    backend = default_backend()
+    cipher = Cipher(algorithms.AES(passphrase), modes.CBC(b'\x00'*16), backend=backend)
+    encryptor = cipher.encryptor()
+    return encryptor.update(raw) + encryptor.finalize()
 
 def decrypt(enc, passphrase):
     """
     Decrypt encrypted text with the passphrase
-    @param enc: string Text to decrypt
+    @param enc: bytes Text to decrypt
     @param passphrase: string Passphrase
-    @type enc: string
+    @type enc: bytes
     @type passphrase: string
-    @rtype: string
+    @rtype: bytes
     """
-    cipher = AES.new(passphrase, AES.MODE_CBC, b'\x00'*16)
-    return cipher.decrypt(enc)
+    backend = default_backend()
+    cipher = Cipher(algorithms.AES(passphrase), modes.CBC(b'\x00'*16), backend=backend)
+    decryptor = cipher.decryptor()
+    return decryptor.update(enc) + decryptor.finalize()
+
+def convert_to_utc_timestamp(date_string, format_string):
+    # Create a datetime object from the input string
+    # I think we have to check what value the format_string is supposed to be.
+    date_object = datetime.datetime.strptime(date_string, format_string)
+
+    # Convert the datetime object to UTC timezone
+    utc_date = date_object.astimezone(datetime.timezone.utc)
+
+    # Calculate the timestamp
+    timestamp = int(utc_date.timestamp())
+    
+    return timestamp
