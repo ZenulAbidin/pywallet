@@ -6,8 +6,10 @@
 import binascii
 import unittest
 from zpywallet import wallet
-from zpywallet.utils.bip32 import Wallet
+from zpywallet.bip38 import Bip38PrivateKey
+from zpywallet.utils.bip32 import HDWallet
 from zpywallet.errors import IncompatibleNetworkException
+from zpywallet.utils.keys import PrivateKey
 
 
 class TestZPyWallet(unittest.TestCase):
@@ -36,7 +38,7 @@ class TestZPyWallet(unittest.TestCase):
     def test_001_bip32(self):
         """Test BIP32 confirmance."""
 
-        hdw = Wallet.from_master_seed(binascii.unhexlify("000102030405060708090a0b0c0d0e0f"), network="btc")
+        hdw = HDWallet.from_master_seed(binascii.unhexlify("000102030405060708090a0b0c0d0e0f"), network="btc")
         assert hdw.serialize_b58(private=False) == "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8"
         assert hdw.serialize_b58(private=True) == "xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHi"
 
@@ -62,7 +64,7 @@ class TestZPyWallet(unittest.TestCase):
 
     def test_002_bip32(self):
         """Test BIP32 confirmance."""
-        hdw = Wallet.from_master_seed(binascii.unhexlify("fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542"), network="btc")
+        hdw = HDWallet.from_master_seed(binascii.unhexlify("fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542"), network="btc")
         assert hdw.serialize_b58(private=False) == "xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB"
         assert hdw.serialize_b58(private=True) == "xprv9s21ZrQH143K31xYSDQpPDxsXRTUcvj2iNHm5NUtrGiGG5e2DtALGdso3pGz6ssrdK4PFmM8NSpSBHNqPqm55Qn3LqFtT2emdEXVYsCzC2U"
 
@@ -88,7 +90,7 @@ class TestZPyWallet(unittest.TestCase):
 
     def test_003_bip32(self):
         """Test BIP32 confirmance - retention of leading zeroes."""
-        hdw = Wallet.from_master_seed(binascii.unhexlify("4b381541583be4423346c643850da4b320e46a87ae3d2a4e6da11eba819cd4acba45d239319ac14f863b8d5ab5a0d0c64d2e8a1e7d1457df2e5a3c51c73235be"), network="btc")
+        hdw = HDWallet.from_master_seed(binascii.unhexlify("4b381541583be4423346c643850da4b320e46a87ae3d2a4e6da11eba819cd4acba45d239319ac14f863b8d5ab5a0d0c64d2e8a1e7d1457df2e5a3c51c73235be"), network="btc")
         assert hdw.serialize_b58(private=False) == "xpub661MyMwAqRbcEZVB4dScxMAdx6d4nFc9nvyvH3v4gJL378CSRZiYmhRoP7mBy6gSPSCYk6SzXPTf3ND1cZAceL7SfJ1Z3GC8vBgp2epUt13"
         assert hdw.serialize_b58(private=True) == "xprv9s21ZrQH143K25QhxbucbDDuQ4naNntJRi4KUfWT7xo4EKsHt2QJDu7KXp1A3u7Bi1j8ph3EGsZ9Xvz9dGuVrtHHs7pXeTzjuxBrCmmhgC6"
 
@@ -98,7 +100,7 @@ class TestZPyWallet(unittest.TestCase):
 
     def test_004_bip32(self):
         """Test BIP32 confirmance - retention of leading zeroes."""
-        hdw = Wallet.from_master_seed(binascii.unhexlify("3ddd5602285899a946114506157c7997e5444528f3003f6134712147db19b678"), network="btc")
+        hdw = HDWallet.from_master_seed(binascii.unhexlify("3ddd5602285899a946114506157c7997e5444528f3003f6134712147db19b678"), network="btc")
         assert hdw.serialize_b58(private=False) == "xpub661MyMwAqRbcGczjuMoRm6dXaLDEhW1u34gKenbeYqAix21mdUKJyuyu5F1rzYGVxyL6tmgBUAEPrEz92mBXjByMRiJdba9wpnN37RLLAXa"
         assert hdw.serialize_b58(private=True) == "xprv9s21ZrQH143K48vGoLGRPxgo2JNkJ3J3fqkirQC2zVdk5Dgd5w14S7fRDyHH4dWNHUgkvsvNDCkvAwcSHNAQwhwgNMgZhLtQC63zxwhQmRv"
 
@@ -113,57 +115,57 @@ class TestZPyWallet(unittest.TestCase):
     def test_005_bip32(self):
         """Test BIP32 confirmance - invalid HD keys."""
         with self.assertRaises(IncompatibleNetworkException):
-            Wallet.deserialize("xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6LBpB85b3D2yc8sfvZU521AAwdZafEz7mnzBBsz4wKY5fTtTQBm")
+            HDWallet.deserialize("xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6LBpB85b3D2yc8sfvZU521AAwdZafEz7mnzBBsz4wKY5fTtTQBm")
 
         with self.assertRaises(IncompatibleNetworkException):
-            Wallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzFGTQQD3dC4H2D5GBj7vWvSQaaBv5cxi9gafk7NF3pnBju6dwKvH")
+            HDWallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzFGTQQD3dC4H2D5GBj7vWvSQaaBv5cxi9gafk7NF3pnBju6dwKvH")
 
         with self.assertRaises(ValueError):
-            Wallet.deserialize("xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6Txnt3siSujt9RCVYsx4qHZGc62TG4McvMGcAUjeuwZdduYEvFn")
+            HDWallet.deserialize("xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6Txnt3siSujt9RCVYsx4qHZGc62TG4McvMGcAUjeuwZdduYEvFn")
 
         with self.assertRaises(IncompatibleNetworkException):
-            Wallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzFGpWnsj83BHtEy5Zt8CcDr1UiRXuWCmTQLxEK9vbz5gPstX92JQ")
+            HDWallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzFGpWnsj83BHtEy5Zt8CcDr1UiRXuWCmTQLxEK9vbz5gPstX92JQ")
 
         with self.assertRaises(ValueError):
-            Wallet.deserialize("xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6N8ZMMXctdiCjxTNq964yKkwrkBJJwpzZS4HS2fxvyYUA4q2Xe4")
+            HDWallet.deserialize("xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6N8ZMMXctdiCjxTNq964yKkwrkBJJwpzZS4HS2fxvyYUA4q2Xe4")
 
         with self.assertRaises(ValueError):
-            Wallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzFAzHGBP2UuGCqWLTAPLcMtD9y5gkZ6Eq3Rjuahrv17fEQ3Qen6J")
+            HDWallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzFAzHGBP2UuGCqWLTAPLcMtD9y5gkZ6Eq3Rjuahrv17fEQ3Qen6J")
 
         with self.assertRaises(ValueError):
-            Wallet.deserialize("xprv9s2SPatNQ9Vc6GTbVMFPFo7jsaZySyzk7L8n2uqKXJen3KUmvQNTuLh3fhZMBoG3G4ZW1N2kZuHEPY53qmbZzCHshoQnNf4GvELZfqTUrcv")
+            HDWallet.deserialize("xprv9s2SPatNQ9Vc6GTbVMFPFo7jsaZySyzk7L8n2uqKXJen3KUmvQNTuLh3fhZMBoG3G4ZW1N2kZuHEPY53qmbZzCHshoQnNf4GvELZfqTUrcv")
 
         with self.assertRaises(ValueError):
-            Wallet.deserialize("xpub661no6RGEX3uJkY4bNnPcw4URcQTrSibUZ4NqJEw5eBkv7ovTwgiT91XX27VbEXGENhYRCf7hyEbWrR3FewATdCEebj6znwMfQkhRYHRLpJ")
+            HDWallet.deserialize("xpub661no6RGEX3uJkY4bNnPcw4URcQTrSibUZ4NqJEw5eBkv7ovTwgiT91XX27VbEXGENhYRCf7hyEbWrR3FewATdCEebj6znwMfQkhRYHRLpJ")
 
         with self.assertRaises(ValueError):
-            Wallet.deserialize("xprv9s21ZrQH4r4TsiLvyLXqM9P7k1K3EYhA1kkD6xuquB5i39AU8KF42acDyL3qsDbU9NmZn6MsGSUYZEsuoePmjzsB3eFKSUEh3Gu1N3cqVUN")
+            HDWallet.deserialize("xprv9s21ZrQH4r4TsiLvyLXqM9P7k1K3EYhA1kkD6xuquB5i39AU8KF42acDyL3qsDbU9NmZn6MsGSUYZEsuoePmjzsB3eFKSUEh3Gu1N3cqVUN")
 
         with self.assertRaises(ValueError):
-            Wallet.deserialize("xpub661MyMwAuDcm6CRQ5N4qiHKrJ39Xe1R1NyfouMKTTWcguwVcfrZJaNvhpebzGerh7gucBvzEQWRugZDuDXjNDRmXzSZe4c7mnTK97pTvGS8")
+            HDWallet.deserialize("xpub661MyMwAuDcm6CRQ5N4qiHKrJ39Xe1R1NyfouMKTTWcguwVcfrZJaNvhpebzGerh7gucBvzEQWRugZDuDXjNDRmXzSZe4c7mnTK97pTvGS8")
 
         with self.assertRaises(IncompatibleNetworkException):
-            Wallet.deserialize("DMwo58pR1QLEFihHiXPVykYB6fJmsTeHvyTp7hRThAtCX8CvYzgPcn8XnmdfHGMQzT7ayAmfo4z3gY5KfbrZWZ6St24UVf2Qgo6oujFktLHdHY4")
+            HDWallet.deserialize("DMwo58pR1QLEFihHiXPVykYB6fJmsTeHvyTp7hRThAtCX8CvYzgPcn8XnmdfHGMQzT7ayAmfo4z3gY5KfbrZWZ6St24UVf2Qgo6oujFktLHdHY4")
 
         with self.assertRaises(IncompatibleNetworkException):
-            Wallet.deserialize("DMwo58pR1QLEFihHiXPVykYB6fJmsTeHvyTp7hRThAtCX8CvYzgPcn8XnmdfHPmHJiEDXkTiJTVV9rHEBUem2mwVbbNfvT2MTcAqj3nesx8uBf9")
+            HDWallet.deserialize("DMwo58pR1QLEFihHiXPVykYB6fJmsTeHvyTp7hRThAtCX8CvYzgPcn8XnmdfHPmHJiEDXkTiJTVV9rHEBUem2mwVbbNfvT2MTcAqj3nesx8uBf9")
 
         with self.assertRaises(ValueError):
-            Wallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzF93Y5wvzdUayhgkkFoicQZcP3y52uPPxFnfoLZB21Teqt1VvEHx")
+            HDWallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzF93Y5wvzdUayhgkkFoicQZcP3y52uPPxFnfoLZB21Teqt1VvEHx")
 
         with self.assertRaises(ValueError):
-            Wallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzFAzHGBP2UuGCqWLTAPLcMtD5SDKr24z3aiUvKr9bJpdrcLg1y3G")
+            HDWallet.deserialize("xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzFAzHGBP2UuGCqWLTAPLcMtD5SDKr24z3aiUvKr9bJpdrcLg1y3G")
 
         with self.assertRaises(ValueError):
-            Wallet.deserialize("xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6Q5JXayek4PRsn35jii4veMimro1xefsM58PgBMrvdYre8QyULY")
+            HDWallet.deserialize("xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6Q5JXayek4PRsn35jii4veMimro1xefsM58PgBMrvdYre8QyULY")
 
         with self.assertRaises(ValueError):
-            Wallet.deserialize("xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHL")
+            HDWallet.deserialize("xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHL")
 
     def test_006_bip84(self):
         """Test BIP84 confirmance"""
         mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
-        hdw = Wallet.from_mnemonic(mnemonic)
+        hdw = HDWallet.from_mnemonic(mnemonic)
         assert hdw.serialize_b58(private=True, segwit=True) == \
             "zprvAWgYBBk7JR8Gjrh4UJQ2uJdG1r3WNRRfURiABBE3RvMXYSrRJL62XuezvGdPvG6GFBZduosCc1YP5wixPox7zhZLfiUm8aunE96BBa4Kei5"
         assert hdw.serialize_b58(private=False, segwit=True) == \
@@ -205,5 +207,12 @@ class TestZPyWallet(unittest.TestCase):
 
     def test_007_brainwallet(self):
         """Tests brainwallet generation."""
-        w = Wallet.from_brainwallet("crazy horse battery staple", network="btc")
+        w = HDWallet.from_brainwallet("crazy horse battery staple", network="btc")
         assert w.private_key.to_wif(compressed=True) == "KzJp5B7mDpZ7kMHv67GowQRys9W9Hbaa5Rzj4PCoiyXfTk1fGAvH"
+
+    def test_008_bip38(self):
+        """Tests BIP38 key generation (non-ECC mode)"""
+        key = PrivateKey.from_wif("5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR")
+        bip38key = Bip38PrivateKey(key, "TestingOneTwoThree", compressed=False)
+        assert bip38key.base58 == "6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg"
+        assert bip38key.private_key("TestingOneTwoThree", compressed=False).to_wif(compressed=False) == "5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR"
