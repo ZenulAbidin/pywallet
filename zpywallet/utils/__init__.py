@@ -7,6 +7,7 @@ __all__ = [
     'bip32',
     'keccak',
     'keys',
+    'descriptors',
     'ripemd160',
     'utils'
 ]
