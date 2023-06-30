@@ -4,15 +4,18 @@ This module contains the methods for creating a crypto wallet.
 """
 
 from os import urandom
+import base64
 
 from .mnemonic import Mnemonic
 from .utils.bip32 import (
-    Wallet
+    HDWallet
 )
 
 from .utils.keys import (
     PrivateKey
 )
+
+from .utils.aes import encrypt, decrypt
 from .utils.utils import ensure_str
 
 def generate_mnemonic(strength=128):
@@ -41,15 +44,15 @@ def create_wallet(mnemonic=None, network='BTC', children=10, strength=128):
         or receiving funds, as a best practice.
 
     Return:
-        Wallet: a wallet class
+        HDWallet: a wallet class
     
     Usage:
         w = create_wallet(network='BTC', children=10)
     """
     if mnemonic is None:
-        return Wallet.from_random(strength=strength, network=network)
+        return HDWallet.from_random(strength=strength, network=network)
     else:
-        return Wallet.from_mnemonic(mnemonic=mnemonic, network=network)
+        return HDWallet.from_mnemonic(mnemonic=mnemonic, network=network)
 
 
 
@@ -69,13 +72,13 @@ def create_wallet_json(network='BTC', mnemonic=None, strength=128, children=10):
         w = create_wallet(network='BTC', children=1000)
     """
 
-    net = Wallet.get_network(network)
+    net = HDWallet.get_network(network)
 
     if mnemonic is None:
-        my_wallet = Wallet.from_random(strength=strength, network=network)
+        my_wallet = HDWallet.from_random(strength=strength, network=network)
         mnemonic = my_wallet.mnemonic_phrase
     else:
-        my_wallet = Wallet.from_mnemonic(mnemonic=mnemonic, network=network)
+        my_wallet = HDWallet.from_mnemonic(mnemonic=mnemonic, network=network)
 
 
     wallet = {
@@ -143,8 +146,26 @@ def create_keypair(network='BTC'):
         w = create_wallet(network='BTC', children=10)
     """
 
-    net = Wallet.get_network(network)
+    net = HDWallet.get_network(network)
     random_bytes = urandom(32)
     prv = PrivateKey(random_bytes, network=net)
     pub = prv.public_key
     return prv, pub
+
+class Wallet:
+    """Data class representing a cryptocurrency wallet."""
+
+    def __init__(self, network, seed_phrase, receive_gap_limit, change_gap_limit, transaction_history, password):
+        self.network = network
+        self.receive_gap_limit = receive_gap_limit
+        self.change_gap_limit = change_gap_limit
+        self.transaction_history = transaction_history
+        # We do not save the password. Instead, we are going to generate a base64-encrypted
+        # serialization of this wallet file using the password.
+        self.serialization = {}
+        self.serialization["network"] = network # We will figure out how to serialize this later.
+        self.serialization["seed_phrase"] = encrypt(seed_phrase, password) # AES-256-CBC encryption
+        self.serialization["receive_gap_limit"] = receive_gap_limit
+        self.serialization["change_gap_limit"] = change_gap_limit
+        self.serialization["transaction_history"] = transaction_history #TODO serialize to JSON
+

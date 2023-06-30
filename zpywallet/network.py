@@ -199,10 +199,10 @@ class LitecoinMainNet(object):
     EXT_SECRET_KEY = 0x019d9cfe
     BIP32_PATH = "m/44'/2'/0'/"
 
-    EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_SECRET_KEY = None
-    BIP32_SEGWIT_PATH = None # P2WPKH not supported
-    BECH32_PREFIX = "None" # Bech32 not supported
+    EXT_SEGWIT_PUBLIC_KEY = 0x04b24746 # Used to serialize public keys in BIP32 segwit (P2WPKH)
+    EXT_SEGWIT_SECRET_KEY = 0x04b2430c # Used to serialize private keys in BIP32 segwit (P2WPKH)
+    BIP32_SEGWIT_PATH = "m/84'/0'/0'/"
+    BECH32_PREFIX = "ltc"
 
 class LitecoinBTCMainNet(object):
     """Litecoin MainNet version bytes
