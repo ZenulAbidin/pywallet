@@ -8,7 +8,6 @@ from os import urandom
 import time
 
 import coincurve
-import six
 
 from .base58 import b58encode_check, b58decode_check
 from ..mnemonic.mnemonic import Mnemonic
@@ -22,7 +21,7 @@ from ..network import *
 
 
 
-class Wallet(object):
+class HDWallet(object):
     """A BIP32 wallet is made up of Wallet nodes.
 
     A Private node contains both a public and private key, while a public
@@ -97,10 +96,10 @@ class Wallet(object):
                 "Provided private and public values do not match")
 
         def hex_check_length(val, hex_len):
-            if isinstance(val, six.integer_types):
+            if isinstance(val, int):
                 return long_to_hex(val, hex_len)
-            elif (isinstance(val, six.string_types) or
-                    isinstance(val, six.binary_type)) and is_hex_string(val):
+            elif (isinstance(val, str) or
+                    isinstance(val, bytes)) and is_hex_string(val):
                 val = ensure_bytes(val)
                 if len(val) != hex_len:
                     raise ValueError("Invalid parameter length")
@@ -109,10 +108,10 @@ class Wallet(object):
                 raise ValueError("Invalid parameter type")
 
         def hex_int(val):
-            if isinstance(val, six.integer_types):
+            if isinstance(val, int):
                 return int(val)
-            elif (isinstance(val, six.string_types) or
-                    isinstance(val, six.binary_type)):
+            elif (isinstance(val, str) or
+                    isinstance(val, bytes)):
                 val = ensure_bytes(val)
                 if not is_hex_string(val):
                     val = hexlify(val)
@@ -120,13 +119,13 @@ class Wallet(object):
             else:
                 raise ValueError("parameter must be an int or long")
 
-        if isinstance(network, six.string_types):
+        if isinstance(network, str):
             self.network = Wallet.get_network(network)
         else:
             self.network = network
         self.depth = hex_int(depth)
-        if (isinstance(parent_fingerprint, six.string_types) or
-                isinstance(parent_fingerprint, six.binary_type)):
+        if (isinstance(parent_fingerprint, str) or
+                isinstance(parent_fingerprint, bytes)):
             val = ensure_bytes(parent_fingerprint)
             if val.startswith(b"0x"):
                 parent_fingerprint = val[2:]
@@ -554,7 +553,7 @@ class Wallet(object):
         exponent = None
         pubkey = None
         point_type = key_data[0]
-        if not isinstance(point_type, six.integer_types):
+        if not isinstance(point_type, int):
             point_type = ord(point_type)
         if point_type == 0:
             # Private key
@@ -582,7 +581,7 @@ class Wallet(object):
         def bytes_int(byte_seq):
             if byte_seq is None:
                 return byte_seq
-            elif isinstance(byte_seq, six.integer_types):
+            elif isinstance(byte_seq, int):
                 return byte_seq
             return int(hexlify(byte_seq), 16)
 

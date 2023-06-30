@@ -16,14 +16,12 @@ from hashlib import sha256
 import random
 from collections import namedtuple
 
-import six
 import coincurve
 
 from .keccak import Keccak256
 from .base58 import b58encode_check, b58decode_check
 from .bech32 import encode as bech32_encode
 from .ripemd160 import ripemd160
-from .utils import chr_py2
 from .utils import ensure_bytes, ensure_str
 from ..network import BitcoinMainNet
 from ..errors import incompatible_network_bytes_exception_factory, ChecksumException, unsupported_feature_exception_factory
@@ -240,7 +238,7 @@ class PrivateKey:
         # Verify we're on the right network
         network_bytes = extended_key_bytes[0]
         # py3k interprets network_byte as an int already
-        if not isinstance(network_bytes, six.integer_types):
+        if not isinstance(network_bytes, int):
             network_bytes = ord(network_bytes)
         if network_bytes != network.SECRET_KEY:
             raise incompatible_network_bytes_exception_factory(
@@ -448,7 +446,7 @@ class PrivateKey:
         key.
         """
         network_hex_chars = binascii.hexlify(
-            chr_py2(network.SECRET_KEY))
+            bytes([network.SECRET_KEY]))
         return ensure_bytes(network_hex_chars) + ensure_bytes(self.to_hex())
 
     def __bytes__(self):
