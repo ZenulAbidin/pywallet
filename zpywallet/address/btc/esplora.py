@@ -1,4 +1,5 @@
 import requests
+import time
 
 from ...errors import NetworkException
 
@@ -7,6 +8,7 @@ class EsploraAddress:
     A class representing a Bitcoin address.
 
     This class allows you to retrieve the balance and transaction history of a Bitcoin address using the Esplora API.
+    Esplora is deployed on many popular websites, including mempool.space (Rate limited) and blockstream.info.
 
     Noe: Esplora has a built-in limitation of returning up to 50 unconfirmed transactions per address. While this should be
     large enough for most use cases, if you run into problems, try using a different address provider.
@@ -64,14 +66,17 @@ class EsploraAddress:
         new_element['fee_metric'] = 'vbyte'
         return new_element
 
-    def __init__(self, address, endpoint="https://blockstream.info/api"):
+    def __init__(self, address, endpoint="https://blockstream.info/api", request_interval=(0,1)):
         """
         Initializes an instance of the EsploraAddress class.
 
         Args:
             address (str): The human-readable Bitcoin address.
             endpoint (str): The Esplora endpoint to use. Defaults to Blockstream's endpoint.
+            request_interval (tuple): A pair of integers indicating the number of requests allowed during
+                a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
+        self.requests, self.interval_sec = request_interval
         self.address = address
         self.endpoint = endpoint
         self.transactions = [*self._get_transaction_history()]
@@ -171,7 +176,7 @@ class EsploraAddress:
         if response.status_code == 200:
             data = response.json()
             for tx in data:
-                # That's right, there are no rate limits. Not even for the blockstream endpoint.
+                time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
                 if txhash and tx["txid"] == txhash:
                     return
                 yield tx
@@ -188,6 +193,7 @@ class EsploraAddress:
             if response.status_code == 200:
                 data = response.json()
                 for tx in data["txs"]:
+                    time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
                     if txhash and tx["hash"] == txhash:
                         return
                     yield tx

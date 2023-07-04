@@ -32,18 +32,19 @@ class BlockchainInfoAddress:
     Raises:
         Exception: If the API request fails or the address balance/transaction history cannot be retrieved.
     """
-    def __init__(self, coin_address):
+    def __init__(self, address, request_interval=(1,10)):
         """
         Initializes an instance of the Address class.
 
         Args:
             address (str): The human-readable Bitcoin address.
+            request_interval (tuple): A pair of integers indicating the number of requests allowed during
+                a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
-        self.address = coin_address
+        self.address = address
+        self.requests, self.interval_sec = request_interval
         self.transactions = [*self._get_transaction_history()]
         self.height = self.get_block_height()
-        self.requests = 1
-        self.interval_sec = 10
 
     def _clean_tx(self, element):
         new_element = {}

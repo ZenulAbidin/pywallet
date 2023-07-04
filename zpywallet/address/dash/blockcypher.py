@@ -62,18 +62,19 @@ class BlockcypherAddress:
         
         return new_element
 
-    def __init__(self, address):
+    def __init__(self, address, request_interval=(3,1)):
         """
         Initializes an instance of the BlockcypherAddress class.
 
         Args:
             address (str): The human-readable Bitcoin address.
-            api_key (str): The API key for accessing the Blockcypher API.
+            request_interval (tuple): A pair of integers indicating the number of requests allowed during
+                a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
         self.address = address
+        self.requests, self.interval_sec = request_interval
         self.transactions = [*self._get_transaction_history()]
-        self.requests = 3
-        self.interval_sec = 1
+        self.height = self.get_block_height()
 
     def get_balance(self):
         """
@@ -111,6 +112,18 @@ class BlockcypherAddress:
                     utxos.append(utxo)
         return utxos
 
+    def get_block_height(self):
+        """Returns the current block height."""
+
+        url = "https://api.blockcypher.com/v1/dash/main"
+        response = requests.get(url)
+
+        if response.status_code == 200:
+            data = response.json()
+            self.height = data["height"]
+            return self.height
+        else:
+            raise Exception("Failed to retrieve block height")
 
     def get_transaction_history(self):
         """
