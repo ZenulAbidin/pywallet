@@ -1,6 +1,10 @@
 class InvalidTransactionError(Exception):
     pass
 
+def hex_to_int(string):
+    return int.from_bytes(bytes.fromhex(string), byteorder="little")
+
+
 def parse_transaction(raw_transaction_hex, segwit=False):
     transaction = {}
     witness_start = 0
@@ -9,22 +13,24 @@ def parse_transaction(raw_transaction_hex, segwit=False):
 
     try:
         # Version
-        transaction['version'] = int(raw_transaction_hex[0:8], 16)
+        transaction['version'] = hex_to_int(raw_transaction_hex[0:8])
         index = 8
 
         # Marker & Flag (for SegWit)
         if segwit:
-            flag = raw_transaction_hex[index:index+4]
-            index += 4
+            marker = raw_transaction_hex[index:index+2]
+            index += 2
+            flag = raw_transaction_hex[index:index+2]
+            index += 2
             witness_flag_size = 2
 
-            if int(flag, 16) != 1:
+            if hex_to_int(marker) == 0 and hex_to_int(flag) != 1:
                 raise InvalidTransactionError("Marker byte must be 0x00, flag byte immediately after it must be 0x01")
 
         # Input Count
         input_count, varint_length = parse_varint(raw_transaction_hex[index:])
         transaction['input_count'] = input_count
-        index += varint_length
+        index += varint_length * 2
 
         if input_count == 0:
             raise InvalidTransactionError("Input count must not be zero (is this a segwit transaction?)")
@@ -38,12 +44,12 @@ def parse_transaction(raw_transaction_hex, segwit=False):
             index += 64
 
             # Previous Transaction Output Index
-            input_data['prev_tx_output_index'] = int(raw_transaction_hex[index:index+8], 16)
+            input_data['prev_tx_output_index'] = hex_to_int(raw_transaction_hex[index:index+8])
             index += 8
 
             # Script Length
             script_length, varint_length = parse_varint(raw_transaction_hex[index:])
-            index += varint_length
+            index += varint_length * 2
 
             # Script Signature
             input_data['script_signature'] = raw_transaction_hex[index:index+(script_length*2)]
@@ -58,7 +64,7 @@ def parse_transaction(raw_transaction_hex, segwit=False):
         # Output Count
         output_count, varint_length = parse_varint(raw_transaction_hex[index:])
         transaction['output_count'] = output_count
-        index += varint_length
+        index += varint_length * 2
 
         if output_count == 0:
             raise InvalidTransactionError("Output count must not be zero")
@@ -68,12 +74,12 @@ def parse_transaction(raw_transaction_hex, segwit=False):
         for _ in range(output_count):
             output_data = {}
             # Value
-            output_data['value'] = int(raw_transaction_hex[index:index+16], 16)
+            output_data['value'] = hex_to_int(raw_transaction_hex[index:index+16])
             index += 16
 
             # Script Length
             script_length, varint_length = parse_varint(raw_transaction_hex[index:])
-            index += varint_length
+            index += varint_length * 2
 
             # Script Public Key
             output_data['script_pubkey'] = raw_transaction_hex[index:index+(script_length*2)]
@@ -87,14 +93,14 @@ def parse_transaction(raw_transaction_hex, segwit=False):
             witness_start = index
             transaction['witness_data'] = []
             witness_count, varint_length = parse_varint(raw_transaction_hex[index:])
-            index += varint_length
+            index += varint_length * 2
 
             if witness_count == 0:
                 raise InvalidTransactionError("Witness count must not be zero")
 
             for _ in range(witness_count):
                 item_length, varint_length = parse_varint(raw_transaction_hex[index:])
-                index += varint_length
+                index += varint_length * 2
                 item = raw_transaction_hex[index:index+(item_length*2)]
                 index += item_length * 2
                 transaction['witness_data'].append(item)
@@ -118,15 +124,15 @@ def parse_transaction(raw_transaction_hex, segwit=False):
         raise InvalidTransactionError("Invalid hexadecimal") from e
 
 def parse_varint(data):
-    varint_type = int(data[0:2], 16)
+    varint_type = hex_to_int(data[0:2])
     if varint_type < 0xfd:
         return varint_type, 1
     elif varint_type == 0xfd:
-        return int(data[2:6], 16), 3
+        return hex_to_int(data[2:6]), 3
     elif varint_type == 0xfe:
-        return int(data[2:10], 16), 5
+        return hex_to_int(data[2:10]), 5
     elif varint_type == 0xff:
-        return int(data[2:18], 16), 9
+        return hex_to_int(data[2:18]), 9
 
 def transaction_size(raw_transaction_hex, segwit=False):
     _, witness_size = parse_transaction(raw_transaction_hex, segwit)
