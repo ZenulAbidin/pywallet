@@ -54,6 +54,7 @@ class EsploraAddress:
             txoutput['index'] = i
             i += 1
             txoutput['address'] = vout['scriptpubkey_address']
+            new_element['outputs'].append(txoutput)
 
         # Now we must calculate the total fee
         total_inputs = sum([a['amount'] for a in new_element['inputs']])
@@ -134,7 +135,6 @@ class EsploraAddress:
                 return self.height
             except AttributeError as exc:
                 raise NetworkException("Failed to retrieve current blockchain height") from exc
-
 
         
     def get_transaction_history(self):

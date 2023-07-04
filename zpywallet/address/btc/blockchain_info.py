@@ -66,7 +66,7 @@ class BlockchainInfoAddress:
             txinput['amount'] = vin['prev_out']['value'] / 1e8
             new_element['inputs'].append(txinput)
         
-        for vout in element['vout']:
+        for vout in element['out']:
             txoutput = {}
             txoutput['amount'] = vout['value'] / 1e8
             txoutput['index'] = vout['n']
