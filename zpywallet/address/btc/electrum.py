@@ -1,7 +1,7 @@
-from electrum import Electrum
-
 import subprocess
 import json
+
+from ...transactions.decode import transaction_size_simple
 
 class ElectrumAddress:
     """
@@ -27,7 +27,7 @@ class ElectrumAddress:
         Exception: If the command execution fails or the address balance/transaction history cannot be retrieved.
     """
     
-    def _clean_tx(self, element):
+    def _clean_tx(self, element, raw_transaction_hex):
         new_element = {}
         new_element['txid'] = element['txid']
         new_element['height'] = element['height']
@@ -61,9 +61,10 @@ class ElectrumAddress:
         total_outputs = sum([a['amount'] for a in new_element['outputs']])
         new_element['total_fee'] = total_inputs - total_outputs
 
-        size_element = element['size']
+        # We must calculate the transaction size ourselves. Electrum doesn't provide tx size or fee info.
+        size_element = transaction_size_simple(raw_transaction_hex)
         new_element['fee'] = new_element['total_fee'] / size_element
-        new_element['fee_unit'] = 'BTC/vbyte' if size_element > 0 else 'BTC'
+        new_element['fee_unit'] = 'vbyte'
 
         return new_element
 
@@ -80,6 +81,8 @@ class ElectrumAddress:
         self.address = address
         self.server_ip = server_ip
         self.server_port = server_port
+        self.transactions = [*self._get_transaction_history()]
+        self.height = self.get_block_height()
 
     def _run_electrum_command(self, command, *args):
         """
@@ -147,7 +150,7 @@ class ElectrumAddress:
         """
         utxos = []
         block_height = self.get_block_height()
-        for tx in self._run_electrum_command("getaddressunspent")
+        for tx in self._run_electrum_command("getaddressunspent"):
             for output in tx["outputs"]:
                 if output['spent']:
                     continue

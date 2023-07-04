@@ -150,3 +150,10 @@ def transaction_size(raw_transaction_hex, segwit=False):
 
         # Convert to vbytes
         return round(weight_units / 4)
+
+def transaction_size_simple(raw_transaction_hex):
+    """ Returns the transaction size without throwing exceptions for valid & modern Segwit transactions """
+    try:
+        return transaction_size(raw_transaction_hex, False)
+    except InvalidTransactionError:
+        return transaction_size(raw_transaction_hex, True)
