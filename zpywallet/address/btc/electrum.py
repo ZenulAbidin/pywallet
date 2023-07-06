@@ -32,6 +32,8 @@ class ElectrumAddress:
     """
     
     def _clean_tx(self, element, raw_transaction_hex):
+        if element['height'] == -1:
+            raise ValueError("We don't process RBF-overridden transactions")
         new_element = {}
         new_element['txid'] = element['txid']
         new_element['height'] = element['height']
@@ -206,7 +208,10 @@ class ElectrumAddress:
                 fine_rawtx = self._run_electrum_command('deserialize', rawtx)
                 fine_rawtx["txid"] = tx
                 fine_rawtx["height"] = height
-                yield self._clean_tx(fine_rawtx, rawtx)
+                try:
+                    yield self._clean_tx(fine_rawtx, rawtx)
+                except ValueError:
+                    pass
 
         except Exception as e:
             raise NetworkException(f"Failed to retrieve transaction history: {e}") from e

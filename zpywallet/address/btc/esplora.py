@@ -98,7 +98,8 @@ class EsploraAddress:
         confirmed_balance = 0
         for utxo in utxos:
             total_balance += utxo["amount"]
-            if utxo["height"] > 0:
+            # Careful: Block height #0 is the Genesis block - don't want to exclude that.
+            if utxo["height"] is not None:
                 confirmed_balance += utxo["amount"]
         return total_balance, confirmed_balance
         
@@ -127,7 +128,14 @@ class EsploraAddress:
     def get_block_height(self):
         # Get the current block height now:
         url = f"{self.endpoint}/block/tip/height"
-        response = requests.get(url, timeout=60)
+        for attempt in range(3, -1, -1):
+            if attempt == 0:
+                raise NetworkException("Network request failure")
+            try:
+                response = requests.get(url, timeout=60)
+                break
+            except requests.RequestException:
+                pass
         if response.status_code == 200:
             self.height = int(response.text)
         else:
@@ -171,7 +179,14 @@ class EsploraAddress:
         """
         # This gets up to 50 mempool transactions + up to 25 confirmed transactions
         url = f"{self.endpoint}/address/{self.address}/txs"
-        response = requests.get(url, timeout=60)
+        for attempt in range(3, -1, -1):
+            if attempt == 0:
+                raise NetworkException("Network request failure")
+            try:
+                response = requests.get(url, timeout=60)
+                break
+            except requests.RequestException:
+                pass
 
         if response.status_code == 200:
             data = response.json()
@@ -186,9 +201,15 @@ class EsploraAddress:
         last_tx = data[-1]["txid"]
         
         while len(data) > 0:
-            # WARNING: RATE LIMIT IS 1 REQUEST PER 10 SECONDS.
             url = f"{self.endpoint}/address/{self.address}/txs/chain/{last_tx}"
-            response = requests.get(url, timeout=60)
+        for attempt in range(3, -1, -1):
+            if attempt == 0:
+                raise NetworkException("Network request failure")
+            try:
+                response = requests.get(url, timeout=60)
+                break
+            except requests.RequestException:
+                pass
 
             if response.status_code == 200:
                 data = response.json()
