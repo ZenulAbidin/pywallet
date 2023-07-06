@@ -1,8 +1,7 @@
 import requests
 import time
 
-from zpywallet.errors import NetworkException
-from ...utils.utils import convert_to_utc_timestamp
+from ...errors import NetworkException
 
 class BTCcomExplorer:
     """
@@ -58,19 +57,17 @@ class BTCcomExplorer:
         new_element['fee'] = 'vbyte'
 
     # BTC.com's rate limits are unknown.
-    def __init__(self, address, endpoint="https://blockstream.info/api", request_interval=(0,1)):
+    def __init__(self, address, request_interval=(0,1)):
         """
         Initializes an instance of the BTCcomExplorer class.
 
         Args:
             address (str): The human-readable Bitcoin address.
-            endpoint (str): The Esplora endpoint to use. Defaults to Blockstream's endpoint.
             request_interval (tuple): A pair of integers indicating the number of requests allowed during
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
         self.requests, self.interval_sec = request_interval
         self.address = address
-        self.endpoint = endpoint
         self.transactions = [*self._get_transaction_history()]
         self.height = self.get_block_height()
 
@@ -105,22 +102,23 @@ class BTCcomExplorer:
                         # Spent
                         utxos.remove(utxo)
             for out in self.transactions[i]["outputs"]:
-                if out["addr"] == self.address:
+                if out["address"] == self.address:
                     utxo = {}
                     utxo["address"] = self.address
-                    utxo["txid"] = self.transactions[i]["hash"]
-                    utxo["index"] = out["n"]
-                    utxo["amount"] = out["value"] / 1e8
-                    utxo["height"] = 0 if not out["block_height"] else self.height - out["block_height"] + 1
+                    utxo["txid"] = self.transactions[i]["txid"]
+                    utxo["index"] = out["index"]
+                    utxo["amount"] = out["amount"]
+                    utxo["height"] = self.transactions[i]["height"]
                     utxos.append(utxo)
         return utxos
 
     def get_block_height(self):
         # Get the current block height now:
-        url = f"{self.endpoint}/block/tip/height"
-        response = requests.get(url)
+        url = "https://chain.api.btc.com/v3/block/latest"
+        response = requests.get(url, timeout=60)
         if response.status_code == 200:
-            self.height = int(response.text)
+            data = response.json()
+            self.height = data["data"]["height"]
         else:
             try:
                 return self.height
@@ -168,7 +166,7 @@ class BTCcomExplorer:
         pagesize = 50
 
         url = f"https://chain.api.btc.com/v3/address/{self.address}/tx?page={page}&pagesize={pagesize}"
-        response = requests.get(url)
+        response = requests.get(url, timeout=60)
 
         if response.status_code == 200:
             data = response.json()
@@ -179,12 +177,12 @@ class BTCcomExplorer:
                 yield self._clean_tx(tx)
             page += 1
         else:
-            raise Exception("Failed to retrieve transaction history")
+            raise NetworkException("Failed to retrieve transaction history")
         
 
         while data["data"]["list"] is not None: 
             url = f"https://chain.api.btc.com/v3/address/{self.address}/tx?page={page}&pagesize={pagesize}"
-            response = requests.get(url)
+            response = requests.get(url, timeout=60)
 
             if response.status_code == 200:
                 data = response.json()
@@ -195,4 +193,4 @@ class BTCcomExplorer:
                     yield self._clean_tx(tx)
                 page += 1
             else:
-                raise Exception("Failed to retrieve transaction history")
+                raise NetworkException("Failed to retrieve transaction history")

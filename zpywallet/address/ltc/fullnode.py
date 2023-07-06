@@ -88,7 +88,7 @@ class CryptoRPCClient:
             'id': random.randint(1, 999999)
         }
         response = requests.post(f"{self.rpc_url}/wallet/zpywallet_{self.client_number}_{self.user_id}" if as_wallet \
-                                 else self.rpc_url, auth=(self.rpc_user, self.rpc_password), json=payload)
+                                 else self.rpc_url, auth=(self.rpc_user, self.rpc_password), json=payload, timeout=86400)
         #response.raise_for_status()
         return response.json()
     
@@ -145,10 +145,8 @@ class CryptoRPCClient:
                 # Get UTXOs for the imported address
             result = self._send_rpc_request('listunspent', params=[0, 99999999], as_wallet=True)
             utxos = CryptoRPCClient._clean_utxos(result['result'])
-            confirmed_balance = sum([*map(lambda x: x["amount"] if x["height"] > 0 else 0)])
-            total_balance = sum([*map(lambda x: x["amount"])])
             
-            return utxos, confirmed_balance, total_balance - confirmed_balance
+            return utxos
         
         finally:
             # Unload and delete the temporary wallet

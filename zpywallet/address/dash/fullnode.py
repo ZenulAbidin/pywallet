@@ -1,36 +1,11 @@
 import random
 import requests
 
-from ...errors import NetworkException
-from ...utils.descriptors import descsum_create_only
+from zpywallet.errors import NetworkException
 
-def to_descriptor(address):
-    ad = f"addr({address})"
-    return f"{ad}#{descsum_create_only(ad)}"
 
-def to_extpub_descriptor(expub, path):
-    """
-    Creates a descriptor out of the extended public key `expub`,
-    and a path `path`.
-
-    Parameters:
-        expub (str): an extended public key. Can have any valid prefix, e.g. xpub, ypub, zpub, etc.
-        path (str): a path string in the form of (for example) "m/0/0'/1". A non-hardened number
-            can be replaced with '*' to fill in a range for a later RPC call. This can only be specified once.
-             The path must start with 'm/'.
-    
-    Returns:
-        str: A descriptor string.
-    """
-    if path[:2] != "m/":
-        raise NetworkException("Path must start with 'm/")
-    desc = expub + path[1:]
-    return f"{desc}#{descsum_create_only(desc)}"
-
-class BitcoinRPCClient:
-    """Address querying class for Bitcoin full nodes utilizing descriptors.
-       Requires node version v0.17.0 or later running with -txindex.
-    """
+# WARNING: DOES NOT WORK WITH DOGECOIN.
+class CryptoRPCClient:
 
     @staticmethod
     def _clean_utxos(element):
@@ -66,18 +41,35 @@ class BitcoinRPCClient:
             txoutput = {}
             txoutput['amount'] = vout['value']
             txoutput['index'] = vout['n']
-            txoutput['address'] = vout['scriptPubKey']['address']
+            if 'address' in vout['scriptPubKey'].keys():
+                txoutput['address'] = vout['scriptPubKey']['address']
+            elif 'addresses' in vout['scriptPubKey'].keys() and len(vout['scriptPubKey']['addresses']) > 0:
+                # Multiple addresses may be defined if this is a multisig output. We don't support multisig
+                # wallets or addresses, so we will always just return the first one.
+                # Other than that it's usually just 1 address in a list, or at least that's how eg. LTC returns it.
+                txoutput['address'] = vout['scriptPubKey']['addresses'][0]
+            else:
+                # Address not defined for this output. (for example, if it's a rare P2PK output)
+                txoutput['address'] = None
             new_element['outputs'].append(txoutput)
         
         # Now we must calculate the total fee
         total_inputs = sum([a['amount'] for a in new_element['inputs']])
         total_outputs = sum([a['amount'] for a in new_element['outputs']])
-
         new_element['total_fee'] = (total_inputs - total_outputs) / 1e8
 
-        new_element['fee'] = (total_inputs - total_outputs) / element['vsize']
-        new_element['fee_metric'] = 'vbyte'
+        # vbytes will be the default transaction metric for networks that support segwit,
+        # else, bytes.
+        if 'vsize' in element.keys():
+            new_element['fee'] = (total_inputs - total_outputs) / element['vsize']
+            new_element['fee_metric'] = 'vbyte'
+        else:
+            new_element['fee'] = (total_inputs - total_outputs) / element['size']
+            new_element['fee'] = 'byte'
+        
         return new_element
+
+
 
     def __init__(self, rpc_url, rpc_user, rpc_password, client_number=0, user_id=0, block_height=0, max_tx_at_once=1000):
         self.rpc_url = rpc_url
@@ -95,9 +87,8 @@ class BitcoinRPCClient:
             'jsonrpc': '2.0',
             'id': random.randint(1, 999999)
         }
-        # Full nodes wallet RPC requests are notoriously slow if there are many transactions in the node.
         response = requests.post(f"{self.rpc_url}/wallet/zpywallet_{self.client_number}_{self.user_id}" if as_wallet \
-                                 else self.rpc_url, auth=(self.rpc_user, self.rpc_password), json=payload, timeout=86400)
+                                 else self.rpc_url, auth=(self.rpc_user, self.rpc_password), json=payload)
         #response.raise_for_status()
         return response.json()
     
@@ -113,15 +104,14 @@ class BitcoinRPCClient:
         block_height = self.block_height
         block_height = min(block_height, self.get_block_height())
 
-
-        params = [*map(lambda at: {"desc": to_descriptor(at), "timestamp": block_height}, addresses)]
+        params = [*map(lambda at: {"scriptPubKey": {"address": at}, "timestamp": block_height}, addresses)]
 
         try:
             # Load the temporary wallet
             self._send_rpc_request('loadwallet', params=[f"zpywallet_{self.client_number}_{self.user_id}"])
             
             # Import the address into the wallet
-            self._send_rpc_request('importdescriptors', params=[params], as_wallet=True)
+            self._send_rpc_request('importmulti', params=[params], as_wallet=True)
             self.block_height = self.get_block_height()
         
         finally:
@@ -154,7 +144,8 @@ class BitcoinRPCClient:
             
                 # Get UTXOs for the imported address
             result = self._send_rpc_request('listunspent', params=[0, 99999999], as_wallet=True)
-            utxos = BitcoinRPCClient._clean_utxos(result['result'])
+            utxos = CryptoRPCClient._clean_utxos(result['result'])
+            
             return utxos
         
         finally:
@@ -162,11 +153,15 @@ class BitcoinRPCClient:
             self._send_rpc_request('unloadwallet', params=[f"zpywallet_{self.client_number}_{self.user_id}"])
     
     def get_transaction_history(self):
+
+        # We need to get info of all addresses attached to a transaction, not just our own.
+        # This may require a node with txindex=1 switched on.
+        
         try:
             # Load the temporary wallet
             self._send_rpc_request('loadwallet', params=[f"zpywallet_{self.client_number}_{self.user_id}"])
-            
-             # Get the number of transactions
+
+            # Get the number of transactions
             total_transactions = self._send_rpc_request('getwalletinfo', as_wallet=True)['result']['txcount']
 
             skip_later_txs = total_transactions - self.max_tx_at_once
@@ -211,4 +206,3 @@ class BitcoinRPCClient:
         finally:
             # Unload and delete the temporary wallet
             self._send_rpc_request('unloadwallet', params=[f"zpywallet_{self.client_number}_{self.user_id}"])
-

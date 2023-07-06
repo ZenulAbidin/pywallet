@@ -8,13 +8,12 @@ class ElectrumAddress:
     """
     A class representing a Bitcoin address.
 
-    This class allows you to retrieve the balance and transaction history of a Bitcoin address using the Electrum local binary.
-
-    Note: This class is only suitable for querying a locally-running Electrum daemon. If you want to query electrum over the
-    network, see electrum_network instead.
+    This class allows you to retrieve the balance and transaction history of a Bitcoin address using Electrum over the network.
 
     Args:
         address (str): The Bitcoin address.
+        server_ip (str, optional): The IP address of the Electrum server. Defaults to 'localhost'.
+        server_port (int, optional): The port number of the Electrum server. Defaults to 50001.
 
     Attributes:
         address (str): The Bitcoin address.
@@ -23,8 +22,6 @@ class ElectrumAddress:
 
     Methods:
         get_balance(): Retrieves the balance of the Bitcoin address.
-        get_block_height(): Returns the current block height.
-        get_utxos(): Retrieves the unspent transaction outputs (UTXOs) of the Bitcoin address.
         get_transaction_history(): Retrieves the transaction history of the Bitcoin address.
 
     Raises:
@@ -73,14 +70,18 @@ class ElectrumAddress:
         return new_element
 
 
-    def __init__(self, address):
+    def __init__(self, address, server_ip='localhost', server_port=50001):
         """
         Initializes an instance of the ElectrumAddress class.
 
         Args:
             address (str): The Bitcoin address.
+            server_ip (str, optional): The IP address of the Electrum server. Defaults to 'localhost'.
+            server_port (int, optional): The port number of the Electrum server. Defaults to 50001.
         """
         self.address = address
+        self.server_ip = server_ip
+        self.server_port = server_port
         self.transactions = [*self._get_transaction_history()]
         self.height = self.get_block_height()
 
@@ -99,7 +100,7 @@ class ElectrumAddress:
         """
         try:
             process = subprocess.Popen(
-                ['electrum', command, *args],
+                ['electrum', '-s', self.server_ip, '-p', str(self.server_port), command, *args],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True

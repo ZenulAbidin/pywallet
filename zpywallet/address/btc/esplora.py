@@ -114,20 +114,20 @@ class EsploraAddress:
                         # Spent
                         utxos.remove(utxo)
             for out in self.transactions[i]["outputs"]:
-                if out["addr"] == self.address:
+                if out["address"] == self.address:
                     utxo = {}
                     utxo["address"] = self.address
-                    utxo["txid"] = self.transactions[i]["hash"]
-                    utxo["index"] = out["n"]
-                    utxo["amount"] = out["value"] / 1e8
-                    utxo["height"] = 0 if not out["block_height"] else self.height - out["block_height"] + 1
+                    utxo["txid"] = self.transactions[i]["txid"]
+                    utxo["index"] = out["index"]
+                    utxo["amount"] = out["amount"]
+                    utxo["height"] = self.transactions[i]["height"]
                     utxos.append(utxo)
         return utxos
 
     def get_block_height(self):
         # Get the current block height now:
         url = f"{self.endpoint}/block/tip/height"
-        response = requests.get(url)
+        response = requests.get(url, timeout=60)
         if response.status_code == 200:
             self.height = int(response.text)
         else:
@@ -171,7 +171,7 @@ class EsploraAddress:
         """
         # This gets up to 50 mempool transactions + up to 25 confirmed transactions
         url = f"{self.endpoint}/address/{self.address}/txs"
-        response = requests.get(url)
+        response = requests.get(url, timeout=60)
 
         if response.status_code == 200:
             data = response.json()
@@ -188,7 +188,7 @@ class EsploraAddress:
         while len(data) > 0:
             # WARNING: RATE LIMIT IS 1 REQUEST PER 10 SECONDS.
             url = f"{self.endpoint}/address/{self.address}/txs/chain/{last_tx}"
-            response = requests.get(url)
+            response = requests.get(url, timeout=60)
 
             if response.status_code == 200:
                 data = response.json()
@@ -200,11 +200,3 @@ class EsploraAddress:
             else:
                 raise NetworkException("Failed to retrieve transaction history")
 
-
-# Usage example
-address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"  # Example Bitcoin address (Satoshi Nakamoto's address)
-blockstream_address = EsploraAddress(address)
-balance = blockstream_address.get_balance()
-transaction_history = blockstream_address.get_transaction_history()
-print(f"Balance of address {address}: {balance} BTC")
-print(f"Transaction history of address {address}: {transaction_history}")

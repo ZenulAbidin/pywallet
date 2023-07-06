@@ -29,7 +29,7 @@ def to_extpub_descriptor(expub, path):
 
 class BitcoinRPCClient:
     """Address querying class for Bitcoin full nodes utilizing descriptors.
-       Requires node version v0.17.0 or later running with -txindex.
+       Requires node version v0.17.0 or later.
     """
 
     @staticmethod
@@ -162,6 +162,10 @@ class BitcoinRPCClient:
             self._send_rpc_request('unloadwallet', params=[f"zpywallet_{self.client_number}_{self.user_id}"])
     
     def get_transaction_history(self):
+
+        # We need to get info of all addresses attached to a transaction, not just our own.
+        # This may require a node with txindex=1 switched on.
+        
         try:
             # Load the temporary wallet
             self._send_rpc_request('loadwallet', params=[f"zpywallet_{self.client_number}_{self.user_id}"])

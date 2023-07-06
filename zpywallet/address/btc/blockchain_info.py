@@ -48,7 +48,7 @@ class BlockchainInfoAddress:
 
     def _clean_tx(self, element):
         new_element = {}
-        new_element['txid'] = element['txid']
+        new_element['txid'] = element['hash']
         new_element['height'] = element['block_height']
         new_element['time'] = None
 
@@ -61,7 +61,7 @@ class BlockchainInfoAddress:
             # So for now, we will substitute the address for the txid,
             # and once we get a sane API, we can fill in the txid properly.
             # (It also only supports Bitcoin, so there's that.)
-            txinput['txid'] = vin['prev_out']['address']
+            txinput['txid'] = ""
             txinput['index'] = vin['prev_out']['n']
             txinput['amount'] = vin['prev_out']['value'] / 1e8
             new_element['inputs'].append(txinput)
@@ -70,7 +70,10 @@ class BlockchainInfoAddress:
             txoutput = {}
             txoutput['amount'] = vout['value'] / 1e8
             txoutput['index'] = vout['n']
-            txoutput['address'] = vout['scriptPubKey']['address']
+            try:
+                txoutput['address'] = vout['addr']
+            except KeyError:
+                txoutput['address'] = ''
             txoutput['spent'] = vout['spent']
             new_element['outputs'].append(txoutput)
         
@@ -107,35 +110,27 @@ class BlockchainInfoAddress:
     def get_utxos(self):
         self.height = self.get_block_height()
         # Transactions are generated in reverse order
+        utxos = []
         for i in range(len(self.transactions)-1, -1, -1):
-            my_outs = []
             for out in self.transactions[i]["outputs"]:
-                if out["addr"] == self.address:
-                    my_outs.append(out)
-            utxos = []
-            for out in my_outs:
-                if out['spent']:
-                    continue
-                utxo = {}
-                utxo["address"] = self.address
-                utxo["txid"] = self.transactions[i]["hash"]
-                utxo["index"] = out["n"]
-                utxo["amount"] = out["value"] / 1e8
-                utxo["height"] = 0 if not out["block_height"] else self.height - out["block_height"] + 1
-                utxos.append(utxo)
+                if out["address"] == self.address and not out['spent']:
+                    utxo = {}
+                    utxo["address"] = self.address
+                    utxo["txid"] = self.transactions[i]["txid"]
+                    utxo["index"] = out["index"]
+                    utxo["amount"] = out["amount"]
+                    utxo["height"] = self.transactions[i]["height"]
+                    utxos.append(utxo)
         return utxos
 
     def get_block_height(self):
         # Get the current block height now:
         url = "https://blockchain.info/latestblock"
-        response = requests.get(url)
+        response = requests.get(url, timeout=60)
         if response.status_code == 200:
-            self.height = response.json()["height"]
+            return response.json()["height"]
         else:
-            try:
-                return self.height
-            except AttributeError:
-                raise NetworkException("Failed to retrieve current blockchain height")
+            raise NetworkException("Cannot get block height")
 
 
     def get_transaction_history(self):
@@ -148,6 +143,7 @@ class BlockchainInfoAddress:
         Raises:
             Exception: If the API request fails or the transaction history cannot be retrieved.
         """
+        self.height = self.get_block_height()
         if len(self.transactions) == 0:
             self.transactions = [*self.get_transaction_history()]
         else:
@@ -178,7 +174,7 @@ class BlockchainInfoAddress:
         offset = 0
 
         url = f"https://blockchain.info/rawaddr/{self.address}?limit={interval}&offset={offset}"
-        response = requests.get(url)
+        response = requests.get(url, timeout=60)
 
         if response.status_code == 200:
             data = response.json()
@@ -193,12 +189,12 @@ class BlockchainInfoAddress:
             n_tx = data["n_tx"]
             offset += min(interval, n_tx)
         else:
-            raise Exception("Failed to retrieve transaction history")
+            raise NetworkException("Failed to retrieve transaction history")
         
         while offset < n_tx:
             # WARNING: RATE LIMIT IS 1 REQUEST PER 10 SECONDS.
             url = f"https://blockchain.info/rawaddr/{self.address}?limit={interval}&offset={offset}"
-            response = requests.get(url)
+            response = requests.get(url, timeout=60)
 
             if response.status_code == 200:
                 data = response.json()
@@ -209,4 +205,4 @@ class BlockchainInfoAddress:
                     yield self._clean_tx(tx)
                 offset += interval
             else:
-                raise Exception("Failed to retrieve transaction history")
+                raise NetworkException("Failed to retrieve transaction history")

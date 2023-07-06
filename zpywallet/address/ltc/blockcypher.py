@@ -105,9 +105,9 @@ class BlockcypherAddress:
                 if out["addr"] == self.address:
                     utxo = {}
                     utxo["address"] = self.address
-                    utxo["txid"] = self.transactions[i]["hash"]
-                    utxo["index"] = out["n"]
-                    utxo["amount"] = out["value"] / 1e8
+                    utxo["txid"] = self.transactions[i]["txid"]
+                    utxo["index"] = out["index"]
+                    utxo["amount"] = out["amount"]
                     utxo["height"] = self.transactions[i]["height"]
                     utxos.append(utxo)
         return utxos
@@ -116,14 +116,14 @@ class BlockcypherAddress:
         """Returns the current block height."""
 
         url = "https://api.blockcypher.com/v1/ltc/main"
-        response = requests.get(url)
+        response = requests.get(url, timeout=60)
 
         if response.status_code == 200:
             data = response.json()
             self.height = data["height"]
             return self.height
         else:
-            raise Exception("Failed to retrieve block height")
+            raise NetworkException("Failed to retrieve block height")
 
     def get_transaction_history(self):
         """
@@ -165,7 +165,7 @@ class BlockcypherAddress:
         block_height = 0
 
         url = f"https://api.blockcypher.com/v1/ltc/main/addrs/{self.address}/full?limit={interval}"
-        response = requests.get(url)
+        response = requests.get(url, timeout=60)
 
         if response.status_code == 200:
             data = response.json()
@@ -176,11 +176,11 @@ class BlockcypherAddress:
                 yield self._clean_tx(tx)
             block_height = data["txs"][-1]["block_height"]
         else:
-            raise Exception("Failed to retrieve transaction history")
+            raise NetworkException("Failed to retrieve transaction history")
         
         while len(data["txs"]) > 0:
             url = f"https://api.blockcypher.com/v1/ltc/main/addrs/{self.address}/full?limit={interval}&before={block_height}"
-            response = requests.get(url)
+            response = requests.get(url, timeout=60)
 
             if response.status_code == 200:
                 data = response.json()
@@ -191,4 +191,4 @@ class BlockcypherAddress:
                     yield self._clean_tx(tx)
                 block_height = data["txs"][-1]["block_height"]
             else:
-                raise Exception("Failed to retrieve transaction history")
+                raise NetworkException("Failed to retrieve transaction history")

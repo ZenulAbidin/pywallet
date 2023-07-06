@@ -105,9 +105,9 @@ class BlockcypherAddress:
                 if out["addr"] == self.address:
                     utxo = {}
                     utxo["address"] = self.address
-                    utxo["txid"] = self.transactions[i]["hash"]
-                    utxo["index"] = out["n"]
-                    utxo["amount"] = out["value"] / 1e8
+                    utxo["txid"] = self.transactions[i]["txid"]
+                    utxo["index"] = out["index"]
+                    utxo["amount"] = out["amount"]
                     utxo["height"] = self.transactions[i]["height"]
                     utxos.append(utxo)
         return utxos
