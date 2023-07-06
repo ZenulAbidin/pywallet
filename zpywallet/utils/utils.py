@@ -70,7 +70,7 @@ def decrypt(enc, passphrase):
     decryptor = cipher.decryptor()
     return decryptor.update(enc) + decryptor.finalize()
 
-def convert_to_utc_timestamp(date_string, format_string):
+def convert_to_utc_timestamp(date_string, format_string="%Y-%m-%dT%H:%M:%SZ"):
     # Create a datetime object from the input string
     # I think we have to check what value the format_string is supposed to be.
     date_object = datetime.datetime.strptime(date_string, format_string)
