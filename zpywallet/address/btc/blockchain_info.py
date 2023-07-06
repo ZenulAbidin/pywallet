@@ -15,6 +15,9 @@ class BlockchainInfoAddress:
     and also because it does not return transaction vsize which is the measurement unit used by segwit blockchains.
     And speaking of blockchains, this backend only supports the Bitcoin mainnet.
 
+    As a side effect of this, it is impossible to determine which transactions are RBFs and/or double-spends and exclude them
+    accordingly. This means total balance may be incorrect. However, confirmed balance will still be correct in any case.
+
     Args:
         address (str): The human-readable Bitcoin address.
 
@@ -122,6 +125,15 @@ class BlockchainInfoAddress:
                     utxo["amount"] = out["amount"]
                     utxo["height"] = self.transactions[i]["height"]
                     utxos.append(utxo)
+        
+        # Now we will go through the UTXOs *again* to eliminate the RBF-replaced UTXOs.
+        # The issue we are going to have is, *any* of the inputs could be the identical
+        # one, because it only takes one input to RBF.
+
+        # Unfortunately we CANNOT filter Blockchain.info UTXOs because they do not give us
+        # the txids of inputs, and even the balance endpoint in the Blockchain Data API
+        # returns the wrong total balance using exactly the same calculation.
+        # Confirmed balances are not affected and still correct.
         return utxos
 
     def get_block_height(self):
