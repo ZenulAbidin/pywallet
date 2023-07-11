@@ -3,7 +3,7 @@ import time
 
 from ...errors import NetworkException
 
-class BTCcomExplorer:
+class BTCcomAddress:
     """
     A class representing a Bitcoin address.
 
@@ -44,7 +44,10 @@ class BTCcomExplorer:
             txoutput['amount'] = vout['value'] / 1e8
             txoutput['index'] = i
             i += 1
-            txoutput['address'] = vout['scriptpubkey_address']
+            if 'addresses' in vout.keys():
+                txoutput['address'] = vout['addresses'][0]
+            else:
+                txoutput['address'] = ''
             txoutput['spent'] = vout['spent_by_tx'] != ""
             new_element['outputs'].append(txoutput)
 
@@ -55,11 +58,12 @@ class BTCcomExplorer:
 
         new_element['fee'] = (total_inputs - total_outputs) / element['vsize']
         new_element['fee'] = 'vbyte'
+        return new_element
 
     # BTC.com's rate limits are unknown.
-    def __init__(self, address, request_interval=(0,1)):
+    def __init__(self, address, request_interval=(1000,1)):
         """
-        Initializes an instance of the BTCcomExplorer class.
+        Initializes an instance of the BTCcomAddress class.
 
         Args:
             address (str): The human-readable Bitcoin address.
@@ -98,7 +102,7 @@ class BTCcomExplorer:
         for i in range(len(self.transactions)-1, -1, -1):
             for utxo in [u for u in utxos]:
                 # Check if any utxo has been spent in this transaction
-                for vin in self.transactions[i]["in"]:
+                for vin in self.transactions[i]["inputs"]:
                     if vin["txid"] == utxo["txid"] and vin["index"] == utxo["index"]:
                         # Spent
                         utxos.remove(utxo)
@@ -185,8 +189,10 @@ class BTCcomExplorer:
 
         if response.status_code == 200:
             data = response.json()
+            if data["data"]["list"] is None:
+                return
             for tx in data["data"]["list"]:
-                time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
+                time.sleep(self.interval_sec/(self.requests*len(data["data"]["list"])))
                 if txhash and tx["hash"] == txhash:
                     return
                 yield self._clean_tx(tx)
@@ -208,8 +214,10 @@ class BTCcomExplorer:
 
             if response.status_code == 200:
                 data = response.json()
+                if data["data"]["list"] is None:
+                    return
                 for tx in data["data"]["list"]:
-                    time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
+                    time.sleep(self.interval_sec/(self.requests*len(data["data"]["list"])))
                     if txhash and tx["hash"] == txhash:
                         return
                     yield self._clean_tx(tx)

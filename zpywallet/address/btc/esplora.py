@@ -67,7 +67,7 @@ class EsploraAddress:
         new_element['fee_metric'] = 'vbyte'
         return new_element
 
-    def __init__(self, address, endpoint="https://blockstream.info/api", request_interval=(0,1)):
+    def __init__(self, address, endpoint="https://blockstream.info/api", request_interval=(1000,1)):
         """
         Initializes an instance of the EsploraAddress class.
 
@@ -110,7 +110,7 @@ class EsploraAddress:
         for i in range(len(self.transactions)-1, -1, -1):
             for utxo in [u for u in utxos]:
                 # Check if any utxo has been spent in this transaction
-                for vin in self.transactions[i]["in"]:
+                for vin in self.transactions[i]["inputs"]:
                     if vin["txid"] == utxo["txid"] and vin["index"] == utxo["index"]:
                         # Spent
                         utxos.remove(utxo)
@@ -191,7 +191,7 @@ class EsploraAddress:
         if response.status_code == 200:
             data = response.json()
             for tx in data:
-                time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
+                time.sleep(self.interval_sec/(self.requests*len(data)))
                 if txhash and tx["txid"] == txhash:
                     return
                 yield tx
@@ -213,8 +213,8 @@ class EsploraAddress:
 
             if response.status_code == 200:
                 data = response.json()
-                for tx in data["txs"]:
-                    time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
+                for tx in data:
+                    time.sleep(self.interval_sec/(self.requests*len(data)))
                     if txhash and tx["hash"] == txhash:
                         return
                     yield tx
