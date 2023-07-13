@@ -10,8 +10,11 @@ class EsploraAddress:
     This class allows you to retrieve the balance and transaction history of a Bitcoin address using the Esplora API.
     Esplora is deployed on many popular websites, including mempool.space (Rate limited) and blockstream.info.
 
-    Noe: Esplora has a built-in limitation of returning up to 50 unconfirmed transactions per address. While this should be
+    Note: Esplora has a built-in limitation of returning up to 50 unconfirmed transactions per address. While this should be
     large enough for most use cases, if you run into problems, try using a different address provider.
+
+    Note 2: This API will not return the Genesis block in transactions, unlike the other balances. This will affect
+    balance displayed for Satoshi's first address 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa - but that output is unspendable anyway.
 
     Args:
         address (str): The human-readable Bitcoin address.
@@ -35,7 +38,10 @@ class EsploraAddress:
     def _clean_tx(self, element):
         new_element = {}
         new_element['txid'] = element['txid']
-        new_element['height'] = element['block_height']
+        if 'block_height' in element['status'].keys():
+            new_element['height'] = element['status']['block_height']
+        else:
+            new_element['height'] = None
         new_element['timestamp'] = None
 
         new_element['inputs'] = []
@@ -44,8 +50,10 @@ class EsploraAddress:
             txinput = {}
             txinput['txid'] = vin['txid']
             txinput['index'] = vin['vout']
-            txinput['amount'] = vin['value'] / 1e8
-
+            if vin['prevout'] is not None:
+                txinput['amount'] = vin['prevout']['value'] / 1e8
+            else:
+                txinput['amount'] = 0
             new_element['inputs'].append(txinput)
         i = 0 
         for vout in element['vout']:
@@ -53,7 +61,10 @@ class EsploraAddress:
             txoutput['amount'] = vout['value'] / 1e8
             txoutput['index'] = i
             i += 1
-            txoutput['address'] = vout['scriptpubkey_address']
+            if 'scriptpubkey_address' in vout.keys():
+                txoutput['address'] = vout['scriptpubkey_address']
+            else:
+                txoutput['address'] = None
             new_element['outputs'].append(txoutput)
 
         # Now we must calculate the total fee
@@ -67,7 +78,7 @@ class EsploraAddress:
         new_element['fee_metric'] = 'vbyte'
         return new_element
 
-    def __init__(self, address, endpoint="https://blockstream.info/api", request_interval=(1000,1)):
+    def __init__(self, address, endpoint="https://blockstream.info/api", request_interval=(3,1)):
         """
         Initializes an instance of the EsploraAddress class.
 
@@ -77,6 +88,9 @@ class EsploraAddress:
             request_interval (tuple): A pair of integers indicating the number of requests allowed during
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
+        # Blockstream.info's rate limits are unknown.
+        # Ostensibly there are no limits for that site, but I got 429 errors when testing with (1000,1), so
+        # the default limit will be the same as for mempool.space - 3 requests per second.
         self.requests, self.interval_sec = request_interval
         self.address = address
         self.endpoint = endpoint
@@ -127,7 +141,7 @@ class EsploraAddress:
 
     def get_block_height(self):
         # Get the current block height now:
-        url = f"{self.endpoint}/block/tip/height"
+        url = f"{self.endpoint}/blocks/tip/height"
         for attempt in range(3, -1, -1):
             if attempt == 0:
                 raise NetworkException("Network request failure")
@@ -194,7 +208,7 @@ class EsploraAddress:
                 time.sleep(self.interval_sec/(self.requests*len(data)))
                 if txhash and tx["txid"] == txhash:
                     return
-                yield tx
+                yield self._clean_tx(tx)
         else:
             raise NetworkException("Failed to retrieve transaction history")
         
@@ -202,14 +216,14 @@ class EsploraAddress:
         
         while len(data) > 0:
             url = f"{self.endpoint}/address/{self.address}/txs/chain/{last_tx}"
-        for attempt in range(3, -1, -1):
-            if attempt == 0:
-                raise NetworkException("Network request failure")
-            try:
-                response = requests.get(url, timeout=60)
-                break
-            except requests.RequestException:
-                pass
+            for attempt in range(3, -1, -1):
+                if attempt == 0:
+                    raise NetworkException("Network request failure")
+                try:
+                    response = requests.get(url, timeout=60)
+                    break
+                except requests.RequestException:
+                    pass
 
             if response.status_code == 200:
                 data = response.json()
@@ -217,7 +231,9 @@ class EsploraAddress:
                     time.sleep(self.interval_sec/(self.requests*len(data)))
                     if txhash and tx["hash"] == txhash:
                         return
-                    yield tx
+                    yield self._clean_tx(tx)
+                if len(data) > 0:
+                    last_tx = data[-1]["txid"]
             else:
                 raise NetworkException("Failed to retrieve transaction history")
 
