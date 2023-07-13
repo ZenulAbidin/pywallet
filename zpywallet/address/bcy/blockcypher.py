@@ -4,6 +4,10 @@ import time
 from ...errors import NetworkException
 from ...utils.utils import convert_to_utc_timestamp
 
+from functools import reduce
+def deduplicate(elements):
+    return reduce(lambda re, x: re+[x] if x not in re else re, elements, [])
+
 class BlockcypherAddress:
     """
     A class representing a Bitcoin address.
@@ -30,6 +34,8 @@ class BlockcypherAddress:
         new_element = {}
         new_element['txid'] = element['hash']
         new_element['height'] = None if 'block_height' not in element.keys() else element['block_height']
+        if element['block_index'] == 0:
+            new_element['height'] = 0
         new_element['timestamp'] = convert_to_utc_timestamp(element['received'].split(".")[0].split('Z')[0], '%Y-%m-%dT%H:%M:%S')
 
         new_element['inputs'] = []
@@ -152,6 +158,7 @@ class BlockcypherAddress:
             self.transactions = txs
             del txs
         
+        self.transactions = deduplicate(self.transactions)
         return self.transactions
 
     def _get_transaction_history(self, txhash=None):
