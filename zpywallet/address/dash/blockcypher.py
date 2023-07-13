@@ -28,26 +28,25 @@ class BlockcypherAddress:
 
     def _clean_tx(self, element):
         new_element = {}
-        new_element['txid'] = element['txid']
-        new_element['height'] = element['block_height']
-        new_element['timestamp'] = convert_to_utc_timestamp(element['received'])
-
+        new_element['txid'] = element['hash']
+        new_element['height'] = None if 'block_height' not in element.keys() else element['block_height']
+        new_element['timestamp'] = convert_to_utc_timestamp(element['received'].split(".")[0].split('Z')[0], '%Y-%m-%dT%H:%M:%S')
         new_element['inputs'] = []
         new_element['outputs'] = []
         for vin in element['inputs']:
             txinput = {}
-            txinput['txid'] = vin['prev_hash']
+            txinput['txid'] = '' if 'prev_hash' not in vin.keys() else vin['prev_hash']
             txinput['index'] = vin['output_index']
-            txinput['amount'] = vin['output_value'] / 1e8
+            txinput['amount'] = 0 if 'output_value' not in vin.keys() else vin['output_value'] / 1e8
             new_element['inputs'].append(txinput)
         
         i = 0
-        for vout in element['vout']:
+        for vout in element['outputs']:
             txoutput = {}
             txoutput['amount'] = vout['value'] / 1e8
             txoutput['index'] = i
             i += 1
-            txoutput['address'] = vout['addresses'][0]
+            txoutput['address'] = None if not vout['addresses'] else vout['addresses'][0]
             txoutput['spent'] = 'spent_by' in vout.keys()
             new_element['outputs'].append(txoutput)
         
@@ -211,6 +210,9 @@ class BlockcypherAddress:
                     if txhash and tx["hash"] == txhash:
                         return
                     yield self._clean_tx(tx)
-                block_height = data["txs"][-1]["block_height"]
+                try:
+                    block_height = data["txs"][-1]["block_height"]
+                except KeyError:
+                    return
             else:
                 raise NetworkException("Failed to retrieve transaction history")

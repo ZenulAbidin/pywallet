@@ -113,6 +113,7 @@ class EsploraAddress:
         for utxo in utxos:
             total_balance += utxo["amount"]
             # Careful: Block height #0 is the Genesis block - don't want to exclude that.
+            # (Not that it returns it ever though!)
             if utxo["height"] is not None:
                 confirmed_balance += utxo["amount"]
         return total_balance, confirmed_balance
