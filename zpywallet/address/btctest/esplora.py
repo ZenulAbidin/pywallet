@@ -2,28 +2,33 @@ import requests
 import time
 
 from ...errors import NetworkException
-from ...utils.utils import convert_to_utc_timestamp
 
-from functools import reduce
-def deduplicate(elements):
-    return reduce(lambda re, x: re+[x] if x not in re else re, elements, [])
-
-class BlockcypherAddress:
+class EsploraAddress:
     """
     A class representing a Bitcoin address.
 
-    This class allows you to retrieve the balance and transaction history of a Bitcoin address using the Blockcypher API.
+    This class allows you to retrieve the balance and transaction history of a Bitcoin address using the Esplora API.
+    Esplora is deployed on many popular websites, including mempool.space (Rate limited) and blockstream.info.
+
+    Note: Esplora has a built-in limitation of returning up to 50 unconfirmed transactions per address. While this should be
+    large enough for most use cases, if you run into problems, try using a different address provider.
+
+    Note 2: This API will not return the Genesis block in transactions, unlike the other balances. This will affect
+    balance displayed for Satoshi's first address 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa - but that output is unspendable anyway.
 
     Args:
         address (str): The human-readable Bitcoin address.
-        api_key (str): The API key for accessing the Blockcypher API.
 
     Attributes:
         address (str): The human-readable Bitcoin address.
-        api_key (str): The API key for accessing the Blockcypher API.
+        endpoint (str): The Esplora endpoint to use. Defaults to Blockstream's endpoint.
+        transaction_history (list): The cached list of transactions.
+        height (int): The last known block height.
 
     Methods:
-        get_balance(): Retrieves the balance of the Bitcoin address.
+        get_balance(): Retrieves the total and confirmed balances of the Bitcoin address.
+        get_utxos(): Retrieves the UTXO set for this address
+        get_block_height(): Retrieves the current block height.
         get_transaction_history(): Retrieves the transaction history of the Bitcoin address.
 
     Raises:
@@ -32,55 +37,64 @@ class BlockcypherAddress:
 
     def _clean_tx(self, element):
         new_element = {}
-        new_element['txid'] = element['hash']
-        new_element['height'] = None if 'block_height' not in element.keys() else element['block_height']
-        if element['block_index'] == 0:
-            new_element['height'] = 0
-        elif element['block_height'] == -1:
+        new_element['txid'] = element['txid']
+        if 'block_height' in element['status'].keys():
+            new_element['height'] = element['status']['block_height']
+        else:
             new_element['height'] = None
-        new_element['timestamp'] = convert_to_utc_timestamp(element['received'].split(".")[0].split('Z')[0], '%Y-%m-%dT%H:%M:%S')
+        new_element['timestamp'] = None
+
         new_element['inputs'] = []
         new_element['outputs'] = []
-        for vin in element['inputs']:
+        for vin in element['vin']:
             txinput = {}
-            txinput['txid'] = '' if 'prev_hash' not in vin.keys() else vin['prev_hash']
-            txinput['index'] = vin['output_index']
-            txinput['amount'] = 0 if 'output_value' not in vin.keys() else vin['output_value'] / 1e8
+            txinput['txid'] = vin['txid']
+            txinput['index'] = vin['vout']
+            if vin['prevout'] is not None:
+                txinput['amount'] = vin['prevout']['value'] / 1e8
+            else:
+                txinput['amount'] = 0
             new_element['inputs'].append(txinput)
-        
-        i = 0
-        for vout in element['outputs']:
+        i = 0 
+        for vout in element['vout']:
             txoutput = {}
             txoutput['amount'] = vout['value'] / 1e8
             txoutput['index'] = i
             i += 1
-            txoutput['address'] = None if not vout['addresses'] else vout['addresses'][0]
-            txoutput['spent'] = 'spent_by' in vout.keys()
+            if 'scriptpubkey_address' in vout.keys():
+                txoutput['address'] = vout['scriptpubkey_address']
+            else:
+                txoutput['address'] = None
             new_element['outputs'].append(txoutput)
-        
+
         # Now we must calculate the total fee
         total_inputs = sum([a['amount'] for a in new_element['inputs']])
         total_outputs = sum([a['amount'] for a in new_element['outputs']])
-        new_element['total_fee'] = total_inputs - total_outputs
 
-        size_element = element['vsize'] if 'vsize' in element.keys() else element['size']
-        new_element['fee'] = new_element['total_fee'] / size_element
-        new_element['fee'] = 'vbyte'
-        
+        new_element['total_fee'] = (total_inputs - total_outputs) / 1e8
+
+        # Blockstream does not have vsize but it has Weight units, so we'll just divide it by 4 to get the vsize
+        new_element['fee'] = (total_inputs - total_outputs) / element['weight'] / 4
+        new_element['fee_metric'] = 'vbyte'
         return new_element
 
-    def __init__(self, address, request_interval=(3,1)):
+    def __init__(self, address, endpoint="https://blockstream.info/testnet/api", request_interval=(3,1)):
         """
-        Initializes an instance of the BlockcypherAddress class.
+        Initializes an instance of the EsploraAddress class.
 
         Args:
             address (str): The human-readable Bitcoin address.
+            endpoint (str): The Esplora endpoint to use. Defaults to Blockstream's endpoint.
             request_interval (tuple): A pair of integers indicating the number of requests allowed during
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
-        self.address = address
+        # Blockstream.info's rate limits are unknown.
+        # Ostensibly there are no limits for that site, but I got 429 errors when testing with (1000,1), so
+        # the default limit will be the same as for mempool.space - 3 requests per second.
         self.requests, self.interval_sec = request_interval
-        self.transactions = deduplicate([*self._get_transaction_history()])
+        self.address = address
+        self.endpoint = endpoint
+        self.transactions = [*self._get_transaction_history()]
         self.height = self.get_block_height()
 
     def get_balance(self):
@@ -99,17 +113,23 @@ class BlockcypherAddress:
         for utxo in utxos:
             total_balance += utxo["amount"]
             # Careful: Block height #0 is the Genesis block - don't want to exclude that.
+            # (Not that it returns it ever though!)
             if utxo["height"] is not None:
                 confirmed_balance += utxo["amount"]
         return total_balance, confirmed_balance
         
     def get_utxos(self):
+        self.height = self.get_block_height()
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions)-1, -1, -1):
+            for utxo in [u for u in utxos]:
+                # Check if any utxo has been spent in this transaction
+                for vin in self.transactions[i]["inputs"]:
+                    if vin["txid"] == utxo["txid"] and vin["index"] == utxo["index"]:
+                        # Spent
+                        utxos.remove(utxo)
             for out in self.transactions[i]["outputs"]:
-                if out['spent']:
-                    continue
                 if out["address"] == self.address:
                     utxo = {}
                     utxo["address"] = self.address
@@ -121,9 +141,8 @@ class BlockcypherAddress:
         return utxos
 
     def get_block_height(self):
-        """Returns the current block height."""
-
-        url = "https://api.blockcypher.com/v1/dash/main"
+        # Get the current block height now:
+        url = f"{self.endpoint}/blocks/tip/height"
         for attempt in range(3, -1, -1):
             if attempt == 0:
                 raise NetworkException("Network request failure")
@@ -132,14 +151,15 @@ class BlockcypherAddress:
                 break
             except requests.RequestException:
                 pass
-
         if response.status_code == 200:
-            data = response.json()
-            self.height = data["height"]
-            return self.height
+            self.height = int(response.text)
         else:
-            raise NetworkException("Failed to retrieve block height")
+            try:
+                return self.height
+            except AttributeError as exc:
+                raise NetworkException("Failed to retrieve current blockchain height") from exc
 
+        
     def get_transaction_history(self):
         """
         Retrieves the transaction history of the Bitcoin address from cached data augmented with network data.
@@ -160,16 +180,11 @@ class BlockcypherAddress:
             self.transactions = txs
             del txs
         
-        self.transactions = deduplicate(self.transactions)
         return self.transactions
 
     def _get_transaction_history(self, txhash=None):
         """
-        Retrieves the transaction history of the Bitcoin address. (internal method that makes the network query)
-
-        Parameters:
-            txhash (str): Get all transactions before (and not including) txhash.
-                Defaults to None, which disables this behavior.
+        Retrieves the transaction history of the Bitcoin address.
 
         Returns:
             list: A list of dictionaries representing the transaction history.
@@ -177,13 +192,8 @@ class BlockcypherAddress:
         Raises:
             Exception: If the API request fails or the transaction history cannot be retrieved.
         """
-        interval = 50
-        block_height = 0
-
-        # Set a very high UTXO limit for those rare address that have crazy high input/output counts.
-        txlimit = 10000
-
-        url = f"https://api.blockcypher.com/v1/dash/main/addrs/{self.address}/full?limit={interval}"
+        # This gets up to 50 mempool transactions + up to 25 confirmed transactions
+        url = f"{self.endpoint}/address/{self.address}/txs"
         for attempt in range(3, -1, -1):
             if attempt == 0:
                 raise NetworkException("Network request failure")
@@ -195,20 +205,18 @@ class BlockcypherAddress:
 
         if response.status_code == 200:
             data = response.json()
-            for tx in data["txs"]:
-                time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
-                if txhash and tx["hash"] == txhash:
+            for tx in data:
+                time.sleep(self.interval_sec/(self.requests*len(data)))
+                if txhash and tx["txid"] == txhash:
                     return
                 yield self._clean_tx(tx)
-            if 'hasMore' not in data.keys():
-                return
-            else:
-                block_height = data["txs"][-1]["block_height"]
         else:
             raise NetworkException("Failed to retrieve transaction history")
         
-        while 'hasMore' in data.keys() and data['hasMore']:
-            url = f"https://api.blockcypher.com/v1/dash/main/addrs/{self.address}/full?limit={interval}&before={block_height}"
+        last_tx = data[-1]["txid"]
+        
+        while len(data) > 0:
+            url = f"{self.endpoint}/address/{self.address}/txs/chain/{last_tx}"
             for attempt in range(3, -1, -1):
                 if attempt == 0:
                     raise NetworkException("Network request failure")
@@ -220,14 +228,13 @@ class BlockcypherAddress:
 
             if response.status_code == 200:
                 data = response.json()
-                for tx in data["txs"]:
-                    time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
+                for tx in data:
+                    time.sleep(self.interval_sec/(self.requests*len(data)))
                     if txhash and tx["hash"] == txhash:
                         return
                     yield self._clean_tx(tx)
-                if 'hasMore' not in data.keys():
-                    return
-                else:
-                    block_height = data["txs"][-1]["block_height"]
+                if len(data) > 0:
+                    last_tx = data[-1]["txid"]
             else:
                 raise NetworkException("Failed to retrieve transaction history")
+

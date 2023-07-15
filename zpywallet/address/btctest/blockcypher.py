@@ -36,6 +36,8 @@ class BlockcypherAddress:
         new_element['height'] = None if 'block_height' not in element.keys() else element['block_height']
         if element['block_index'] == 0:
             new_element['height'] = 0
+        elif element['block_height'] == -1:
+            new_element['height'] = None
         new_element['timestamp'] = convert_to_utc_timestamp(element['received'].split(".")[0].split('Z')[0], '%Y-%m-%dT%H:%M:%S')
 
         new_element['inputs'] = []
@@ -79,7 +81,7 @@ class BlockcypherAddress:
         """
         self.address = address
         self.requests, self.interval_sec = request_interval
-        self.transactions = [*self._get_transaction_history()]
+        self.transactions = deduplicate([*self._get_transaction_history()])
         self.height = self.get_block_height()
 
     def get_balance(self):
@@ -179,6 +181,9 @@ class BlockcypherAddress:
         interval = 50
         block_height = 0
 
+        # Set a very high UTXO limit for those rare address that have crazy high input/output counts.
+        txlimit = 10000
+
         url = f"https://api.blockcypher.com/v1/btc/test/addrs/{self.address}/full?limit={interval}"
         for attempt in range(3, -1, -1):
             if attempt == 0:
@@ -196,11 +201,14 @@ class BlockcypherAddress:
                 if txhash and tx["hash"] == txhash:
                     return
                 yield self._clean_tx(tx)
-            block_height = data["txs"][-1]["block_height"]
+            if 'hasMore' not in data.keys():
+                return
+            else:
+                block_height = data["txs"][-1]["block_height"]
         else:
             raise NetworkException("Failed to retrieve transaction history")
         
-        while len(data["txs"]) > 0:
+        while 'hasMore' in data.keys() and data['hasMore']:
             url = f"https://api.blockcypher.com/v1/btc/test/addrs/{self.address}/full?limit={interval}&before={block_height}"
         for attempt in range(3, -1, -1):
             if attempt == 0:
@@ -218,9 +226,9 @@ class BlockcypherAddress:
                     if txhash and tx["hash"] == txhash:
                         return
                     yield self._clean_tx(tx)
-                try:
-                    block_height = data["txs"][-1]["block_height"]
-                except KeyError:
+                if 'hasMore' not in data.keys():
                     return
+                else:
+                    block_height = data["txs"][-1]["block_height"]
             else:
                 raise NetworkException("Failed to retrieve transaction history")
