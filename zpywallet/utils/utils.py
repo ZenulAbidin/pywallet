@@ -7,6 +7,7 @@ from cryptography.hazmat.backends import default_backend
 from .ripemd160 import ripemd160
 
 
+
 def ensure_bytes(data):
     if not isinstance(data, bytes):
         return data.encode('utf-8')
@@ -24,7 +25,6 @@ def ensure_str(data):
 def hash160(data):
     """Return ripemd160(sha256(data))"""
     return ripemd160(sha256(data).digest())
-
 
 def is_hex_string(string):
     """Check if the string is only composed of hex characters."""
