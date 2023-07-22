@@ -20,7 +20,7 @@ import coincurve
 
 from .keccak import Keccak256
 from .base58 import b58encode_check, b58decode_check
-from .bech32 import encode as bech32_encode
+from .bech32 import bech32_encode
 from .ripemd160 import ripemd160
 from .utils import ensure_bytes, ensure_str
 from ..network import BitcoinMainNet

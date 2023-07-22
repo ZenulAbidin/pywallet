@@ -150,11 +150,11 @@ class TestSegwitAddress(unittest.TestCase):
         for spec in bech32.Encoding:
             tests = VALID_BECH32 if spec == bech32.Encoding.BECH32 else VALID_BECH32M
             for test in tests:
-                hrp, _, dspec = bech32.bech32_decode(test)
+                hrp, _, dspec = bech32._bech32_decode(test)
                 self.assertTrue(hrp is not None and dspec == spec)
                 pos = test.rfind('1')
                 test = test[:pos+1] + chr(ord(test[pos + 1]) ^ 1) + test[pos+2:]
-                hrp, _, dspec = bech32.bech32_decode(test)
+                hrp, _, dspec = bech32._bech32_decode(test)
                 self.assertIsNone(hrp)
 
     def test_invalid_checksum(self):
@@ -162,33 +162,33 @@ class TestSegwitAddress(unittest.TestCase):
         for spec in bech32.Encoding:
             tests = INVALID_BECH32 if spec == bech32.Encoding.BECH32 else INVALID_BECH32M
             for test in tests:
-                hrp, _, dspec = bech32.bech32_decode(test)
+                hrp, _, dspec = bech32._bech32_decode(test)
                 self.assertTrue(hrp is None or dspec != spec)
 
     def test_valid_address(self):
         """Test whether valid addresses decode to the correct output."""
         for (address, hexscript) in VALID_ADDRESS:
             hrp = "bc"
-            witver, witprog = bech32.decode(hrp, address)
+            witver, witprog = bech32.bech32_decode(hrp, address)
             if witver is None:
                 hrp = "tb"
-                witver, witprog = bech32.decode(hrp, address)
+                witver, witprog = bech32.bech32_decode(hrp, address)
             self.assertIsNotNone(witver, address)
             scriptpubkey = segwit_scriptpubkey(witver, witprog)
             self.assertEqual(scriptpubkey, binascii.unhexlify(hexscript))
-            addr = bech32.encode(hrp, witver, witprog)
+            addr = bech32.bech32_encode(hrp, witver, witprog)
             self.assertEqual(address.lower(), addr)
 
     def test_invalid_address(self):
         """Test whether invalid addresses fail to decode."""
         for test in INVALID_ADDRESS:
-            witver, _ = bech32.decode("bc", test)
+            witver, _ = bech32.bech32_decode("bc", test)
             self.assertIsNone(witver)
-            witver, _ = bech32.decode("tb", test)
+            witver, _ = bech32.bech32_decode("tb", test)
             self.assertIsNone(witver)
 
     def test_invalid_address_enc(self):
         """Test whether address encoding fails on invalid input."""
         for hrp, version, length in INVALID_ADDRESS_ENC:
-            code = bech32.encode(hrp, version, [0] * length)
+            code = bech32.bech32_encode(hrp, version, [0] * length)
             self.assertIsNone(code)
