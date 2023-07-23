@@ -2,7 +2,9 @@ import subprocess
 import json
 
 from ...errors import NetworkException
-from ...transactions.decode import transaction_size_simple
+from ...transactions.decode import transaction_size_simple, parse_transaction_simple, insert_address_in_outputs
+
+from ...network import LitecoinBTCMainNet
 
 class ElectrumAddress:
     """
@@ -43,14 +45,20 @@ class ElectrumAddress:
         new_element['outputs'] = []
         for vin in element['inputs']:
             txinput = {}
-            txinput['txid'] = vin['prevout_hash']
-            txinput['index'] = vin['prevout_n']
+            txinput['txid'] = vin['prev_tx_hash']
+            txinput['index'] = vin['prev_tx_output_index']
 
-            # Get the previous transaction to as value is not directly accessible
-            rawtx = self._run_electrum_command('gettransaction', txinput['txid'])
-            fine_rawtx = self._run_electrum_command('deserialize', rawtx)
+            if txinput['txid'] != "0000000000000000000000000000000000000000000000000000000000000000":
+                # Get the previous transaction to as value is not directly accessible
+                # But only if we are not parsing a coinbase transaction.
+                rawtx = self._run_electrum_command('gettransaction', txinput['txid']).strip()
+                #fine_rawtx = self._run_electrum_command('deserialize', rawtx)
+                fine_rawtx, _ = parse_transaction_simple(rawtx)
+                fine_rawtx = insert_address_in_outputs(fine_rawtx, LitecoinBTCMainNet)
+                txinput['amount'] = fine_rawtx["outputs"][txinput['index']]["value"] / 1e8
+            else:
+                txinput['amount'] = 0
             
-            txinput['amount'] = fine_rawtx["outputs"][txinput['index']]["value"] / 1e8
             new_element['inputs'].append(txinput)
 
         i = 0
@@ -60,7 +68,7 @@ class ElectrumAddress:
             txoutput['index'] = i
             i += 1
             txoutput['address'] = vout['address']
-            txoutput['spent'] = vout['spent']
+            txoutput['spent'] = None
             new_element['outputs'].append(txoutput)
 
         total_inputs = sum([a['amount'] for a in new_element['inputs']])
@@ -75,7 +83,7 @@ class ElectrumAddress:
         return new_element
 
 
-    def __init__(self, address):
+    def __init__(self, address, cliargs=None):
         """
         Initializes an instance of the ElectrumAddress class.
 
@@ -83,6 +91,7 @@ class ElectrumAddress:
             address (str): The Bitcoin address.
         """
         self.address = address
+        self.cliargs = cliargs if isinstance(cliargs, list) else []
         self.transactions = [*self._get_transaction_history()]
         self.height = self.get_block_height()
 
@@ -101,13 +110,13 @@ class ElectrumAddress:
         """
         try:
             process = subprocess.Popen(
-                ['electrum', command, *args],
+                ['electrum_ltc', *self.cliargs, command, *args],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True
             )
             output, error = process.communicate()
-            if error:
+            if process.returncode != 0:
                 raise NetworkException(f"Command execution failed: {error}")
             try:
                 return json.loads(output)
@@ -154,9 +163,7 @@ class ElectrumAddress:
         block_height = self.get_block_height()
         for tx in self._run_electrum_command("getaddressunspent"):
             for output in tx["outputs"]:
-                if output['spent']:
-                    continue
-                if output["address"] == self.address:
+                if output["address"] == self.address and not output['spent']:
                     utxo = {
                         "address": self.address,
                         "txid": tx["tx_hash"],
@@ -198,23 +205,25 @@ class ElectrumAddress:
             Exception: If the command execution fails or the transaction history cannot be retrieved.
         """
         try:
-            response = self._run_electrum_command('getaddresshistory')
+            response = self._run_electrum_command('getaddresshistory', self.address)
             for tx_height in response:
                 height = max(tx_height["height"], 0)
-                if height != 0 and height <= self.block_height:
-                    continue
-                tx = tx["transaction"]
+                try:
+                    if height != 0 and height <= self.block_height:
+                        continue
+                except AttributeError:
+                    pass
+                tx = tx_height["tx_hash"]
                 if txhash and tx == txhash:
                     return
-                rawtx = self._run_electrum_command('gettransaction', tx)
-                fine_rawtx = self._run_electrum_command('deserialize', rawtx)
+                rawtx = self._run_electrum_command('gettransaction', tx).strip()
+                #fine_rawtx = self._run_electrum_command('deserialize', rawtx)
+                fine_rawtx, _ = parse_transaction_simple(rawtx)
+                fine_rawtx = insert_address_in_outputs(fine_rawtx, LitecoinBTCMainNet)
+
                 fine_rawtx["txid"] = tx
                 fine_rawtx["height"] = height
-                try:
-                    yield self._clean_tx(fine_rawtx, rawtx)
-                except ValueError:
-                    pass
-
+                yield self._clean_tx(fine_rawtx, rawtx)
 
         except Exception as e:
             raise NetworkException(f"Failed to retrieve transaction history: {e}") from e
