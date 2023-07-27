@@ -40,8 +40,45 @@ message Wallet {
     fixed32 height = 3;
     fixed32 receive_gap_limit = 4;
     fixed32 send_gap_limit = 5;
-    string transaction_history = 6; // JSON
+    repeated Transaction transactions = 6;
     bool segwit = 7; // Toggles between Legacy and Native Segwit for supported networks
     CryptoProvider setting_default_crypto_provider = 8;
 }
 
+message Transaction {
+  // Common transaction elements
+  string id = 1;                 // Transaction ID or hash
+  uint64 timestamp = 2;         // Timestamp of the transaction (Unix time)
+  uint64 fee = 3;               // Transaction or gas fee (wei for Ethereum, native currency for Bitcoin)
+
+  // Ethereum-specific fields
+  message EthereumTransaction {
+    string sender_address = 1;   // Sender's address
+    string recipient_address = 2; // Recipient's address
+    uint64 amount = 3;           // Amount of the transaction in the smallest unit of each blockchain
+    uint64 gasLimit = 4;         // Gas limit for the transaction
+    bytes data = 5;              // Input data for contract method calls (if applicable)
+  }
+  EthereumTransaction ethereum_transaction = 10;
+
+  // Bitcoin-specific fields
+  message BitcoinTransaction {
+    repeated Input inputs = 1;  // List of inputs for the transaction
+    repeated Output outputs = 2; // List of outputs for the transaction
+  }
+  BitcoinTransaction bitcoin_transaction = 20;
+
+  // Input for Bitcoin transaction
+  message Input {
+    string tx_id = 1;           // Transaction ID of the input UTXO
+    uint32 index = 2;           // Index of the output in the referenced transaction
+    uint64 amount = 3;          // Value of the input in the smallest unit of Bitcoin
+    repeated bytes witness_data = 4; // Witness data (for SegWit inputs)
+  }
+
+  // Output for Bitcoin transaction
+  message Output {
+    uint64 value = 1;           // Value of the output in the smallest unit of Bitcoin
+    string address = 2;         // Recipient's address (could be Bitcoin or Ethereum address)
+  }
+}
