@@ -70,7 +70,7 @@ class BlockcypherAddress:
         
         return new_element
 
-    def __init__(self, addresses, request_interval=(3,1)):
+    def __init__(self, addresses, request_interval=(3,1), transactions=None):
         """
         Initializes an instance of the BlockcypherAddress class.
 
@@ -81,7 +81,10 @@ class BlockcypherAddress:
         """
         self.addresses = addresses
         self.requests, self.interval_sec = request_interval
-        self.transactions = deduplicate([*self._get_transaction_history()])
+        if transactions:
+            self.transactions = transactions
+        else:
+            self.transactions = deduplicate([*self._get_transaction_history()])
         self.height = self.get_block_height()
 
     def get_balance(self):

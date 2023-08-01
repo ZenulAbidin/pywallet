@@ -67,7 +67,7 @@ class DashRPCClient:
 
         return new_element
 
-    def __init__(self, addresses, rpc_url, rpc_user, rpc_password, client_number=0, user_id=0, last_update=0, max_tx_at_once=1000):
+    def __init__(self, addresses, rpc_url, rpc_user, rpc_password, client_number=0, user_id=0, last_update=0, max_tx_at_once=1000, transactions=None):
         self.rpc_url = rpc_url
         self.rpc_user = rpc_user
         self.rpc_password = rpc_password
@@ -80,7 +80,10 @@ class DashRPCClient:
         self.last_update = last_update
         self.height = self.get_block_height()
         self._load_addresses()
-        self.transactions = [*self._get_transaction_history()]
+        if transactions:
+            self.transactions = transactions
+        else:
+            self.transactions = [*self._get_transaction_history()]
     
     def _send_rpc_request(self, method, params=None, as_wallet=False):
         payload = {

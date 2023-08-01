@@ -78,7 +78,7 @@ class EsploraAddress:
         new_element['fee_metric'] = 'vbyte'
         return new_element
 
-    def __init__(self, addresses, endpoint="https://blockstream.info/testnet/api", request_interval=(3,1)):
+    def __init__(self, addresses, endpoint="https://blockstream.info/testnet/api", request_interval=(3,1), transactions=None):
         """
         Initializes an instance of the EsploraAddress class.
 
@@ -94,7 +94,10 @@ class EsploraAddress:
         self.requests, self.interval_sec = request_interval
         self.addresses = addresses
         self.endpoint = endpoint
-        self.transactions = [*self._get_transaction_history()]
+        if transactions:
+            self.transactions = transactions
+        else:
+            self.transactions = [*self._get_transaction_history()]
         self.height = self.get_block_height()
 
     def get_balance(self):

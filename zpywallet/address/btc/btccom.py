@@ -61,7 +61,7 @@ class BTCcomAddress:
         return new_element
 
     # BTC.com's rate limits are unknown.
-    def __init__(self, addresses, request_interval=(1000,1)):
+    def __init__(self, addresses, request_interval=(1000,1), transactions=None):
         """
         Initializes an instance of the BTCcomAddress class.
 
@@ -72,7 +72,10 @@ class BTCcomAddress:
         """
         self.requests, self.interval_sec = request_interval
         self.addresses = addresses
-        self.transactions = [*self._get_transaction_history()]
+        if transactions:
+            self.transactions = transactions
+        else:
+            self.transactions = [*self._get_transaction_history()]
         self.height = self.get_block_height()
 
     def get_balance(self):
