@@ -17,7 +17,7 @@ from ..errors import incompatible_network_bytes_exception_factory, InvalidChildE
 from .utils import ensure_bytes, ensure_str, hash160, is_hex_string, long_to_hex
 
 # import all the networks
-from ..network import *
+from ..network import BitcoinSegwitMainNet
 
 
 
@@ -119,10 +119,7 @@ class HDWallet(object):
             else:
                 raise ValueError("parameter must be an int or long")
 
-        if isinstance(network, str):
-            self.network = Wallet.get_network(network)
-        else:
-            self.network = network
+        self.network = network
         self.depth = hex_int(depth)
         if (isinstance(parent_fingerprint, str) or
                 isinstance(parent_fingerprint, bytes)):
@@ -527,7 +524,6 @@ class HDWallet(object):
               but this is totally non-standard and this library won't even
               generate such data.)
         """
-        network = Wallet.get_network(network)
 
         if len(key) in [78, (78 + 32)]:
             # we have a byte array, so pass
@@ -594,7 +590,7 @@ class HDWallet(object):
                    network=network)
 
     @classmethod
-    def from_mnemonic(cls, mnemonic, passphrase='', network="BTC"):
+    def from_mnemonic(cls, mnemonic, passphrase='', network=BitcoinSegwitMainNet):
         """Generate a new PrivateKey from a secret key.
 
         :param mnemonic: The key to use to generate this wallet.
@@ -604,7 +600,6 @@ class HDWallet(object):
 
         See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Serialization_format
         """
-        network = Wallet.get_network(network)
         mne = Mnemonic(language='english')
         seed = ensure_bytes(mne.to_seed(mnemonic, passphrase))
 
@@ -636,7 +631,6 @@ class HDWallet(object):
         Returns:
             Wallet: A Wallet object.
         """
-        network = Wallet.get_network(network)
         # Make sure the password string is bytes
         key = ensure_bytes(password)
         data = unhexlify(b"0" * 64)  # 256-bit 0
@@ -652,7 +646,7 @@ class HDWallet(object):
                    network=network)
 
     @classmethod
-    def from_master_seed(cls, seed, network="BTC"):
+    def from_master_seed(cls, seed, network=BitcoinSegwitMainNet):
         """Generate a new PrivateKey from a seed (byte string).
 
         :param seed: The byte sequence to use to generate this wallet. The seed length
@@ -662,7 +656,6 @@ class HDWallet(object):
 
         See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Serialization_format
         """
-        network = Wallet.get_network(network)
 
         # Given a seed S of at least 128 bits, but 256 is advised
         # Calculate I = HMAC-SHA512(key="Bitcoin seed", msg=S)
@@ -719,59 +712,6 @@ class HDWallet(object):
         return not self == other
 
     __hash__ = object.__hash__
-
-    @classmethod
-    def get_network(cls, network):
-        """
-        Returns the appropriate network class object based on the provided network string.
-
-        Args:
-            network (str): A string indicating the name or code of the network
-
-        Returns:
-            A class object representing the requested network, or the fallback string if no match
-            found.
-
-        Raises:
-            ValueError: If no match is found from the predefined networks
-        """
-        response = None
-        network = network.lower()
-        if network == "bitcoin_testnet" or network == "btctest":
-            response = BitcoinTestNet
-        elif network == "bitcoin" or network == "btc":
-            response = BitcoinMainNet
-        elif network == "dogecoin" or network == "doge":
-            response = DogecoinMainNet
-        elif network == "dogecoin-btc" or network == "dogebtc":
-            response = DogecoinBTCMainNet
-        elif network == "dogecoin-testnet" or network == "dogetest":
-            response = DogecoinTestNet
-        elif network == "litecoin" or network == "ltc":
-            response = LitecoinMainNet
-        elif network == "litecoin-btc" or network == "ltcbtc":
-            response = LitecoinBTCMainNet
-        elif network == "litecoin-testnet" or network == "ltctest":
-            response = LitecoinTestNet
-        elif network == "bitcoin-cash" or network == "bch":
-            response = BitcoinCashMainNet
-        elif network == "dash":
-            response = DashMainNet
-        elif network == "dash-inverted":
-            response = DashInvertedMainNet
-        elif network == "dash-btc" or network == "dashbtc":
-            response = DashBTCMainNet
-        elif network == 'dash_testnet' or network == 'dashtest':
-            response = DashTestNet
-        elif network == 'dash_testnet_inverted':
-            response = DashInvertedTestNet
-        elif network == 'ethereum' or network == 'eth':
-            response = EthereumMainNet
-        elif network == 'blockcypher_testnet' or network == 'bcytest':
-            response = BlockCypherTestNet
-        else:
-            raise ValueError("Network is not defined")
-        return response
 
     @classmethod
     def new_random_wallet(cls, user_entropy=None, network=BitcoinSegwitMainNet):
