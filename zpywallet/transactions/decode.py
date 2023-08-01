@@ -1,4 +1,4 @@
-from ..network import BitcoinMainNet
+from ..network import BitcoinSegwitMainNet
 from .script import Script
 
 class InvalidTransactionError(Exception):
@@ -172,7 +172,7 @@ def parse_transaction_simple(raw_transaction_hex):
     except InvalidTransactionError:
         return parse_transaction(raw_transaction_hex, True)
 
-def insert_address_in_outputs(fine_rawtx, network=BitcoinMainNet):
+def insert_address_in_outputs(fine_rawtx, network=BitcoinSegwitMainNet):
     for i in range(len(fine_rawtx["outputs"])):
         out = fine_rawtx["outputs"][i]
         script = Script.from_raw(out["script_pubkey"], network=network) # I have no idea what to use the has_segwit flag for.

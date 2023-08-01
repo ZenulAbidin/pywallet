@@ -619,7 +619,7 @@ class HDWallet(object):
                    network=network)
 
     @classmethod
-    def from_brainwallet(cls, password, network=BitcoinMainNet):
+    def from_brainwallet(cls, password, network=BitcoinSegwitMainNet):
         """
         Generate a new key from a password using 50,000 rounds of HMAC-SHA256.
 
@@ -675,7 +675,7 @@ class HDWallet(object):
                    network=network)
 
     @classmethod
-    def from_random(cls, passphrase='', strength=128, network=BitcoinMainNet):
+    def from_random(cls, passphrase='', strength=128, network=BitcoinSegwitMainNet):
         """ Generates a master key from system entropy.
 
         Args:
@@ -774,7 +774,7 @@ class HDWallet(object):
         return response
 
     @classmethod
-    def new_random_wallet(cls, user_entropy=None, network=BitcoinMainNet):
+    def new_random_wallet(cls, user_entropy=None, network=BitcoinSegwitMainNet):
         """
         Generate a new wallet using a randomly generated 512 bit seed.
 

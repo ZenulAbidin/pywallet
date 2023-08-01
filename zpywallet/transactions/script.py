@@ -16,13 +16,13 @@ from binascii import unhexlify, hexlify
 
 from ..utils.utils import hash160
 
-from ..network import BitcoinMainNet
+from ..network import BitcoinSegwitMainNet
 
 from ..utils.base58 import b58encode_check
 
 from ..utils.bech32 import bech32_encode
 
-def p2sh_address(redeem_script, network=BitcoinMainNet):
+def p2sh_address(redeem_script, network=BitcoinSegwitMainNet):
     """Generate a P2SH (3) address from a redeem script."""
     return b58encode_check(bytes([network.SCRIPT_ADDRESS]) + bytes.fromhex(redeem_script))
 
@@ -311,7 +311,7 @@ class Script:
         If string data is too large or integer is negative
     """
 
-    def __init__(self, script, network=BitcoinMainNet):
+    def __init__(self, script, network=BitcoinSegwitMainNet):
         """See Script description"""
 
         self.script = script
@@ -416,7 +416,7 @@ class Script:
         return script_bytes
 
     @staticmethod
-    def from_raw(scriptraw, has_segwit=False, network=BitcoinMainNet):
+    def from_raw(scriptraw, has_segwit=False, network=BitcoinSegwitMainNet):
         """
         Imports a Script commands list from raw hexadecimal data
             Attributes

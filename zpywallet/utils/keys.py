@@ -23,7 +23,7 @@ from .base58 import b58encode_check, b58decode_check
 from .bech32 import bech32_encode
 from .ripemd160 import ripemd160
 from .utils import ensure_bytes, ensure_str
-from ..network import BitcoinMainNet
+from ..network import BitcoinSegwitMainNet
 from ..errors import incompatible_network_bytes_exception_factory, ChecksumException, unsupported_feature_exception_factory
 
 
@@ -101,7 +101,7 @@ class PrivateKey:
     __hash__ = object.__hash__
 
     @staticmethod
-    def from_bytes(b, network=BitcoinMainNet):
+    def from_bytes(b, network=BitcoinSegwitMainNet):
         """ Generates PrivateKey from the underlying bytes.
 
         Args:
@@ -120,7 +120,7 @@ class PrivateKey:
         return PrivateKey(ckey, network)
 
     @staticmethod
-    def from_hex(h, network=BitcoinMainNet):
+    def from_hex(h, network=BitcoinSegwitMainNet):
         """ Generates PrivateKey from a hex-encoded string.
 
         Args:
@@ -135,7 +135,7 @@ class PrivateKey:
         return PrivateKey.from_bytes(bytes.fromhex(h), network)
 
     @staticmethod
-    def from_int(i, network=BitcoinMainNet):
+    def from_int(i, network=BitcoinSegwitMainNet):
         """ Initializes a private key from an integer.
 
         Args:
@@ -150,7 +150,7 @@ class PrivateKey:
         return PrivateKey(ckey, network)
 
     @staticmethod
-    def from_b58check(private_key, network=BitcoinMainNet):
+    def from_b58check(private_key, network=BitcoinSegwitMainNet):
         """ Decodes a Base58Check encoded private-key.
 
         Args:
@@ -168,7 +168,7 @@ class PrivateKey:
         return PrivateKey.from_bytes(b58dec[1:], network)
 
     @staticmethod
-    def from_random(network=BitcoinMainNet):
+    def from_random(network=BitcoinSegwitMainNet):
         """ Initializes a private key from a random integer.
 
         Args:
@@ -181,7 +181,7 @@ class PrivateKey:
         return PrivateKey.from_int(random.SystemRandom().randrange(1, secp256k1.N), network)
 
     @classmethod
-    def from_brainwallet(cls, password, salt="zpywallet", network=BitcoinMainNet):
+    def from_brainwallet(cls, password, salt="zpywallet", network=BitcoinSegwitMainNet):
         """Generate a new key from a master password, and an optional salt.
 
         This password is hashed via a single round of sha256 and is highly
@@ -208,7 +208,7 @@ class PrivateKey:
         return PrivateKey.from_int(int(key, 16), network)
 
     @classmethod
-    def from_wif(cls, wif, network=BitcoinMainNet):
+    def from_wif(cls, wif, network=BitcoinSegwitMainNet):
         """Import a key in WIF format.
 
         WIF is Wallet Import Format. It is a base58 encoded checksummed key.
@@ -252,7 +252,7 @@ class PrivateKey:
         # And we should finally have a valid key
         return PrivateKey.from_bytes(extended_key_bytes, network)
 
-    def __init__(self, ckey, network=BitcoinMainNet):
+    def __init__(self, ckey, network=BitcoinSegwitMainNet):
         self._key = ckey
         self._public_key = PublicKey(coincurve.PublicKey.from_secret(binascii.unhexlify(ckey.to_hex())))
         self._network = network
@@ -471,7 +471,7 @@ class PublicKey:
     """
 
     @staticmethod
-    def from_point(p, network=BitcoinMainNet):
+    def from_point(p, network=BitcoinSegwitMainNet):
         """ Generates a public key object from any object
         containing x, y coordinates.
 
@@ -488,7 +488,7 @@ class PublicKey:
         return PublicKey(ckey, network)
 
     @staticmethod
-    def from_bytes(key_bytes, network=BitcoinMainNet):
+    def from_bytes(key_bytes, network=BitcoinSegwitMainNet):
         """ Generates a public key object from a byte  string.
 
         The byte stream must be of the SEC variety
@@ -514,7 +514,7 @@ class PublicKey:
         return PublicKey(ckey, network)
 
     @staticmethod
-    def from_hex(h, network=BitcoinMainNet):
+    def from_hex(h, network=BitcoinSegwitMainNet):
         """ Generates a public key object from a hex-encoded string.
 
         See from_bytes() for requirements of the hex string.
@@ -578,7 +578,7 @@ class PublicKey:
             message = '\n'.join(text_lines[1:-4])
         return self.verify(message, signature, address)
 
-    def __init__(self, ckey, network=BitcoinMainNet):
+    def __init__(self, ckey, network=BitcoinSegwitMainNet):
         self._key = ckey
         self._network = network
 
