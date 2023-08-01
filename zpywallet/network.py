@@ -2,7 +2,10 @@
 This file contains parameters and constants for all supported networks.
 """
 
-class BitcoinCashMainNet(object):
+class CryptoNetwork(object):
+    pass
+
+class BitcoinCashMainNet(CryptoNetwork):
     """ Bitcoin Cash MainNet version bytes. """
     NAME = "Bitcoin Cash"
     COIN = "BCH"
@@ -22,7 +25,7 @@ class BitcoinCashMainNet(object):
     BECH32_PREFIX = None # Bech32 not supported
 
 
-class DashMainNet(object):
+class DashMainNet(CryptoNetwork):
     """ Dash MainNet version bytes.
     
     OK, time for a little drama - Dash's xpub/xprv were originally drkp/drkv.
@@ -49,7 +52,7 @@ class DashMainNet(object):
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
-class DashInvertedMainNet(object):
+class DashInvertedMainNet(CryptoNetwork):
     """Dash MainNet version bytes.
     
     This is the version that uses drkv/drkp as the public/private
@@ -72,7 +75,7 @@ class DashInvertedMainNet(object):
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
-class DashBTCMainNet(object):
+class DashBTCMainNet(CryptoNetwork):
     """Dash MainNet version bytes.
     
     Extended version bytes are the same as for Bitcoin, i.e. xpub/xprv,
@@ -95,7 +98,7 @@ class DashBTCMainNet(object):
     BECH32_PREFIX = None # Bech32 not supported
 
 
-class DashTestNet(object):
+class DashTestNet(CryptoNetwork):
     """Dash TestNet version bytes."""
     NAME = "Dash"
     COIN = "DASH"
@@ -113,7 +116,7 @@ class DashTestNet(object):
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
-class DashInvertedTestNet(object):
+class DashInvertedTestNet(CryptoNetwork):
     """Dash TestNet version bytes with inverted extended version bytes."""
     NAME = "Dash"
     COIN = "DASH"
@@ -132,14 +135,14 @@ class DashInvertedTestNet(object):
     BECH32_PREFIX = None # Bech32 not supported
 
 
-class BitcoinMainNet(object):
-    """Bitcoin MainNet version bytes.
+class BitcoinMainNet(CryptoNetwork):
+    """Bitcoin MainNet version bytes defaulting to legacy addresses.
     From https://github.com/bitcoin/bitcoin/blob/v0.9.0rc1/src/chainparams.cpp
     """
     NAME = "Bitcoin"
     COIN = "BTC"
     TESTNET = False
-    ADDRESS_MODE = ["BECH32", "BASE58"]
+    ADDRESS_MODE = ["BASE58", "BECH32"]
     SCRIPT_ADDRESS = 0x05  # int(0x05) = 5
     PUBKEY_ADDRESS = 0x00  # int(0x00) = 0  # Used to create payment addresses
     SECRET_KEY = 0x80      # int(0x80) = 128  # Used for WIF format
@@ -153,14 +156,18 @@ class BitcoinMainNet(object):
     BIP32_SEGWIT_PATH = "m/84'/0'/0'/"
     BECH32_PREFIX = "bc"
 
-class BitcoinTestNet(object):
-    """Bitcoin TestNet version bytes.
+class BitcoinSegwitMainNet(BitcoinMainNet):
+    """Bitcoin MainNet version bytes, defaulting to segwit addresses."""
+    ADDRESS_MODE = ["BECH32", "BASE58"]
+
+class BitcoinTestNet(CryptoNetwork):
+    """Bitcoin TestNet version bytes, defaulting to legacy addresses.
     From https://github.com/bitcoin/bitcoin/blob/v0.9.0rc1/src/chainparams.cpp
     """
     NAME = "Bitcoin"
     COIN = "BTC"
     TESTNET = True
-    ADDRESS_MODE = ["BECH32", "BASE58"]
+    ADDRESS_MODE = ["BASE58", "BECH32"]
     SCRIPT_ADDRESS = 0xc4  # int(0xc4) = 196
     PUBKEY_ADDRESS = 0x6f  # int(0x6f) = 111
     SECRET_KEY = 0xEF      # int(0xef) = 239
@@ -174,7 +181,11 @@ class BitcoinTestNet(object):
     BIP32_SEGWIT_PATH = "m/84'/1'/0'/"
     BECH32_PREFIX = "tb"
 
-class LitecoinMainNet(object):
+class BitcoinSegwitTestNet(BitcoinTestNet):
+    """Bitcoin TestNet version bytes, defaulting to segwit addresses."""
+    ADDRESS_MODE = ["BECH32", "BASE58"]
+
+class LitecoinMainNet(CryptoNetwork):
     """Litecoin MainNet version bytes
 
     Primary version bytes from:
@@ -185,7 +196,7 @@ class LitecoinMainNet(object):
     NAME = "Litecoin"
     COIN = "LTC"
     TESTNET = False
-    ADDRESS_MODE = ["BASE58"]
+    ADDRESS_MODE = ["BASE58", "BECH32"]
     SCRIPT_ADDRESS = 0x05  # int(0x05) = 5
     PUBKEY_ADDRESS = 0x30  # int(0x30) = 48
     SECRET_KEY = PUBKEY_ADDRESS + 128  # = int(0xb0) = 176
@@ -204,7 +215,12 @@ class LitecoinMainNet(object):
     BIP32_SEGWIT_PATH = "m/84'/0'/0'/"
     BECH32_PREFIX = "ltc"
 
-class LitecoinBTCMainNet(object):
+
+class LitecoinSegwitMainNet(LitecoinMainNet):
+    """Litecoin MainNet version bytes, defaulting to segwit addresses."""
+    ADDRESS_MODE = ["BECH32", "BASE58"]
+
+class LitecoinBTCMainNet(CryptoNetwork):
     """Litecoin MainNet version bytes
 
     Primary version bytes from:
@@ -215,7 +231,7 @@ class LitecoinBTCMainNet(object):
     NAME = "Litecoin"
     COIN = "LTC"
     TESTNET = False
-    ADDRESS_MODE = ["BASE58"]
+    ADDRESS_MODE = ["BASE58", "BECH32"]
     SCRIPT_ADDRESS = 0x05  # int(0x05) = 5
     PUBKEY_ADDRESS = 0x30  # int(0x30) = 48
     SECRET_KEY = PUBKEY_ADDRESS + 128  # = int(0xb0) = 176
@@ -236,7 +252,11 @@ class LitecoinBTCMainNet(object):
     BIP32_SEGWIT_PATH = "m/84'/0'/0'/"
     BECH32_PREFIX = "ltc"
 
-class LitecoinTestNet(object):
+class LitecoinBTCSegwitMainNet(LitecoinBTCMainNet):
+    """Litecoin MainNet version bytes, defaulting to segwit addresses."""
+    ADDRESS_MODE = ["BECH32", "BASE58"]
+
+class LitecoinTestNet(CryptoNetwork):
     """Litecoin TestNet version bytes
 
     Primary version bytes from:
@@ -249,7 +269,7 @@ class LitecoinTestNet(object):
     NAME = "Litecoin"
     COIN = "LTC"
     TESTNET = True
-    ADDRESS_MODE = ["BASE58"]
+    ADDRESS_MODE = ["BASE58", "BECH32"]
     SCRIPT_ADDRESS = 0xc4  # int(0xc4) = 196
     PUBKEY_ADDRESS = 0x6f  # int(0x6f) = 111
     SECRET_KEY = PUBKEY_ADDRESS + 128  # = int(0xef) = 239
@@ -263,8 +283,11 @@ class LitecoinTestNet(object):
     BIP32_SEGWIT_PATH = "m/84'/1'/0'/"
     BECH32_PREFIX = "tltc"
 
+class LitecoinSegwitTestNet(LitecoinTestNet):
+    """Litecoin TestNet version bytes, defaulting to segwit addresses."""
+    ADDRESS_MODE = ["BECH32", "BASE58"]
 
-class DogecoinMainNet(object):
+class DogecoinMainNet(CryptoNetwork):
     """Dogecoin MainNet version bytes
 
     Primary version bytes from:
@@ -294,7 +317,7 @@ class DogecoinMainNet(object):
     BECH32_PREFIX = None # Bech32 not supported
 
 
-class DogecoinBTCMainNet(object):
+class DogecoinBTCMainNet(CryptoNetwork):
     """Dogecoin MainNet version bytes
 
     Primary version bytes from:
@@ -324,7 +347,7 @@ class DogecoinBTCMainNet(object):
     BECH32_PREFIX = None # Bech32 not supported
 
 
-class DogecoinTestNet(object):
+class DogecoinTestNet(CryptoNetwork):
     """Dogecoin TestNet version bytes
 
     Primary version bytes from:
@@ -353,7 +376,7 @@ class DogecoinTestNet(object):
     BECH32_PREFIX = None # Bech32 not supported
 
 
-class BlockCypherTestNet(object):
+class BlockCypherTestNet(CryptoNetwork):
     """BlockCypher TestNet version bytes.
     From http://dev.blockcypher.com/#testing
     """
@@ -372,7 +395,7 @@ class BlockCypherTestNet(object):
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
-class EthereumMainNet(object):
+class EthereumMainNet(CryptoNetwork):
     """Ethereum MainNet version bytes."""
     NAME = "Ethereum"
     COIN = "ETH"
