@@ -35,16 +35,16 @@ class BlockchainInfoAddress:
     Raises:
         Exception: If the API request fails or the address balance/transaction history cannot be retrieved.
     """
-    def __init__(self, address, request_interval=(1,10)):
+    def __init__(self, addresses, request_interval=(1,10)):
         """
         Initializes an instance of the Address class.
 
         Args:
-            address (str): The human-readable Bitcoin address.
+            addresses (list): A list of human-readable Bitcoin addresses.
             request_interval (tuple): A pair of integers indicating the number of requests allowed during
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
-        self.address = address
+        self.addresses = addresses
         self.requests, self.interval_sec = request_interval
         self.transactions = [*self._get_transaction_history()]
         self.height = self.get_block_height()
@@ -117,9 +117,9 @@ class BlockchainInfoAddress:
         utxos = []
         for i in range(len(self.transactions)-1, -1, -1):
             for out in self.transactions[i]["outputs"]:
-                if out["address"] == self.address and not out['spent']:
+                if out["address"] in self.addresses and not out['spent']:
                     utxo = {}
-                    utxo["address"] = self.address
+                    utxo["address"] = out["address"]
                     utxo["txid"] = self.transactions[i]["txid"]
                     utxo["index"] = out["index"]
                     utxo["amount"] = out["amount"]
@@ -190,37 +190,11 @@ class BlockchainInfoAddress:
         Raises:
             Exception: If the API request fails or the transaction history cannot be retrieved.
         """
-        interval = 50
-        offset = 0
+        for address in self.addresses:
+            interval = 50
+            offset = 0
 
-        url = f"https://blockchain.info/rawaddr/{self.address}?limit={interval}&offset={offset}"
-        for attempt in range(3, -1, -1):
-            if attempt == 0:
-                raise NetworkException("Network request failure")
-            try:
-                response = requests.get(url, timeout=60)
-                break
-            except requests.RequestException:
-                pass
-
-        if response.status_code == 200:
-            data = response.json()
-            # The rate limit is 1 request every 10 seconds, so we will amortize the speed bump by sleeping every 200 milliseconds.
-            # Since we have max 50 transactions, total execution time will be at least 10 seconds incuding the sleep time and user
-            # code execution time, and if there are less than 50 transactions, we are finished fetching transactions anyway.
-            for tx in data["txs"]:
-                time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
-                if txhash and tx["hash"] == txhash:
-                    return
-                yield self._clean_tx(tx)
-            n_tx = data["n_tx"]
-            offset += min(interval, n_tx)
-        else:
-            raise NetworkException("Failed to retrieve transaction history")
-        
-        while offset < n_tx:
-            # WARNING: RATE LIMIT IS 1 REQUEST PER 10 SECONDS.
-            url = f"https://blockchain.info/rawaddr/{self.address}?limit={interval}&offset={offset}"
+            url = f"https://blockchain.info/rawaddr/{address}?limit={interval}&offset={offset}"
             for attempt in range(3, -1, -1):
                 if attempt == 0:
                     raise NetworkException("Network request failure")
@@ -232,11 +206,38 @@ class BlockchainInfoAddress:
 
             if response.status_code == 200:
                 data = response.json()
+                # The rate limit is 1 request every 10 seconds, so we will amortize the speed bump by sleeping every 200 milliseconds.
+                # Since we have max 50 transactions, total execution time will be at least 10 seconds incuding the sleep time and user
+                # code execution time, and if there are less than 50 transactions, we are finished fetching transactions anyway.
                 for tx in data["txs"]:
                     time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
                     if txhash and tx["hash"] == txhash:
                         return
                     yield self._clean_tx(tx)
-                offset += interval
+                n_tx = data["n_tx"]
+                offset += min(interval, n_tx)
             else:
                 raise NetworkException("Failed to retrieve transaction history")
+            
+            while offset < n_tx:
+                # WARNING: RATE LIMIT IS 1 REQUEST PER 10 SECONDS.
+                url = f"https://blockchain.info/rawaddr/{address}?limit={interval}&offset={offset}"
+                for attempt in range(3, -1, -1):
+                    if attempt == 0:
+                        raise NetworkException("Network request failure")
+                    try:
+                        response = requests.get(url, timeout=60)
+                        break
+                    except requests.RequestException:
+                        pass
+
+                if response.status_code == 200:
+                    data = response.json()
+                    for tx in data["txs"]:
+                        time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
+                        if txhash and tx["hash"] == txhash:
+                            return
+                        yield self._clean_tx(tx)
+                    offset += interval
+                else:
+                    raise NetworkException("Failed to retrieve transaction history")

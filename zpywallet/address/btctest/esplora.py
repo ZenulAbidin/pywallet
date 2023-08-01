@@ -78,12 +78,12 @@ class EsploraAddress:
         new_element['fee_metric'] = 'vbyte'
         return new_element
 
-    def __init__(self, address, endpoint="https://blockstream.info/testnet/api", request_interval=(3,1)):
+    def __init__(self, addresses, endpoint="https://blockstream.info/testnet/api", request_interval=(3,1)):
         """
         Initializes an instance of the EsploraAddress class.
 
         Args:
-            address (str): The human-readable Bitcoin address.
+            addresses (list): A list of human-readable Bitcoin address.es
             endpoint (str): The Esplora endpoint to use. Defaults to Blockstream's endpoint.
             request_interval (tuple): A pair of integers indicating the number of requests allowed during
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
@@ -92,7 +92,7 @@ class EsploraAddress:
         # Ostensibly there are no limits for that site, but I got 429 errors when testing with (1000,1), so
         # the default limit will be the same as for mempool.space - 3 requests per second.
         self.requests, self.interval_sec = request_interval
-        self.address = address
+        self.addresses = addresses
         self.endpoint = endpoint
         self.transactions = [*self._get_transaction_history()]
         self.height = self.get_block_height()
@@ -130,9 +130,9 @@ class EsploraAddress:
                         # Spent
                         utxos.remove(utxo)
             for out in self.transactions[i]["outputs"]:
-                if out["address"] == self.address:
+                if out["address"] in self.addresses:
                     utxo = {}
-                    utxo["address"] = self.address
+                    utxo["address"] = out["address"]
                     utxo["txid"] = self.transactions[i]["txid"]
                     utxo["index"] = out["index"]
                     utxo["amount"] = out["amount"]
@@ -192,31 +192,9 @@ class EsploraAddress:
         Raises:
             Exception: If the API request fails or the transaction history cannot be retrieved.
         """
-        # This gets up to 50 mempool transactions + up to 25 confirmed transactions
-        url = f"{self.endpoint}/address/{self.address}/txs"
-        for attempt in range(3, -1, -1):
-            if attempt == 0:
-                raise NetworkException("Network request failure")
-            try:
-                response = requests.get(url, timeout=60)
-                break
-            except requests.RequestException:
-                pass
-
-        if response.status_code == 200:
-            data = response.json()
-            for tx in data:
-                time.sleep(self.interval_sec/(self.requests*len(data)))
-                if txhash and tx["txid"] == txhash:
-                    return
-                yield self._clean_tx(tx)
-        else:
-            raise NetworkException("Failed to retrieve transaction history")
-        
-        last_tx = data[-1]["txid"]
-        
-        while len(data) > 0:
-            url = f"{self.endpoint}/address/{self.address}/txs/chain/{last_tx}"
+        for address in self.addresses:
+            # This gets up to 50 mempool transactions + up to 25 confirmed transactions
+            url = f"{self.endpoint}/address/{address}/txs"
             for attempt in range(3, -1, -1):
                 if attempt == 0:
                     raise NetworkException("Network request failure")
@@ -230,11 +208,34 @@ class EsploraAddress:
                 data = response.json()
                 for tx in data:
                     time.sleep(self.interval_sec/(self.requests*len(data)))
-                    if txhash and tx["hash"] == txhash:
+                    if txhash and tx["txid"] == txhash:
                         return
                     yield self._clean_tx(tx)
-                if len(data) > 0:
-                    last_tx = data[-1]["txid"]
             else:
                 raise NetworkException("Failed to retrieve transaction history")
+            
+            last_tx = data[-1]["txid"]
+            
+            while len(data) > 0:
+                url = f"{self.endpoint}/address/{address}/txs/chain/{last_tx}"
+                for attempt in range(3, -1, -1):
+                    if attempt == 0:
+                        raise NetworkException("Network request failure")
+                    try:
+                        response = requests.get(url, timeout=60)
+                        break
+                    except requests.RequestException:
+                        pass
+
+                if response.status_code == 200:
+                    data = response.json()
+                    for tx in data:
+                        time.sleep(self.interval_sec/(self.requests*len(data)))
+                        if txhash and tx["hash"] == txhash:
+                            return
+                        yield self._clean_tx(tx)
+                    if len(data) > 0:
+                        last_tx = data[-1]["txid"]
+                else:
+                    raise NetworkException("Failed to retrieve transaction history")
 

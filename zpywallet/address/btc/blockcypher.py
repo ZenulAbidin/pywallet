@@ -70,16 +70,16 @@ class BlockcypherAddress:
         
         return new_element
 
-    def __init__(self, address, request_interval=(3,1)):
+    def __init__(self, addresses, request_interval=(3,1)):
         """
         Initializes an instance of the BlockcypherAddress class.
 
         Args:
-            address (str): The human-readable Bitcoin address.
+            addresses (list): A list of human-readable Bitcoin addresses.
             request_interval (tuple): A pair of integers indicating the number of requests allowed during
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
-        self.address = address
+        self.addresses = addresses
         self.requests, self.interval_sec = request_interval
         self.transactions = deduplicate([*self._get_transaction_history()])
         self.height = self.get_block_height()
@@ -111,9 +111,9 @@ class BlockcypherAddress:
             for out in self.transactions[i]["outputs"]:
                 if out['spent']:
                     continue
-                if out["address"] == self.address:
+                if out["address"] in self.addresses:
                     utxo = {}
-                    utxo["address"] = self.address
+                    utxo["address"] = out["address"]
                     utxo["txid"] = self.transactions[i]["txid"]
                     utxo["index"] = out["index"]
                     utxo["amount"] = out["amount"]
@@ -178,38 +178,14 @@ class BlockcypherAddress:
         Raises:
             Exception: If the API request fails or the transaction history cannot be retrieved.
         """
-        interval = 50
-        block_height = 0
+        for address in self.addresses:
+            interval = 50
+            block_height = 0
 
-        # Set a very high UTXO limit for those rare address that have crazy high input/output counts.
-        txlimit = 10000
+            # Set a very high UTXO limit for those rare address that have crazy high input/output counts.
+            txlimit = 10000
 
-        url = f"https://api.blockcypher.com/v1/btc/main/addrs/{self.address}/full?limit={interval}&txlimit={txlimit}"
-        for attempt in range(3, -1, -1):
-            if attempt == 0:
-                raise NetworkException("Network request failure")
-            try:
-                response = requests.get(url, timeout=60)
-                break
-            except requests.RequestException:
-                pass
-
-        if response.status_code == 200:
-            data = response.json()
-            for tx in data["txs"]:
-                time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
-                if txhash and tx["hash"] == txhash:
-                    return
-                yield self._clean_tx(tx)
-            if 'hasMore' not in data.keys():
-                return
-            else:
-                block_height = data["txs"][-1]["block_height"]
-        else:
-            raise NetworkException("Failed to retrieve transaction history")
-        
-        while 'hasMore' in data.keys() and data['hasMore']:
-            url = f"https://api.blockcypher.com/v1/btc/main/addrs/{self.address}/full?limit={interval}&before={block_height}&txlimit={txlimit}"
+            url = f"https://api.blockcypher.com/v1/btc/main/addrs/{address}/full?limit={interval}&txlimit={txlimit}"
             for attempt in range(3, -1, -1):
                 if attempt == 0:
                     raise NetworkException("Network request failure")
@@ -232,3 +208,28 @@ class BlockcypherAddress:
                     block_height = data["txs"][-1]["block_height"]
             else:
                 raise NetworkException("Failed to retrieve transaction history")
+            
+            while 'hasMore' in data.keys() and data['hasMore']:
+                url = f"https://api.blockcypher.com/v1/btc/main/addrs/{address}/full?limit={interval}&before={block_height}&txlimit={txlimit}"
+                for attempt in range(3, -1, -1):
+                    if attempt == 0:
+                        raise NetworkException("Network request failure")
+                    try:
+                        response = requests.get(url, timeout=60)
+                        break
+                    except requests.RequestException:
+                        pass
+
+                if response.status_code == 200:
+                    data = response.json()
+                    for tx in data["txs"]:
+                        time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
+                        if txhash and tx["hash"] == txhash:
+                            return
+                        yield self._clean_tx(tx)
+                    if 'hasMore' not in data.keys():
+                        return
+                    else:
+                        block_height = data["txs"][-1]["block_height"]
+                else:
+                    raise NetworkException("Failed to retrieve transaction history")
