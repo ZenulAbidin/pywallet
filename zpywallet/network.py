@@ -2,6 +2,7 @@
 This file contains parameters and constants for all supported networks.
 """
 
+# Internal base class: Do not use.
 class CryptoNetwork(object):
     pass
 
@@ -19,6 +20,7 @@ class BitcoinCashMainNet(CryptoNetwork):
     EXT_SECRET_KEY = 0x0488ADE4  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/145'/0'/"
 
+    SUPPORTS_SEGWIT = False
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -47,6 +49,7 @@ class DashMainNet(CryptoNetwork):
     EXT_SECRET_KEY = 0x02fe52f8  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/5'/0'/"
 
+    SUPPORTS_SEGWIT = False
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -70,6 +73,7 @@ class DashInvertedMainNet(CryptoNetwork):
     EXT_SECRET_KEY = 0x02fe52cc  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/5'/0'/"
 
+    SUPPORTS_SEGWIT = False
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -92,6 +96,7 @@ class DashBTCMainNet(CryptoNetwork):
     EXT_SECRET_KEY = 0X0488ADE4  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/5'/0'/"
 
+    SUPPORTS_SEGWIT = False
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -111,6 +116,7 @@ class DashTestNet(CryptoNetwork):
     EXT_SECRET_KEY = 0x3a8061a0  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/1'/0'/"
 
+    SUPPORTS_SEGWIT = False
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -129,6 +135,7 @@ class DashInvertedTestNet(CryptoNetwork):
     EXT_SECRET_KEY = 0x3a805837  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/1'/0'/"
 
+    SUPPORTS_SEGWIT = False
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -151,6 +158,7 @@ class BitcoinMainNet(CryptoNetwork):
     EXT_SECRET_KEY = 0x0488ADE4  # Used to serialize private keys in BIP32 legacy (P2PKH)
     BIP32_PATH = "m/44'/0'/0'/"
 
+    SUPPORTS_SEGWIT = True
     EXT_SEGWIT_PUBLIC_KEY = 0x04b24746 # Used to serialize public keys in BIP32 segwit (P2WPKH)
     EXT_SEGWIT_SECRET_KEY = 0x04b2430c # Used to serialize private keys in BIP32 segwit (P2WPKH)
     BIP32_SEGWIT_PATH = "m/84'/0'/0'/"
@@ -176,6 +184,7 @@ class BitcoinTestNet(CryptoNetwork):
     EXT_SECRET_KEY = 0x04358394 # Used to serialize private keys in BIP32 legacy (P2PKH)
     BIP32_PATH = "m/44'/1'/0'/"
 
+    SUPPORTS_SEGWIT = True
     EXT_SEGWIT_PUBLIC_KEY = 0x045f1cf6 # Used to serialize public keys in BIP32 segwit (P2WPKH)
     EXT_SEGWIT_SECRET_KEY = 0x045f18bc # Used to serialize private keys in BIP32 segwit (P2WPKH)
     BIP32_SEGWIT_PATH = "m/84'/1'/0'/"
@@ -210,6 +219,7 @@ class LitecoinMainNet(CryptoNetwork):
     EXT_SECRET_KEY = 0x019d9cfe
     BIP32_PATH = "m/44'/2'/0'/"
 
+    SUPPORTS_SEGWIT = True
     EXT_SEGWIT_PUBLIC_KEY = 0x04b24746 # Used to serialize public keys in BIP32 segwit (P2WPKH)
     EXT_SEGWIT_SECRET_KEY = 0x04b2430c # Used to serialize private keys in BIP32 segwit (P2WPKH)
     BIP32_SEGWIT_PATH = "m/84'/0'/0'/"
@@ -244,9 +254,9 @@ class LitecoinBTCMainNet(CryptoNetwork):
     # [2]: https://github.com/ranaroussi/pywallet/issues/6
     EXT_PUBLIC_KEY = 0x0488B21E
     EXT_SECRET_KEY = 0x0488ADE4
-
     BIP32_PATH = "m/44'/2'/0'/"
 
+    SUPPORTS_SEGWIT = True
     EXT_SEGWIT_PUBLIC_KEY = 0x04b24746 # Used to serialize public keys in BIP32 segwit (P2WPKH)
     EXT_SEGWIT_SECRET_KEY = 0x04b2430c # Used to serialize private keys in BIP32 segwit (P2WPKH)
     BIP32_SEGWIT_PATH = "m/84'/0'/0'/"
@@ -278,6 +288,7 @@ class LitecoinTestNet(CryptoNetwork):
     EXT_SECRET_KEY = 0x0436ef7d
     BIP32_PATH = "m/44'/1'/0'/"
 
+    SUPPORTS_SEGWIT = True
     EXT_SEGWIT_PUBLIC_KEY = 0x045f1cf6 # Used to serialize public keys in BIP32 segwit (P2WPKH)
     EXT_SEGWIT_SECRET_KEY = 0x045f18bc # Used to serialize private keys in BIP32 segwit (P2WPKH)
     BIP32_SEGWIT_PATH = "m/84'/1'/0'/"
@@ -311,6 +322,7 @@ class DogecoinMainNet(CryptoNetwork):
     EXT_SECRET_KEY = 0x02fac398
     BIP32_PATH = "m/44'/3'/0'/"
 
+    SUPPORTS_SEGWIT = False
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -341,6 +353,7 @@ class DogecoinBTCMainNet(CryptoNetwork):
     EXT_SECRET_KEY = 0x02fac398
     BIP32_PATH = "m/44'/3'/0'/"
 
+    SUPPORTS_SEGWIT = False
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -364,6 +377,7 @@ class DogecoinTestNet(CryptoNetwork):
     PUBKEY_ADDRESS = 0x71  # int(0x71) = 113
     SECRET_KEY = PUBKEY_ADDRESS + 128  # int(0xf1) = 241
 
+    SUPPORTS_SEGWIT = False
     # Unofficial extended version bytes taken from
     # https://bitcointalk.org/index.php?topic=409731
     EXT_PUBLIC_KEY = 0x0432a9a8
@@ -390,6 +404,7 @@ class BlockCypherTestNet(CryptoNetwork):
     EXT_SECRET_KEY = 0x2d40fc3  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/1'/0'/"
 
+    SUPPORTS_SEGWIT = False
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -411,6 +426,7 @@ class EthereumMainNet(CryptoNetwork):
     EXT_SECRET_KEY = None  # Ethereum does not use BIP32
     BIP32_PATH = None  # Ethereum does not use BIP32
 
+    SUPPORTS_SEGWIT = False
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
