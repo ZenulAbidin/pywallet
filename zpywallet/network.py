@@ -2,6 +2,8 @@
 This file contains parameters and constants for all supported networks.
 """
 
+from .generated import wallet_pb2
+
 # Internal base class: Do not use.
 class CryptoNetwork(object):
     pass
@@ -9,6 +11,7 @@ class CryptoNetwork(object):
 class BitcoinCashMainNet(CryptoNetwork):
     """ Bitcoin Cash MainNet version bytes. """
     NAME = "Bitcoin Cash"
+    INTERNAL_NAME = wallet_pb2.Network.BITCOIN_CASH_MAINNET
     COIN = "BCH"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -39,6 +42,7 @@ class DashMainNet(CryptoNetwork):
     See: https://www.dash.org/forum/index.php?threads/dash-bip32-serialization-values-dev-discussion-wont-apply-to-most.8092/
     """
     NAME = "Dash"
+    INTERNAL_NAME = wallet_pb2.Network.DASH_MAINNET
     COIN = "DASH"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -63,6 +67,7 @@ class DashInvertedMainNet(CryptoNetwork):
     and coin as the other Dash mainnets.
     """
     NAME = "Dash"
+    INTERNAL_NAME = wallet_pb2.Network.DASH_INVERTED_MAINNET
     COIN = "DASH"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -86,6 +91,7 @@ class DashBTCMainNet(CryptoNetwork):
     for maximum wallet compatibility.
     """
     NAME = "Dash"
+    INTERNAL_NAME = wallet_pb2.Network.DASH_BTC_MAINNET
     COIN = "DASH"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -106,6 +112,7 @@ class DashBTCMainNet(CryptoNetwork):
 class DashTestNet(CryptoNetwork):
     """Dash TestNet version bytes."""
     NAME = "Dash"
+    INTERNAL_NAME = wallet_pb2.Network.DASH_TESTNET
     COIN = "DASH"
     TESTNET = True
     ADDRESS_MODE = ["BASE58"]
@@ -125,6 +132,7 @@ class DashTestNet(CryptoNetwork):
 class DashInvertedTestNet(CryptoNetwork):
     """Dash TestNet version bytes with inverted extended version bytes."""
     NAME = "Dash"
+    INTERNAL_NAME = wallet_pb2.Network.DASH_INVERTED_TESTNET
     COIN = "DASH"
     TESTNET = True
     ADDRESS_MODE = ["BASE58"]
@@ -147,6 +155,7 @@ class BitcoinMainNet(CryptoNetwork):
     From https://github.com/bitcoin/bitcoin/blob/v0.9.0rc1/src/chainparams.cpp
     """
     NAME = "Bitcoin"
+    INTERNAL_NAME = wallet_pb2.Network.BITCOIN_MAINNET
     COIN = "BTC"
     TESTNET = False
     ADDRESS_MODE = ["BASE58", "BECH32"]
@@ -166,6 +175,7 @@ class BitcoinMainNet(CryptoNetwork):
 
 class BitcoinSegwitMainNet(BitcoinMainNet):
     """Bitcoin MainNet version bytes, defaulting to segwit addresses."""
+    INTERNAL_NAME = wallet_pb2.Network.BITCOIN_SEGWIT_MAINNET
     ADDRESS_MODE = ["BECH32", "BASE58"]
 
 class BitcoinTestNet(CryptoNetwork):
@@ -173,6 +183,7 @@ class BitcoinTestNet(CryptoNetwork):
     From https://github.com/bitcoin/bitcoin/blob/v0.9.0rc1/src/chainparams.cpp
     """
     NAME = "Bitcoin"
+    INTERNAL_NAME = wallet_pb2.Network.BITCOIN_TESTNET
     COIN = "BTC"
     TESTNET = True
     ADDRESS_MODE = ["BASE58", "BECH32"]
@@ -192,6 +203,7 @@ class BitcoinTestNet(CryptoNetwork):
 
 class BitcoinSegwitTestNet(BitcoinTestNet):
     """Bitcoin TestNet version bytes, defaulting to segwit addresses."""
+    INTERNAL_NAME = wallet_pb2.Network.BITCOIN_SEGWIT_TESTNET
     ADDRESS_MODE = ["BECH32", "BASE58"]
 
 class LitecoinMainNet(CryptoNetwork):
@@ -203,6 +215,7 @@ class LitecoinMainNet(CryptoNetwork):
     Extemded version bytes from https://bitcointalk.org/index.php?topic=453395.0
     """
     NAME = "Litecoin"
+    INTERNAL_NAME = wallet_pb2.Network.LITECOIN_MAINNET
     COIN = "LTC"
     TESTNET = False
     ADDRESS_MODE = ["BASE58", "BECH32"]
@@ -228,6 +241,7 @@ class LitecoinMainNet(CryptoNetwork):
 
 class LitecoinSegwitMainNet(LitecoinMainNet):
     """Litecoin MainNet version bytes, defaulting to segwit addresses."""
+    INTERNAL_NAME = wallet_pb2.Network.LITECOIN_SEGWIT_MAINNET
     ADDRESS_MODE = ["BECH32", "BASE58"]
 
 class LitecoinBTCMainNet(CryptoNetwork):
@@ -239,6 +253,7 @@ class LitecoinBTCMainNet(CryptoNetwork):
     Extended version bytes same as bitcoin's
     """
     NAME = "Litecoin"
+    INTERNAL_NAME = wallet_pb2.Network.LITECOIN_BTC_MAINNET
     COIN = "LTC"
     TESTNET = False
     ADDRESS_MODE = ["BASE58", "BECH32"]
@@ -264,6 +279,7 @@ class LitecoinBTCMainNet(CryptoNetwork):
 
 class LitecoinBTCSegwitMainNet(LitecoinBTCMainNet):
     """Litecoin MainNet version bytes, defaulting to segwit addresses."""
+    INTERNAL_NAME = wallet_pb2.Network.LITECOIN_BTC_SEGWIT_MAINNET
     ADDRESS_MODE = ["BECH32", "BASE58"]
 
 class LitecoinTestNet(CryptoNetwork):
@@ -277,6 +293,7 @@ class LitecoinTestNet(CryptoNetwork):
     I could find that supports this though.
     """
     NAME = "Litecoin"
+    INTERNAL_NAME = wallet_pb2.Network.LITECOIN_MAINNET
     COIN = "LTC"
     TESTNET = True
     ADDRESS_MODE = ["BASE58", "BECH32"]
@@ -296,6 +313,7 @@ class LitecoinTestNet(CryptoNetwork):
 
 class LitecoinSegwitTestNet(LitecoinTestNet):
     """Litecoin TestNet version bytes, defaulting to segwit addresses."""
+    INTERNAL_NAME = wallet_pb2.Network.LITECOIN_MAINNET
     ADDRESS_MODE = ["BECH32", "BASE58"]
 
 class DogecoinMainNet(CryptoNetwork):
@@ -308,6 +326,7 @@ class DogecoinMainNet(CryptoNetwork):
     https://bitcointalk.org/index.php?topic=409731
     """
     NAME = "Dogecoin"
+    INTERNAL_NAME = wallet_pb2.Network.DOGECOIN_MAINNET
     COIN = "DOGE"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -339,6 +358,7 @@ class DogecoinBTCMainNet(CryptoNetwork):
     i.e. xpub/xprv, for wallet compatibility.
     """
     NAME = "Dogecoin"
+    INTERNAL_NAME = wallet_pb2.Network.DOGECOIN_BTC_MAINNET
     COIN = "DOGE"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
@@ -370,6 +390,7 @@ class DogecoinTestNet(CryptoNetwork):
     https://bitcointalk.org/index.php?topic=409731
     """
     NAME = "Dogecoin"
+    INTERNAL_NAME = wallet_pb2.Network.DOGECOIN_TESTNET
     COIN = "DOGE"
     TESTNET = True
     ADDRESS_MODE = ["BASE58"]
@@ -395,6 +416,7 @@ class BlockCypherTestNet(CryptoNetwork):
     From http://dev.blockcypher.com/#testing
     """
     NAME = "BlockCypher"
+    INTERNAL_NAME = wallet_pb2.Network.BLOCKCYPHER_TESTNET
     COIN = "BCY"
     ADDRESS_MODE = ["BASE58"]
     SCRIPT_ADDRESS = 0x1f  # int(0x1f) = 31
@@ -413,6 +435,7 @@ class BlockCypherTestNet(CryptoNetwork):
 class EthereumMainNet(CryptoNetwork):
     """Ethereum MainNet version bytes."""
     NAME = "Ethereum"
+    INTERNAL_NAME = wallet_pb2.Network.ETHEREUM_MAINNET
     COIN = "ETH"
     TESTNET = False
     ADDRESS_MODE = ["HEX"]

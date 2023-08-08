@@ -1,84 +1,102 @@
 syntax = "proto3";
 
 enum Network {
-    BITCOIN_MAINNET = 0;
-    BITCOIN_TESTNET = 1;
-    LITECOIN_MAINNET = 2;
-    LITECOIN_BTC_MAINNET = 3;
-    LITECOIN_TESTNET = 4;
-    ETHEREUM_MAINNET = 5;
-    DOGECOIN_MAINNET = 6;
-    DOGECOIN_BTC_MAINNET = 7;
-    DOGECOIN_TESTNET = 8;
-    DASH_MAINNET = 9;
-    DASH_INVERTED_MAINNET = 10;
-    DASH_BTC_MAINNET = 11;
-    DASH_TESTNET = 12;
-    DASH_INVERTED_TESTNET = 13;
-    BITCOIN_CASH_MAINNET = 14;
-    BLOCKCYPHER_TESTNET = 15;
+    BITCOIN_SEGWIT_MAINNET = 0;
+    BITCOIN_MAINNET = 1;
+    BITCOIN_SEGWIT_TESTNET = 2;
+    BITCOIN_TESTNET = 3;
+    LITECOIN_SEGWIT_MAINNET = 4;
+    LITECOIN_MAINNET = 5;
+    LITECOIN_BTC_MAINNET = 6;
+    LITECOIN_BTC_SEGWIT_MAINNET = 7;
+    LITECOIN_TESTNET = 8;
+    LITECOIN_SEGWIT_TESTNET = 9;
+    ETHEREUM_MAINNET = 10;
+    DOGECOIN_MAINNET = 11;
+    DOGECOIN_BTC_MAINNET = 12;
+    DOGECOIN_TESTNET = 13;
+    DASH_MAINNET = 14;
+    DASH_INVERTED_MAINNET = 15;
+    DASH_BTC_MAINNET = 16;
+    DASH_TESTNET = 17;
+    DASH_INVERTED_TESTNET = 18;
+    BITCOIN_CASH_MAINNET = 19;
+    BLOCKCYPHER_TESTNET = 20;
 }
 
 enum CryptoProvider {
     option allow_alias = true;
-    BLOCKCHAIN_INFO = 0;
+    BLOCKCYPHER = 0;
     ESPLORA = 1;
     BLOCKSTREAM = 1;
-    BLOCKCYPHER = 2;
-    BLOCKCHAIR = 3;
-    BTC_COM = 4;
-    ELECTRUM = 5;
-    ELECTRUM_LTC = 6;
-    FULLNODE_LEGACY = 7;
-    FULLNODE_DESCRIPTORS = 8;
-    FULLNODE_ETH = 9;
+    BTC_COM = 2;
+    BLOCKCHAIN_INFO = 3; // NOT RECOMMENDED
+    FULLNODE = 4;
 }
 
 message Wallet {
+    // Address type (legacy, segwit, hex, ... detected by the first element of ADDRESS_MODE)
     Network network = 1;
     bytes encrypted_seed_phrase = 2;
     fixed32 height = 3;
     fixed32 receive_gap_limit = 4;
-    fixed32 send_gap_limit = 5;
-    repeated Transaction transactions = 6;
-    bool segwit = 7; // Toggles between Legacy and Native Segwit for supported networks
+    fixed32 change_gap_limit = 5;
+    repeated Address addresses = 6;
+    repeated Transaction transactions = 7;
     CryptoProvider setting_default_crypto_provider = 8;
+}
+
+message Address {
+  // We only generate compressed addresses.
+  string address = 1;
+  string pubkey = 2;
+  string privkey = 3;
+}
+
+enum FeeMetric {
+  BYTE = 0;
+  VBYTE = 1;
+  WEI = 2;
 }
 
 message Transaction {
   // Common transaction elements
   string id = 1;                 // Transaction ID or hash
-  uint64 timestamp = 2;         // Timestamp of the transaction (Unix time)
-  uint64 fee = 3;               // Transaction or gas fee (wei for Ethereum, native currency for Bitcoin)
+  uint64 timestamp = 2;          // Timestamp of the transaction (Unix time)
+  uint64 total_fee = 3;          // Transaction or gas fee (wei for Ethereum, sats for Bitcoin)
+  FeeMetric metric = 4;
 
-  // Ethereum-specific fields
-  message EthereumTransaction {
-    string sender_address = 1;   // Sender's address
-    string recipient_address = 2; // Recipient's address
-    uint64 amount = 3;           // Amount of the transaction in the smallest unit of each blockchain
-    uint64 gasLimit = 4;         // Gas limit for the transaction
-    bytes data = 5;              // Input data for contract method calls (if applicable)
-  }
-  EthereumTransaction ethereum_transaction = 10;
-
-  // Bitcoin-specific fields
+  // Bitcoin-compatible fields
   message BitcoinTransaction {
-    repeated Input inputs = 1;  // List of inputs for the transaction
-    repeated Output outputs = 2; // List of outputs for the transaction
+    uint64 fee = 1;             // in sats/byte or sats/vbyte
+    repeated Input inputs = 2;  // List of inputs for the transaction
+    repeated Output outputs = 3; // List of outputs for the transaction
   }
-  BitcoinTransaction bitcoin_transaction = 20;
 
   // Input for Bitcoin transaction
   message Input {
-    string tx_id = 1;           // Transaction ID of the input UTXO
-    uint32 index = 2;           // Index of the output in the referenced transaction
-    uint64 amount = 3;          // Value of the input in the smallest unit of Bitcoin
+    string tx_id = 1;                // Transaction ID of the input UTXO
+    uint32 index = 2;                // Index of the output in the referenced transaction
+    uint64 amount = 3;               // Value of the input in the smallest unit of Bitcoin
     repeated bytes witness_data = 4; // Witness data (for SegWit inputs)
   }
 
   // Output for Bitcoin transaction
   message Output {
-    uint64 value = 1;           // Value of the output in the smallest unit of Bitcoin
+    uint64 amount = 1;          // Value of the output in the smallest unit of Bitcoin
     string address = 2;         // Recipient's address (could be Bitcoin or Ethereum address)
   }
+
+  BitcoinTransaction btc_compatible_transaction = 15;
+
+  // Ethereum-compatible fields
+  message EthereumTransaction {
+    string from = 1;                  // Sender's address
+    string to = 2;                    // Recipient's address
+    uint64 amount = 3;                // Amount of the transaction in the smallest unit of each blockchain
+    // Gas price is recorded in "fee".
+    uint64 gas = 4;                   // Amount of gas used by the transaction.
+    bytes data = 5;                   // Input data for contract method calls (if applicable)
+  }
+  EthereumTransaction eth_compatible_transaction = 14;
 }

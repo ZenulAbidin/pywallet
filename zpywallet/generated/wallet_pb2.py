@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x0cwallet.proto\"\xec\x01\n\x06Wallet\x12\x19\n\x07network\x18\x01 \x01(\x0e\x32\x08.Network\x12\x1d\n\x15\x65ncrypted_seed_phrase\x18\x02 \x01(\x0c\x12\x0e\n\x06height\x18\x03 \x01(\x07\x12\x19\n\x11receive_gap_limit\x18\x04 \x01(\x07\x12\x16\n\x0esend_gap_limit\x18\x05 \x01(\x07\x12\x1b\n\x13transaction_history\x18\x06 \x01(\t\x12\x0e\n\x06segwit\x18\x07 \x01(\x08\x12\x38\n\x1fsetting_default_crypto_provider\x18\x08 \x01(\x0e\x32\x0f.CryptoProvider*\xf8\x02\n\x07Network\x12\x13\n\x0f\x42ITCOIN_MAINNET\x10\x00\x12\x13\n\x0f\x42ITCOIN_TESTNET\x10\x01\x12\x14\n\x10LITECOIN_MAINNET\x10\x02\x12\x18\n\x14LITECOIN_BTC_MAINNET\x10\x03\x12\x14\n\x10LITECOIN_TESTNET\x10\x04\x12\x14\n\x10\x45THEREUM_MAINNET\x10\x05\x12\x14\n\x10\x44OGECOIN_MAINNET\x10\x06\x12\x18\n\x14\x44OGECOIN_BTC_MAINNET\x10\x07\x12\x14\n\x10\x44OGECOIN_TESTNET\x10\x08\x12\x10\n\x0c\x44\x41SH_MAINNET\x10\t\x12\x19\n\x15\x44\x41SH_INVERTED_MAINNET\x10\n\x12\x14\n\x10\x44\x41SH_BTC_MAINNET\x10\x0b\x12\x10\n\x0c\x44\x41SH_TESTNET\x10\x0c\x12\x19\n\x15\x44\x41SH_INVERTED_TESTNET\x10\r\x12\x18\n\x14\x42ITCOIN_CASH_MAINNET\x10\x0e\x12\x17\n\x13\x42LOCKCYPHER_TESTNET\x10\x0f*\xd6\x01\n\x0e\x43ryptoProvider\x12\x13\n\x0f\x42LOCKCHAIN_INFO\x10\x00\x12\x0b\n\x07\x45SPLORA\x10\x01\x12\x0f\n\x0b\x42LOCKSTREAM\x10\x01\x12\x0f\n\x0b\x42LOCKCYPHER\x10\x02\x12\x0e\n\nBLOCKCHAIR\x10\x03\x12\x0b\n\x07\x42TC_COM\x10\x04\x12\x0c\n\x08\x45LECTRUM\x10\x05\x12\x10\n\x0c\x45LECTRUM_LTC\x10\x06\x12\x13\n\x0f\x46ULLNODE_LEGACY\x10\x07\x12\x18\n\x14\x46ULLNODE_DESCRIPTORS\x10\x08\x12\x10\n\x0c\x46ULLNODE_ETH\x10\t\x1a\x02\x10\x01\x62\x06proto3')
+  serialized_pb=_b('\n\x0cwallet.proto\"\x82\x02\n\x06Wallet\x12\x19\n\x07network\x18\x01 \x01(\x0e\x32\x08.Network\x12\x1d\n\x15\x65ncrypted_seed_phrase\x18\x02 \x01(\x0c\x12\x0e\n\x06height\x18\x03 \x01(\x07\x12\x19\n\x11receive_gap_limit\x18\x04 \x01(\x07\x12\x18\n\x10\x63hange_gap_limit\x18\x05 \x01(\x07\x12\x1b\n\taddresses\x18\x06 \x03(\x0b\x32\x08.Address\x12\"\n\x0ctransactions\x18\x07 \x03(\x0b\x32\x0c.Transaction\x12\x38\n\x1fsetting_default_crypto_provider\x18\x08 \x01(\x0e\x32\x0f.CryptoProvider\";\n\x07\x41\x64\x64ress\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0e\n\x06pubkey\x18\x02 \x01(\t\x12\x0f\n\x07privkey\x18\x03 \x01(\t\"\xa7\x04\n\x0bTransaction\x12\n\n\x02id\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\x04\x12\x11\n\ttotal_fee\x18\x03 \x01(\x04\x12\x1a\n\x06metric\x18\x04 \x01(\x0e\x32\n.FeeMetric\x12\x43\n\x1a\x62tc_compatible_transaction\x18\x0f \x01(\x0b\x32\x1f.Transaction.BitcoinTransaction\x12\x44\n\x1a\x65th_compatible_transaction\x18\x0e \x01(\x0b\x32 .Transaction.EthereumTransaction\x1ak\n\x12\x42itcoinTransaction\x12\x0b\n\x03\x66\x65\x65\x18\x01 \x01(\x04\x12\"\n\x06inputs\x18\x02 \x03(\x0b\x32\x12.Transaction.Input\x12$\n\x07outputs\x18\x03 \x03(\x0b\x32\x13.Transaction.Output\x1aK\n\x05Input\x12\r\n\x05tx_id\x18\x01 \x01(\t\x12\r\n\x05index\x18\x02 \x01(\r\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x04\x12\x14\n\x0cwitness_data\x18\x04 \x03(\x0c\x1a)\n\x06Output\x12\x0e\n\x06\x61mount\x18\x01 \x01(\x04\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\x1aZ\n\x13\x45thereumTransaction\x12\x0c\n\x04\x66rom\x18\x01 \x01(\t\x12\n\n\x02to\x18\x02 \x01(\t\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x04\x12\x0b\n\x03gas\x18\x04 \x01(\x04\x12\x0c\n\x04\x64\x61ta\x18\x05 \x01(\x0c*\x8b\x04\n\x07Network\x12\x1a\n\x16\x42ITCOIN_SEGWIT_MAINNET\x10\x00\x12\x13\n\x0f\x42ITCOIN_MAINNET\x10\x01\x12\x1a\n\x16\x42ITCOIN_SEGWIT_TESTNET\x10\x02\x12\x13\n\x0f\x42ITCOIN_TESTNET\x10\x03\x12\x1b\n\x17LITECOIN_SEGWIT_MAINNET\x10\x04\x12\x14\n\x10LITECOIN_MAINNET\x10\x05\x12\x18\n\x14LITECOIN_BTC_MAINNET\x10\x06\x12\x1f\n\x1bLITECOIN_BTC_SEGWIT_MAINNET\x10\x07\x12\x14\n\x10LITECOIN_TESTNET\x10\x08\x12\x1b\n\x17LITECOIN_SEGWIT_TESTNET\x10\t\x12\x14\n\x10\x45THEREUM_MAINNET\x10\n\x12\x14\n\x10\x44OGECOIN_MAINNET\x10\x0b\x12\x18\n\x14\x44OGECOIN_BTC_MAINNET\x10\x0c\x12\x14\n\x10\x44OGECOIN_TESTNET\x10\r\x12\x10\n\x0c\x44\x41SH_MAINNET\x10\x0e\x12\x19\n\x15\x44\x41SH_INVERTED_MAINNET\x10\x0f\x12\x14\n\x10\x44\x41SH_BTC_MAINNET\x10\x10\x12\x10\n\x0c\x44\x41SH_TESTNET\x10\x11\x12\x19\n\x15\x44\x41SH_INVERTED_TESTNET\x10\x12\x12\x18\n\x14\x42ITCOIN_CASH_MAINNET\x10\x13\x12\x17\n\x13\x42LOCKCYPHER_TESTNET\x10\x14*s\n\x0e\x43ryptoProvider\x12\x0f\n\x0b\x42LOCKCYPHER\x10\x00\x12\x0b\n\x07\x45SPLORA\x10\x01\x12\x0f\n\x0b\x42LOCKSTREAM\x10\x01\x12\x0b\n\x07\x42TC_COM\x10\x02\x12\x13\n\x0f\x42LOCKCHAIN_INFO\x10\x03\x12\x0c\n\x08\x46ULLNODE\x10\x04\x1a\x02\x10\x01*)\n\tFeeMetric\x12\x08\n\x04\x42YTE\x10\x00\x12\t\n\x05VBYTE\x10\x01\x12\x07\n\x03WEI\x10\x02\x62\x06proto3')
 )
 
 _NETWORK = _descriptor.EnumDescriptor(
@@ -30,74 +30,94 @@ _NETWORK = _descriptor.EnumDescriptor(
   file=DESCRIPTOR,
   values=[
     _descriptor.EnumValueDescriptor(
-      name='BITCOIN_MAINNET', index=0, number=0,
+      name='BITCOIN_SEGWIT_MAINNET', index=0, number=0,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='BITCOIN_TESTNET', index=1, number=1,
+      name='BITCOIN_MAINNET', index=1, number=1,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='LITECOIN_MAINNET', index=2, number=2,
+      name='BITCOIN_SEGWIT_TESTNET', index=2, number=2,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='LITECOIN_BTC_MAINNET', index=3, number=3,
+      name='BITCOIN_TESTNET', index=3, number=3,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='LITECOIN_TESTNET', index=4, number=4,
+      name='LITECOIN_SEGWIT_MAINNET', index=4, number=4,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='ETHEREUM_MAINNET', index=5, number=5,
+      name='LITECOIN_MAINNET', index=5, number=5,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='DOGECOIN_MAINNET', index=6, number=6,
+      name='LITECOIN_BTC_MAINNET', index=6, number=6,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='DOGECOIN_BTC_MAINNET', index=7, number=7,
+      name='LITECOIN_BTC_SEGWIT_MAINNET', index=7, number=7,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='DOGECOIN_TESTNET', index=8, number=8,
+      name='LITECOIN_TESTNET', index=8, number=8,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='DASH_MAINNET', index=9, number=9,
+      name='LITECOIN_SEGWIT_TESTNET', index=9, number=9,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='DASH_INVERTED_MAINNET', index=10, number=10,
+      name='ETHEREUM_MAINNET', index=10, number=10,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='DASH_BTC_MAINNET', index=11, number=11,
+      name='DOGECOIN_MAINNET', index=11, number=11,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='DASH_TESTNET', index=12, number=12,
+      name='DOGECOIN_BTC_MAINNET', index=12, number=12,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='DASH_INVERTED_TESTNET', index=13, number=13,
+      name='DOGECOIN_TESTNET', index=13, number=13,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='BITCOIN_CASH_MAINNET', index=14, number=14,
+      name='DASH_MAINNET', index=14, number=14,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='BLOCKCYPHER_TESTNET', index=15, number=15,
+      name='DASH_INVERTED_MAINNET', index=15, number=15,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='DASH_BTC_MAINNET', index=16, number=16,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='DASH_TESTNET', index=17, number=17,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='DASH_INVERTED_TESTNET', index=18, number=18,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='BITCOIN_CASH_MAINNET', index=19, number=19,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='BLOCKCYPHER_TESTNET', index=20, number=20,
       serialized_options=None,
       type=None),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=256,
-  serialized_end=632,
+  serialized_start=893,
+  serialized_end=1416,
 )
 _sym_db.RegisterEnumDescriptor(_NETWORK)
 
@@ -109,7 +129,7 @@ _CRYPTOPROVIDER = _descriptor.EnumDescriptor(
   file=DESCRIPTOR,
   values=[
     _descriptor.EnumValueDescriptor(
-      name='BLOCKCHAIN_INFO', index=0, number=0,
+      name='BLOCKCYPHER', index=0, number=0,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
@@ -121,73 +141,83 @@ _CRYPTOPROVIDER = _descriptor.EnumDescriptor(
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='BLOCKCYPHER', index=3, number=2,
+      name='BTC_COM', index=3, number=2,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='BLOCKCHAIR', index=4, number=3,
+      name='BLOCKCHAIN_INFO', index=4, number=3,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='BTC_COM', index=5, number=4,
-      serialized_options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='ELECTRUM', index=6, number=5,
-      serialized_options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='ELECTRUM_LTC', index=7, number=6,
-      serialized_options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='FULLNODE_LEGACY', index=8, number=7,
-      serialized_options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='FULLNODE_DESCRIPTORS', index=9, number=8,
-      serialized_options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='FULLNODE_ETH', index=10, number=9,
+      name='FULLNODE', index=5, number=4,
       serialized_options=None,
       type=None),
   ],
   containing_type=None,
   serialized_options=_b('\020\001'),
-  serialized_start=635,
-  serialized_end=849,
+  serialized_start=1418,
+  serialized_end=1533,
 )
 _sym_db.RegisterEnumDescriptor(_CRYPTOPROVIDER)
 
 CryptoProvider = enum_type_wrapper.EnumTypeWrapper(_CRYPTOPROVIDER)
-BITCOIN_MAINNET = 0
-BITCOIN_TESTNET = 1
-LITECOIN_MAINNET = 2
-LITECOIN_BTC_MAINNET = 3
-LITECOIN_TESTNET = 4
-ETHEREUM_MAINNET = 5
-DOGECOIN_MAINNET = 6
-DOGECOIN_BTC_MAINNET = 7
-DOGECOIN_TESTNET = 8
-DASH_MAINNET = 9
-DASH_INVERTED_MAINNET = 10
-DASH_BTC_MAINNET = 11
-DASH_TESTNET = 12
-DASH_INVERTED_TESTNET = 13
-BITCOIN_CASH_MAINNET = 14
-BLOCKCYPHER_TESTNET = 15
-BLOCKCHAIN_INFO = 0
+_FEEMETRIC = _descriptor.EnumDescriptor(
+  name='FeeMetric',
+  full_name='FeeMetric',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='BYTE', index=0, number=0,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='VBYTE', index=1, number=1,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='WEI', index=2, number=2,
+      serialized_options=None,
+      type=None),
+  ],
+  containing_type=None,
+  serialized_options=None,
+  serialized_start=1535,
+  serialized_end=1576,
+)
+_sym_db.RegisterEnumDescriptor(_FEEMETRIC)
+
+FeeMetric = enum_type_wrapper.EnumTypeWrapper(_FEEMETRIC)
+BITCOIN_SEGWIT_MAINNET = 0
+BITCOIN_MAINNET = 1
+BITCOIN_SEGWIT_TESTNET = 2
+BITCOIN_TESTNET = 3
+LITECOIN_SEGWIT_MAINNET = 4
+LITECOIN_MAINNET = 5
+LITECOIN_BTC_MAINNET = 6
+LITECOIN_BTC_SEGWIT_MAINNET = 7
+LITECOIN_TESTNET = 8
+LITECOIN_SEGWIT_TESTNET = 9
+ETHEREUM_MAINNET = 10
+DOGECOIN_MAINNET = 11
+DOGECOIN_BTC_MAINNET = 12
+DOGECOIN_TESTNET = 13
+DASH_MAINNET = 14
+DASH_INVERTED_MAINNET = 15
+DASH_BTC_MAINNET = 16
+DASH_TESTNET = 17
+DASH_INVERTED_TESTNET = 18
+BITCOIN_CASH_MAINNET = 19
+BLOCKCYPHER_TESTNET = 20
+BLOCKCYPHER = 0
 ESPLORA = 1
 BLOCKSTREAM = 1
-BLOCKCYPHER = 2
-BLOCKCHAIR = 3
-BTC_COM = 4
-ELECTRUM = 5
-ELECTRUM_LTC = 6
-FULLNODE_LEGACY = 7
-FULLNODE_DESCRIPTORS = 8
-FULLNODE_ETH = 9
+BTC_COM = 2
+BLOCKCHAIN_INFO = 3
+FULLNODE = 4
+BYTE = 0
+VBYTE = 1
+WEI = 2
 
 
 
@@ -227,23 +257,23 @@ _WALLET = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='send_gap_limit', full_name='Wallet.send_gap_limit', index=4,
+      name='change_gap_limit', full_name='Wallet.change_gap_limit', index=4,
       number=5, type=7, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='transaction_history', full_name='Wallet.transaction_history', index=5,
-      number=6, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
+      name='addresses', full_name='Wallet.addresses', index=5,
+      number=6, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='segwit', full_name='Wallet.segwit', index=6,
-      number=7, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
+      name='transactions', full_name='Wallet.transactions', index=6,
+      number=7, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
@@ -267,14 +297,329 @@ _WALLET = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=17,
-  serialized_end=253,
+  serialized_end=275,
+)
+
+
+_ADDRESS = _descriptor.Descriptor(
+  name='Address',
+  full_name='Address',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='address', full_name='Address.address', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pubkey', full_name='Address.pubkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='privkey', full_name='Address.privkey', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=277,
+  serialized_end=336,
+)
+
+
+_TRANSACTION_BITCOINTRANSACTION = _descriptor.Descriptor(
+  name='BitcoinTransaction',
+  full_name='Transaction.BitcoinTransaction',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='fee', full_name='Transaction.BitcoinTransaction.fee', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='inputs', full_name='Transaction.BitcoinTransaction.inputs', index=1,
+      number=2, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='outputs', full_name='Transaction.BitcoinTransaction.outputs', index=2,
+      number=3, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=571,
+  serialized_end=678,
+)
+
+_TRANSACTION_INPUT = _descriptor.Descriptor(
+  name='Input',
+  full_name='Transaction.Input',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='tx_id', full_name='Transaction.Input.tx_id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='index', full_name='Transaction.Input.index', index=1,
+      number=2, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='amount', full_name='Transaction.Input.amount', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='witness_data', full_name='Transaction.Input.witness_data', index=3,
+      number=4, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=680,
+  serialized_end=755,
+)
+
+_TRANSACTION_OUTPUT = _descriptor.Descriptor(
+  name='Output',
+  full_name='Transaction.Output',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='amount', full_name='Transaction.Output.amount', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='address', full_name='Transaction.Output.address', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=757,
+  serialized_end=798,
+)
+
+_TRANSACTION_ETHEREUMTRANSACTION = _descriptor.Descriptor(
+  name='EthereumTransaction',
+  full_name='Transaction.EthereumTransaction',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='from', full_name='Transaction.EthereumTransaction.from', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='to', full_name='Transaction.EthereumTransaction.to', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='amount', full_name='Transaction.EthereumTransaction.amount', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='gas', full_name='Transaction.EthereumTransaction.gas', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='data', full_name='Transaction.EthereumTransaction.data', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=800,
+  serialized_end=890,
+)
+
+_TRANSACTION = _descriptor.Descriptor(
+  name='Transaction',
+  full_name='Transaction',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='id', full_name='Transaction.id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='timestamp', full_name='Transaction.timestamp', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='total_fee', full_name='Transaction.total_fee', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='metric', full_name='Transaction.metric', index=3,
+      number=4, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='btc_compatible_transaction', full_name='Transaction.btc_compatible_transaction', index=4,
+      number=15, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='eth_compatible_transaction', full_name='Transaction.eth_compatible_transaction', index=5,
+      number=14, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[_TRANSACTION_BITCOINTRANSACTION, _TRANSACTION_INPUT, _TRANSACTION_OUTPUT, _TRANSACTION_ETHEREUMTRANSACTION, ],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=339,
+  serialized_end=890,
 )
 
 _WALLET.fields_by_name['network'].enum_type = _NETWORK
+_WALLET.fields_by_name['addresses'].message_type = _ADDRESS
+_WALLET.fields_by_name['transactions'].message_type = _TRANSACTION
 _WALLET.fields_by_name['setting_default_crypto_provider'].enum_type = _CRYPTOPROVIDER
+_TRANSACTION_BITCOINTRANSACTION.fields_by_name['inputs'].message_type = _TRANSACTION_INPUT
+_TRANSACTION_BITCOINTRANSACTION.fields_by_name['outputs'].message_type = _TRANSACTION_OUTPUT
+_TRANSACTION_BITCOINTRANSACTION.containing_type = _TRANSACTION
+_TRANSACTION_INPUT.containing_type = _TRANSACTION
+_TRANSACTION_OUTPUT.containing_type = _TRANSACTION
+_TRANSACTION_ETHEREUMTRANSACTION.containing_type = _TRANSACTION
+_TRANSACTION.fields_by_name['metric'].enum_type = _FEEMETRIC
+_TRANSACTION.fields_by_name['btc_compatible_transaction'].message_type = _TRANSACTION_BITCOINTRANSACTION
+_TRANSACTION.fields_by_name['eth_compatible_transaction'].message_type = _TRANSACTION_ETHEREUMTRANSACTION
 DESCRIPTOR.message_types_by_name['Wallet'] = _WALLET
+DESCRIPTOR.message_types_by_name['Address'] = _ADDRESS
+DESCRIPTOR.message_types_by_name['Transaction'] = _TRANSACTION
 DESCRIPTOR.enum_types_by_name['Network'] = _NETWORK
 DESCRIPTOR.enum_types_by_name['CryptoProvider'] = _CRYPTOPROVIDER
+DESCRIPTOR.enum_types_by_name['FeeMetric'] = _FEEMETRIC
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 Wallet = _reflection.GeneratedProtocolMessageType('Wallet', (_message.Message,), dict(
@@ -283,6 +628,52 @@ Wallet = _reflection.GeneratedProtocolMessageType('Wallet', (_message.Message,),
   # @@protoc_insertion_point(class_scope:Wallet)
   ))
 _sym_db.RegisterMessage(Wallet)
+
+Address = _reflection.GeneratedProtocolMessageType('Address', (_message.Message,), dict(
+  DESCRIPTOR = _ADDRESS,
+  __module__ = 'wallet_pb2'
+  # @@protoc_insertion_point(class_scope:Address)
+  ))
+_sym_db.RegisterMessage(Address)
+
+Transaction = _reflection.GeneratedProtocolMessageType('Transaction', (_message.Message,), dict(
+
+  BitcoinTransaction = _reflection.GeneratedProtocolMessageType('BitcoinTransaction', (_message.Message,), dict(
+    DESCRIPTOR = _TRANSACTION_BITCOINTRANSACTION,
+    __module__ = 'wallet_pb2'
+    # @@protoc_insertion_point(class_scope:Transaction.BitcoinTransaction)
+    ))
+  ,
+
+  Input = _reflection.GeneratedProtocolMessageType('Input', (_message.Message,), dict(
+    DESCRIPTOR = _TRANSACTION_INPUT,
+    __module__ = 'wallet_pb2'
+    # @@protoc_insertion_point(class_scope:Transaction.Input)
+    ))
+  ,
+
+  Output = _reflection.GeneratedProtocolMessageType('Output', (_message.Message,), dict(
+    DESCRIPTOR = _TRANSACTION_OUTPUT,
+    __module__ = 'wallet_pb2'
+    # @@protoc_insertion_point(class_scope:Transaction.Output)
+    ))
+  ,
+
+  EthereumTransaction = _reflection.GeneratedProtocolMessageType('EthereumTransaction', (_message.Message,), dict(
+    DESCRIPTOR = _TRANSACTION_ETHEREUMTRANSACTION,
+    __module__ = 'wallet_pb2'
+    # @@protoc_insertion_point(class_scope:Transaction.EthereumTransaction)
+    ))
+  ,
+  DESCRIPTOR = _TRANSACTION,
+  __module__ = 'wallet_pb2'
+  # @@protoc_insertion_point(class_scope:Transaction)
+  ))
+_sym_db.RegisterMessage(Transaction)
+_sym_db.RegisterMessage(Transaction.BitcoinTransaction)
+_sym_db.RegisterMessage(Transaction.Input)
+_sym_db.RegisterMessage(Transaction.Output)
+_sym_db.RegisterMessage(Transaction.EthereumTransaction)
 
 
 _CRYPTOPROVIDER._options = None
