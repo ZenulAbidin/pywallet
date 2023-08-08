@@ -5,6 +5,7 @@ import datetime
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 from .ripemd160 import ripemd160
+from .keccak import Keccak256
 
 
 
@@ -82,3 +83,13 @@ def convert_to_utc_timestamp(date_string, format_string="%Y-%m-%dT%H:%M:%SZ"):
     timestamp = int(utc_date.timestamp())
     
     return timestamp
+
+
+def eth_transaction_hash(address: str, nonce: int) -> str:
+    """Constructs an Ethereum transaction hash from an address and a transaction number"""
+    # Combine the address and nonce as a string
+    data_to_hash = address.lower() + format(nonce, 'x')
+    
+    # Calculate the hash using keccak256
+    transaction_hash = Keccak256(bytes.fromhex(data_to_hash)).digest().hex()
+    return transaction_hash
