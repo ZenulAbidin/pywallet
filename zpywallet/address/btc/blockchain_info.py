@@ -2,6 +2,7 @@ import requests
 import time
 
 from ...errors import NetworkException
+from ...generated.wallet_pb2 import BYTE
 
 class BlockchainInfoAddress:
     """
@@ -56,7 +57,25 @@ class BlockchainInfoAddress:
         new_element = {}
         new_element['txid'] = element['hash']
         new_element['height'] = element['block_height']
-        new_element['time'] = None
+
+        new_element['timestamp'] = None
+        if new_element['height']:
+            new_element['timestamp'] = element['block_time']
+
+            for attempt in range(3, -1, -1):
+                if attempt == 0:
+                    raise NetworkException("Network request failure")
+                try:
+                    response = requests.get(f"https://blockchain.info/block-height/{new_element['height']}", timeout=60)
+                    break
+                except requests.RequestException:
+                    time.sleep(1)
+                    pass
+            if response.status_code == 200:
+                data = response.json()
+                for block in data["blocks"]:
+                    if new_element["txid"] in [txid for txid in block["tx"]["hash"]]:
+                        new_element['timestamp'] = block['time']
 
         new_element['inputs'] = []
         new_element['outputs'] = []
@@ -90,7 +109,7 @@ class BlockchainInfoAddress:
 
         # Blockchain.info API does not support vbytes. It only returns bytes.
         new_element['fee'] = new_element['total_fee'] / element['size']
-        new_element['fee'] = 'byte'
+        new_element['fee'] = BYTE
         
         return new_element
 

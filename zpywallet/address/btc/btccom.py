@@ -2,6 +2,7 @@ import requests
 import time
 
 from ...errors import NetworkException
+from ...generated.wallet_pb2 import VBYTE
 
 class BTCcomAddress:
     """
@@ -27,7 +28,21 @@ class BTCcomAddress:
         new_element = {}
         new_element['txid'] = element['hash']
         new_element['height'] = element['block_height']
+        
         new_element['timestamp'] = None
+        if new_element['height']:
+            for attempt in range(3, -1, -1):
+                if attempt == 0:
+                    raise NetworkException("Network request failure")
+                try:
+                    response = requests.get(f"https://chain.api.btc.com/v3/block/{new_element['height']}", timeout=60)
+                    break
+                except requests.RequestException:
+                    time.sleep(1)
+                    pass
+            if response.status_code == 200:
+                data = response.json()
+                new_element['timestamp'] = data['data']['timestamp']
 
         new_element['inputs'] = []
         new_element['outputs'] = []
@@ -57,7 +72,7 @@ class BTCcomAddress:
         new_element['total_fee'] = (total_inputs - total_outputs) / 1e8
 
         new_element['fee'] = (total_inputs - total_outputs) / element['vsize']
-        new_element['fee'] = 'vbyte'
+        new_element['fee_metric'] = VBYTE
         return new_element
 
     # BTC.com's rate limits are unknown.

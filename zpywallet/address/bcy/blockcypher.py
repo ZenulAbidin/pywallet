@@ -38,7 +38,7 @@ class BlockcypherAddress:
             new_element['height'] = 0
         elif element['block_height'] == -1:
             new_element['height'] = None
-        new_element['timestamp'] = convert_to_utc_timestamp(element['received'].split(".")[0].split('Z')[0], '%Y-%m-%dT%H:%M:%S')
+        new_element['timestamp'] = None if not 'confirmed' in element.keys() else convert_to_utc_timestamp(element['confirmed'].split(".")[0].split('Z')[0], '%Y-%m-%dT%H:%M:%S')
 
         new_element['inputs'] = []
         new_element['outputs'] = []

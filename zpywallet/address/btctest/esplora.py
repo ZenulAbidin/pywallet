@@ -1,7 +1,8 @@
-import requests
 import time
+import requests
 
 from ...errors import NetworkException
+from ...generated.wallet_pb2 import VBYTE
 
 class EsploraAddress:
     """
@@ -75,7 +76,7 @@ class EsploraAddress:
 
         # Blockstream does not have vsize but it has Weight units, so we'll just divide it by 4 to get the vsize
         new_element['fee'] = (total_inputs - total_outputs) / element['weight'] / 4
-        new_element['fee_metric'] = 'vbyte'
+        new_element['fee_metric'] = VBYTE
         return new_element
 
     def __init__(self, addresses, endpoint="https://blockstream.info/testnet/api", request_interval=(3,1), transactions=None):

@@ -1,10 +1,11 @@
-import requests
 import time
+from functools import reduce
+import requests
 
 from ...errors import NetworkException
 from ...utils.utils import convert_to_utc_timestamp
+from ...generated.wallet_pb2 import BYTE
 
-from functools import reduce
 def deduplicate(elements):
     return reduce(lambda re, x: re+[x] if x not in re else re, elements, [])
 
@@ -38,7 +39,7 @@ class BlockcypherAddress:
             new_element['height'] = 0
         elif element['block_height'] == -1:
             new_element['height'] = None
-        new_element['timestamp'] = convert_to_utc_timestamp(element['received'].split(".")[0].split('Z')[0], '%Y-%m-%dT%H:%M:%S')
+        new_element['timestamp'] = None if not 'confirmed' in element.keys() else convert_to_utc_timestamp(element['confirmed'].split(".")[0].split('Z')[0], '%Y-%m-%dT%H:%M:%S')
         new_element['inputs'] = []
         new_element['outputs'] = []
         for vin in element['inputs']:
@@ -65,7 +66,7 @@ class BlockcypherAddress:
 
         size_element = element['vsize'] if 'vsize' in element.keys() else element['size']
         new_element['fee'] = new_element['total_fee'] / size_element
-        new_element['fee'] = 'vbyte'
+        new_element['fee_metric'] = BYTE
         
         return new_element
 

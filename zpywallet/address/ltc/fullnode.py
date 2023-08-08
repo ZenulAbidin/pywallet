@@ -1,8 +1,9 @@
 import random
-import requests
 from datetime import datetime
+import requests
 
 from ...transactions.decode import parse_transaction_simple
+from ...generated.wallet_pb2 import BYTE, VBYTE
 
 
 class LitecoinRPCClient:
@@ -18,7 +19,7 @@ class LitecoinRPCClient:
             new_element['height'] = element['blockheight']
         else:
             new_element['height'] = None
-        new_element['timestamp'] = element['time']
+        new_element['timestamp'] = None if 'blocktime' not in element.keys() else element['blocktime']
         element = element['decoded']
 
         new_element['inputs'] = []
@@ -60,10 +61,10 @@ class LitecoinRPCClient:
         # else, bytes.
         if 'vsize' in element.keys():
             new_element['fee'] = (total_inputs - total_outputs) / element['vsize']
-            new_element['fee_metric'] = 'vbyte'
+            new_element['fee_metric'] = VBYTE
         else:
             new_element['fee'] = (total_inputs - total_outputs) / element['size']
-            new_element['fee'] = 'byte'
+            new_element['fee'] = BYTE
 
         return new_element
 
