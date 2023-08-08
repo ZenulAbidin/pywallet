@@ -70,16 +70,18 @@ class BlockcypherAddress:
         
         return new_element
 
-    def __init__(self, addresses, request_interval=(3,1), transactions=None):
+    def __init__(self, addresses, request_interval=(3,1), transactions=None, api_key=None):
         """
         Initializes an instance of the BlockcypherAddress class.
 
         Args:
             addresses (list): A list of human-readable Bitcoin addresses.
+            api_key (str): The API key for accessing the Blockcypher API.
             request_interval (tuple): A pair of integers indicating the number of requests allowed during
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
         self.addresses = addresses
+        self.api_key = api_key
         self.requests, self.interval_sec = request_interval
         if transactions:
             self.transactions = transactions
@@ -131,7 +133,10 @@ class BlockcypherAddress:
             if attempt == 0:
                 raise NetworkException("Network request failure")
             try:
-                response = requests.get(url, timeout=60)
+                params = None
+                if self.api_key:
+                    params = {"token", self.api_key}
+                response = requests.get(url, params=params, timeout=60)
                 break
             except requests.RequestException:
                 pass
@@ -180,6 +185,9 @@ class BlockcypherAddress:
         Raises:
             Exception: If the API request fails or the transaction history cannot be retrieved.
         """
+        params = None
+        if self.api_key:
+            params = {"token", self.api_key}
         for address in self.addresses:
             interval = 50
             block_height = 0
@@ -192,7 +200,7 @@ class BlockcypherAddress:
                 if attempt == 0:
                     raise NetworkException("Network request failure")
                 try:
-                    response = requests.get(url, timeout=60)
+                    response = requests.get(url, params=params, timeout=60)
                     break
                 except requests.RequestException:
                     pass
@@ -217,7 +225,7 @@ class BlockcypherAddress:
                     if attempt == 0:
                         raise NetworkException("Network request failure")
                     try:
-                        response = requests.get(url, timeout=60)
+                        response = requests.get(url, params=params, timeout=60)
                         break
                     except requests.RequestException:
                         pass
