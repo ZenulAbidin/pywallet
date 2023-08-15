@@ -41,10 +41,8 @@ class EthereumRPCClient:
         new_element['fee_metric'] = WEI
         return new_element
 
-    def __init__(self, addresses, rpc_url, rpc_user, rpc_password, transactions=None):
+    def __init__(self, addresses, rpc_url, transactions=None):
         self.rpc_url = rpc_url
-        self.rpc_user = rpc_user
-        self.rpc_password = rpc_password
 
         self.transactions = []
         self.addresses = addresses
@@ -62,7 +60,7 @@ class EthereumRPCClient:
             'id': random.randint(1, 999999)
         }
         # Full nodes wallet RPC requests are notoriously slow if there are many transactions in the node.
-        response = requests.post(self.rpc_url, auth=(self.rpc_user, self.rpc_password), json=payload, timeout=86400)
+        response = requests.post(self.rpc_url, json=payload, timeout=86400)
         #response.raise_for_status()
         return response.json()
     
@@ -72,10 +70,10 @@ class EthereumRPCClient:
     
     def get_balance(self):
         """
-        Retrieves the balance of the Bitcoin address.
+        Retrieves the balance of the Ethereum address.
 
         Returns:
-            float: The balance of the Bitcoin address in BTC.
+            float: The balance of the Ethereum address in BTC.
 
         Raises:
             Exception: If the API request fails or the address balance cannot be retrieved.
@@ -92,7 +90,7 @@ class EthereumRPCClient:
     
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Bitcoin address from cached data augmented with network data.
+        Retrieves the transaction history of the Ethereum address from cached data augmented with network data.
         Does not include Genesis blocks.
 
         Returns:
