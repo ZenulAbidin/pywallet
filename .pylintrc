@@ -1,2 +1,3 @@
 [MESSAGES CONTROL]
 disable=line-too-long,invalid-name
+load-plugins=pylint_protobuf
