@@ -4,7 +4,7 @@ import requests
 
 from ...errors import NetworkException
 from ...utils.utils import convert_to_utc_timestamp
-from ...generated.wallet_pb2 import VBYTE
+from ...generated import wallet_pb2
 
 def deduplicate(elements):
     return reduce(lambda re, x: re+[x] if x not in re else re, elements, [])
@@ -32,42 +32,47 @@ class BlockcypherAddress:
     """
 
     def _clean_tx(self, element):
-        new_element = {}
-        new_element['txid'] = element['hash']
-        new_element['height'] = None if 'block_height' not in element.keys() else element['block_height']
-        if element['block_index'] == 0:
-            new_element['height'] = 0
+        new_element = wallet_pb2.Transaction()
+        new_element.txid = element['hash']
+        
+        if 'block_height' not in element.keys():
+            new_element.confirmed = False
         elif element['block_height'] == -1:
-            new_element['height'] = None
-        new_element['timestamp'] = None if not 'confirmed' in element.keys() else convert_to_utc_timestamp(element['confirmed'].split(".")[0].split('Z')[0], '%Y-%m-%dT%H:%M:%S')
-
-        new_element['inputs'] = []
-        new_element['outputs'] = []
+            new_element.confirmed = False
+        elif element['block_index'] == 0:
+            new_element.confirmed = True
+            new_element.height = 0
+        else:
+            new_element.confirmed = True
+            new_element.height = element['block_height']
+        
+        if 'confirmed' in element.keys():
+            new_element.timestamp = convert_to_utc_timestamp(element['confirmed'].split(".")[0].split('Z')[0], '%Y-%m-%dT%H:%M:%S')
+        
         for vin in element['inputs']:
-            txinput = {}
-            txinput['txid'] = '' if 'prev_hash' not in vin.keys() else vin['prev_hash']
-            txinput['index'] = vin['output_index']
-            txinput['amount'] = 0 if 'output_value' not in vin.keys() else vin['output_value'] / 1e8
-            new_element['inputs'].append(txinput)
+            txinput = new_element.btclike_transaction.inputs.add()
+            txinput.txid = '' if 'prev_hash' not in vin.keys() else vin['prev_hash']
+            txinput.index = vin['output_index']
+            txinput.amount = 0 if 'output_value' not in vin.keys() else vin['output_value'] / 1e8
         
         i = 0
         for vout in element['outputs']:
-            txoutput = {}
-            txoutput['amount'] = vout['value'] / 1e8
-            txoutput['index'] = i
+            txoutput = new_element.btclike_transaction.outputs.add()
+            txoutput.amount = vout['value'] / 1e8
+            txoutput.index = i
             i += 1
-            txoutput['address'] = None if not vout['addresses'] else vout['addresses'][0]
-            txoutput['spent'] = 'spent_by' in vout.keys()
-            new_element['outputs'].append(txoutput)
+            if vout['addresses']:
+                txoutput.address = vout['addresses'][0]
+            txoutput.spent = 'spent_by' in vout.keys()
         
         # Now we must calculate the total fee
-        total_inputs = sum([a['amount'] for a in new_element['inputs']])
-        total_outputs = sum([a['amount'] for a in new_element['outputs']])
-        new_element['total_fee'] = total_inputs - total_outputs
+        total_inputs = sum([a['amount'] for a in new_element.btclike_transaction.inputs])
+        total_outputs = sum([a['amount'] for a in new_element.btclike_transaction.outputs])
+        new_element.total_fee = total_inputs - total_outputs
 
         size_element = element['vsize'] if 'vsize' in element.keys() else element['size']
-        new_element['fee'] = new_element['total_fee'] / size_element
-        new_element['fee_metric'] = VBYTE
+        new_element.btclike_transaction.fee = new_element.total_fee / size_element
+        new_element.fee_metric = wallet_pb2.VBYTE
         
         return new_element
 
@@ -106,7 +111,7 @@ class BlockcypherAddress:
         for utxo in utxos:
             total_balance += utxo["amount"]
             # Careful: Block height #0 is the Genesis block - don't want to exclude that.
-            if utxo["height"] is not None:
+            if utxo["confirmed"]:
                 confirmed_balance += utxo["amount"]
         return total_balance, confirmed_balance
         
@@ -114,16 +119,17 @@ class BlockcypherAddress:
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions)-1, -1, -1):
-            for out in self.transactions[i]["outputs"]:
-                if out['spent']:
+            for out in self.transactions[i].outputs:
+                if out.spent:
                     continue
-                if out["address"] in self.addresses:
+                if out.address in self.addresses:
                     utxo = {}
-                    utxo["address"] = out["address"]
-                    utxo["txid"] = self.transactions[i]["txid"]
-                    utxo["index"] = out["index"]
-                    utxo["amount"] = out["amount"]
-                    utxo["height"] = self.transactions[i]["height"]
+                    utxo["address"] = out.address
+                    utxo["txid"] = self.transactions[i].txid
+                    utxo["index"] = out.index
+                    utxo["amount"] = out.amount
+                    utxo["height"] = self.transactions[i].height
+                    utxo["confirmed"] = self.transactions[i].confirmed
                     utxos.append(utxo)
         return utxos
 
@@ -164,7 +170,7 @@ class BlockcypherAddress:
             self.transactions = [*self.get_transaction_history()]
         else:
             # First element is the most recent transactions
-            txhash = self.transactions[0]["txid"]
+            txhash = self.transactions[0].txid
             txs = [*self._get_transaction_history(txhash)]
             txs.extend(self.transactions)
             self.transactions = txs

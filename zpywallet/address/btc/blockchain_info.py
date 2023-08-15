@@ -2,7 +2,7 @@ import requests
 import time
 
 from ...errors import NetworkException
-from ...generated.wallet_pb2 import BYTE
+from ...generated import wallet_pb2
 
 class BlockchainInfoAddress:
     """
@@ -54,62 +54,43 @@ class BlockchainInfoAddress:
         self.height = self.get_block_height()
 
     def _clean_tx(self, element):
-        new_element = {}
-        new_element['txid'] = element['hash']
-        new_element['height'] = element['block_height']
+        new_element = wallet_pb2.Transaction()
+        new_element.txid = element['hash']
+        if 'block_height' in element.keys() and element['block_height'] is not None:
+            new_element.confirmed = True
+            new_element.height = element['block_height']
+        else:
+            new_element.confirmed = False
 
-        new_element['timestamp'] = None
-        if new_element['height']:
-            new_element['timestamp'] = element['block_time']
+        if new_element.confirmed:
+            new_element.timestamp = element['block_time']
 
-            for attempt in range(3, -1, -1):
-                if attempt == 0:
-                    raise NetworkException("Network request failure")
-                try:
-                    response = requests.get(f"https://blockchain.info/block-height/{new_element['height']}", timeout=60)
-                    break
-                except requests.RequestException:
-                    time.sleep(1)
-                    pass
-            if response.status_code == 200:
-                data = response.json()
-                for block in data["blocks"]:
-                    if new_element["txid"] in [txid for txid in block["tx"]["hash"]]:
-                        new_element['timestamp'] = block['time']
-
-        new_element['inputs'] = []
-        new_element['outputs'] = []
         for vin in element['inputs']:
-            txinput = {}
+            txinput = new_element.btclike_transaction.inputs.add()
             # Blockchain.info is crazy!
             # It has no input txid, only the address
             # So for now, we will substitute the address for the txid,
             # and once we get a sane API, we can fill in the txid properly.
             # (It also only supports Bitcoin, so there's that.)
-            txinput['txid'] = ""
-            txinput['index'] = vin['prev_out']['n']
-            txinput['amount'] = vin['prev_out']['value'] / 1e8
-            new_element['inputs'].append(txinput)
+            txinput.index = vin['prev_out']['n']
+            txinput.amount = vin['prev_out']['value'] / 1e8
         
         for vout in element['out']:
-            txoutput = {}
-            txoutput['amount'] = vout['value'] / 1e8
-            txoutput['index'] = vout['n']
-            try:
-                txoutput['address'] = vout['addr']
-            except KeyError:
-                txoutput['address'] = ''
-            txoutput['spent'] = vout['spent']
-            new_element['outputs'].append(txoutput)
+            txoutput = new_element.btclike_transaction.outputs.add()
+            txoutput.amount = vout['value'] / 1e8
+            txoutput.index = vout['n']
+            if 'addr' in vout.keys():
+                txoutput.address = vout['addr']
+            txoutput.spent = vout['spent']
         
         # Now we must calculate the total fee
-        total_inputs = sum([a['amount'] for a in new_element['inputs']])
-        total_outputs = sum([a['amount'] for a in new_element['outputs']])
-        new_element['total_fee'] = total_inputs - total_outputs
+        total_inputs = sum([a['amount'] for a in new_element.btclike_transaction.inputs])
+        total_outputs = sum([a['amount'] for a in new_element.btclike_transaction.inputs])
+        new_element.total_fee = total_inputs - total_outputs
 
         # Blockchain.info API does not support vbytes. It only returns bytes.
-        new_element['fee'] = new_element['total_fee'] / element['size']
-        new_element['fee'] = BYTE
+        new_element.btclike_transaction.fee = new_element.total_fee / element['size']
+        new_element.fee_metric = wallet_pb2.BYTE
         
         return new_element
 
@@ -129,34 +110,37 @@ class BlockchainInfoAddress:
         for utxo in utxos:
             total_balance += utxo["amount"]
             # Careful: Block height #0 is the Genesis block - don't want to exclude that.
-            if utxo["height"] is not None:
+            if utxo["confirmed"]:
                 confirmed_balance += utxo["amount"]
         return total_balance, confirmed_balance
         
     def get_utxos(self):
-        self.height = self.get_block_height()
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions)-1, -1, -1):
-            for out in self.transactions[i]["outputs"]:
-                if out["address"] in self.addresses and not out['spent']:
+            for out in self.transactions[i].outputs:
+                if out.spent:
+                    continue
+                if out.address in self.addresses:
                     utxo = {}
-                    utxo["address"] = out["address"]
-                    utxo["txid"] = self.transactions[i]["txid"]
-                    utxo["index"] = out["index"]
-                    utxo["amount"] = out["amount"]
-                    utxo["height"] = self.transactions[i]["height"]
+                    utxo["address"] = out.address
+                    utxo["txid"] = self.transactions[i].txid
+                    utxo["index"] = out.index
+                    utxo["amount"] = out.amount
+                    utxo["height"] = self.transactions[i].height
+                    utxo["confirmed"] = self.transactions[i].confirmed
                     utxos.append(utxo)
+        return utxos
         
-        # Now we will go through the UTXOs *again* to eliminate the RBF-replaced UTXOs.
+        # Now we would've gone through the UTXOs *again* to eliminate the RBF-replaced UTXOs.
         # The issue we are going to have is, *any* of the inputs could be the identical
-        # one, because it only takes one input to RBF.
+        # one, because it only takes one input to perform an RBF.
 
         # Unfortunately we CANNOT filter Blockchain.info UTXOs because they do not give us
         # the txids of inputs, and even the balance endpoint in the Blockchain Data API
         # returns the wrong total balance using exactly the same calculation.
         # Confirmed balances are not affected and still correct.
-        return utxos
+
 
     def get_block_height(self):
         # Get the current block height now:
@@ -190,7 +174,7 @@ class BlockchainInfoAddress:
             self.transactions = [*self.get_transaction_history()]
         else:
             # First element is the most recent transactions
-            txhash = self.transactions[0]["txid"]
+            txhash = self.transactions[0].txid
             txs = [*self._get_transaction_history(txhash)]
             txs.extend(self.transactions)
             self.transactions = txs

@@ -3,7 +3,7 @@ import requests
 
 from ...errors import NetworkException
 from ...utils.utils import eth_transaction_hash
-from ...generated.wallet_pb2 import WEI
+from ...generated import wallet_pb2
 
 
 class EthereumRPCClient:
@@ -16,29 +16,31 @@ class EthereumRPCClient:
     """
     
     def _clean_tx(self, element):
-        new_element = {}
-        new_element['txid'] = element['hash']
+        new_element = wallet_pb2.Transaction()
+        new_element.txid = element['hash']
         if 'blockNumber' in element.keys():
-            new_element['height'] = element['blockNumber']
+            new_element.confirmed = True
+            new_element.height = element['blockNumber']
         else:
-            new_element['height'] = None
+            new_element.confirmed = False
 
-        new_element['from'] = element['from']
-        new_element['to'] = element['to']
-        new_element['amount'] = element['value']
+        new_element.ethlike_transaction.txfrom = element['from']
+        new_element.ethlike_transaction.txto = element['to']
+        new_element.ethlike_transaction.amount = element['value']
         
 
         block = self._send_rpc_request('eth_getBlockByHash', params=[element['blockHash'], False])
-        new_element["timestamp"] = hex(block["result"]["timestamp"], 16)
-        new_element['data'] = element['input']
- 
-        new_element['total_fee'] = int(element['gasPrice'], 16)
-        new_element['gas'] = int(element['gas'], 16)
+        new_element.timestamp = hex(block["result"]["timestamp"], 16)
+        new_element.ethlike_transaction.data = element['input']
+
+        gas = int(element['gas'], 16)
+        new_element.ethlike_transaction.gas = gas
         if 'maxFeePerGas' in element.keys():
-            new_element['total_fee'] = int(element['maxFeePerGas'], 16) * new_element['gas']
+            new_element.total_fee = int(element['maxFeePerGas'], 16) * gas
         else:
-            new_element['total_fee'] = int(element['gasPrice']) * new_element['gas']
-        new_element['fee_metric'] = WEI
+            new_element.total_fee = int(element['gasPrice']) * gas
+
+        new_element.fee_metric = wallet_pb2.WEI
         return new_element
 
     def __init__(self, addresses, rpc_url, transactions=None):
@@ -82,10 +84,10 @@ class EthereumRPCClient:
         total_balance = 0
         confirmed_balance = 0
         for tx in txs:
-            total_balance += tx["amount"]
+            total_balance += tx.amount
             # Careful: Block height #0 is the Genesis block - don't want to exclude that.
-            if tx["height"] is not None:
-                confirmed_balance += tx["amount"]
+            if tx.height is not None:
+                confirmed_balance += tx.amount
         return total_balance, confirmed_balance
     
     def get_transaction_history(self):
@@ -103,7 +105,7 @@ class EthereumRPCClient:
             self.transactions = [*self.get_transaction_history()]
         else:
             # First element is the most recent transactions
-            txhash = self.transactions[0]["txid"]
+            txhash = self.transactions[0].txid
             txs = [*self._get_transaction_history(txhash)]
             txs.extend(self.transactions)
             self.transactions = txs

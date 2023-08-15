@@ -3,7 +3,7 @@ from datetime import datetime
 import requests
 
 from ...transactions.decode import parse_transaction_simple
-from ...generated.wallet_pb2 import BYTE, VBYTE
+from ...generated import wallet_pb2
 
 
 class LitecoinRPCClient:
@@ -13,59 +13,47 @@ class LitecoinRPCClient:
     
     # Not static because we need to make calls to fetch input transactions.
     def _clean_tx(self, element):
-        new_element = {}
-        new_element['txid'] = element['txid']
+        new_element = wallet_pb2.Transaction()
+        new_element.txid = element['txid']
         if 'blockheight' in element.keys():
-            new_element['height'] = element['blockheight']
+            new_element.confirmed = True
+            new_element.height = element['blockheight']
         else:
-            new_element['height'] = None
-        new_element['timestamp'] = None if 'blocktime' not in element.keys() else element['blocktime']
+            new_element.confirmed = False
+
+        if 'blocktime' not in element.keys():
+            new_element.timestamp = element['blocktime']
+
         element = element['decoded']
 
-        new_element['inputs'] = []
-        new_element['outputs'] = []
         for vin in element['vin']:
-            txinput = {}
+            txinput = new_element.btclike_transaction.inputs.add()
             if 'txid' in vin.keys():
-                txinput['txid'] = vin['txid']
-                txinput['index'] = vin['vout']
+                # If there is a vin txid then it's not e.g. a coinbase transaction input
+                txinput.txid = vin['txid']
+                txinput.index = vin['vout']
                 # To fill in the amount, we have to get the other transaction id
                 # But only if we're not parsing a coinbase transaction
                 res = self._send_rpc_request('getrawtransaction', params=[vin['txid']])
                 rawtx = res['result']
                 fine_rawtx, _ = parse_transaction_simple(rawtx)
-                txinput['amount'] = fine_rawtx["outputs"][txinput['index']]["value"] / 1e8
-            else:
-                txinput['txid'] = None
-                txinput['index'] = None
-                txinput['amount'] = 0
+                txinput.amount = fine_rawtx["outputs"][txinput.index]["value"] / 1e8
 
-            new_element['inputs'].append(txinput)
         for vout in element['vout']:
-            txoutput = {}
-            txoutput['amount'] = vout['value']
-            txoutput['index'] = vout['n']
+            txoutput = new_element.btclike_transaction.outputs.add()
+            txoutput.amount = vout['value']
+            txoutput.index = vout['n']
             if 'address' in vout['scriptPubKey']:
-                txoutput['address'] = vout['scriptPubKey']['address']
-            else:
-                txoutput['address'] = None
-            new_element['outputs'].append(txoutput)
+                txoutput.address = vout['scriptPubKey']['address']
         
         # Now we must calculate the total fee
-        total_inputs = sum([a['amount'] for a in new_element['inputs']])
-        total_outputs = sum([a['amount'] for a in new_element['outputs']])
+        total_inputs = sum([a['amount'] for a in new_element.btclike_transaction.inputs])
+        total_outputs = sum([a['amount'] for a in new_element.btclike_transaction.outputs])
 
-        new_element['total_fee'] = (total_inputs - total_outputs) / 1e8
+        new_element.total_fee = (total_inputs - total_outputs) / 1e8
 
-        # vbytes will be the default transaction metric for networks that support segwit,
-        # else, bytes.
-        if 'vsize' in element.keys():
-            new_element['fee'] = (total_inputs - total_outputs) / element['vsize']
-            new_element['fee_metric'] = VBYTE
-        else:
-            new_element['fee'] = (total_inputs - total_outputs) / element['size']
-            new_element['fee'] = BYTE
-
+        new_element.btclike_transaction.fee = (total_inputs - total_outputs) / element['vsize']
+        new_element.fee_metric = wallet_pb2.VBYTE
         return new_element
 
     def __init__(self, addresses, rpc_url, rpc_user, rpc_password, client_number=0, user_id=0, last_update=0, max_tx_at_once=1000, transactions=None):
@@ -128,10 +116,10 @@ class LitecoinRPCClient:
     
     def get_balance(self):
         """
-        Retrieves the balance of the Litecoin address.
+        Retrieves the balance of the Bitcoin address.
 
         Returns:
-            float: The balance of the Litecoin address in BTC.
+            float: The balance of the Bitcoin address in BTC.
 
         Raises:
             Exception: If the API request fails or the address balance cannot be retrieved.
@@ -143,7 +131,7 @@ class LitecoinRPCClient:
             total_balance += utxo["amount"]
             # Careful: Block height #0 is the Genesis block - don't want to exclude that.
             # (Not that it returns it ever though!)
-            if utxo["height"] is not None:
+            if utxo["confirmed"]:
                 confirmed_balance += utxo["amount"]
         return total_balance, confirmed_balance
         
@@ -154,18 +142,19 @@ class LitecoinRPCClient:
         for i in range(len(self.transactions)-1, -1, -1):
             for utxo in [u for u in utxos]:
                 # Check if any utxo has been spent in this transaction
-                for vin in self.transactions[i]["inputs"]:
-                    if vin["txid"] == utxo["txid"] and vin["index"] == utxo["index"]:
+                for vin in self.transactions[i].inputs:
+                    if vin.spent or (vin.txid == utxo["txid"] and vin["index"] == utxo.index):
                         # Spent
                         utxos.remove(utxo)
-            for out in self.transactions[i]["outputs"]:
-                if out["address"] in self.addresses:
+            for out in self.transactions[i].outputs:
+                if out.address in self.addresses:
                     utxo = {}
-                    utxo["address"] = out["address"]
-                    utxo["txid"] = self.transactions[i]["txid"]
-                    utxo["index"] = out["index"]
-                    utxo["amount"] = out["amount"]
-                    utxo["height"] = self.transactions[i]["height"]
+                    utxo["address"] = out.address
+                    utxo["txid"] = self.transactions[i].txid
+                    utxo["index"] = out.index
+                    utxo["amount"] = out.amount
+                    utxo["height"] = self.transactions[i].height
+                    utxo["confirmed"] = self.transactions[i].confirmed
                     utxos.append(utxo)
         return utxos
     
@@ -184,7 +173,7 @@ class LitecoinRPCClient:
             self.transactions = [*self.get_transaction_history()]
         else:
             # First element is the most recent transactions
-            txhash = self.transactions[0]["txid"]
+            txhash = self.transactions[0].txid
             txs = [*self._get_transaction_history(txhash)]
             txs.extend(self.transactions)
             self.transactions = txs

@@ -2,7 +2,7 @@ import requests
 import time
 
 from ...errors import NetworkException
-from ...generated.wallet_pb2 import VBYTE
+from ...generated import wallet_pb2
 
 class BTCcomAddress:
     """
@@ -25,54 +25,40 @@ class BTCcomAddress:
     """
 
     def _clean_tx(self, element):
-        new_element = {}
-        new_element['txid'] = element['hash']
-        new_element['height'] = element['block_height']
+        new_element = wallet_pb2.Transaction()
+        new_element.txid = element['hash']
+        if 'block_height' in element.keys() and element['block_height'] is not None:
+            new_element.confirmed = True
+            new_element.height = element['block_height']
+        else:
+            new_element.confirmed = False
         
-        new_element['timestamp'] = None
-        if new_element['height']:
-            for attempt in range(3, -1, -1):
-                if attempt == 0:
-                    raise NetworkException("Network request failure")
-                try:
-                    response = requests.get(f"https://chain.api.btc.com/v3/block/{new_element['height']}", timeout=60)
-                    break
-                except requests.RequestException:
-                    time.sleep(1)
-                    pass
-            if response.status_code == 200:
-                data = response.json()
-                new_element['timestamp'] = data['data']['timestamp']
+        if new_element.confirmed:
+            new_element.timestamp = element['block_time']
 
-        new_element['inputs'] = []
-        new_element['outputs'] = []
         for vin in element['inputs']:
-            txinput = {}
-            txinput['txid'] = vin['prev_tx_hash']
-            txinput['index'] = vin['prev_position']
-            txinput['amount'] = vin['prev_value'] / 1e8
-            new_element['inputs'].append(txinput)
+            txinput = new_element.btclike_transaction.inputs.add()
+            txinput.txid = vin['prev_tx_hash']
+            txinput.index = vin['prev_position']
+            txinput.amount = vin['prev_value'] / 1e8
 
         i = 0 
         for vout in element['outputs']:
-            txoutput = {}
-            txoutput['amount'] = vout['value'] / 1e8
-            txoutput['index'] = i
+            txoutput = new_element.btclike_transaction.outputs.add()
+            txoutput.amount = vout['value'] / 1e8
+            txoutput.index = i
             i += 1
             if 'addresses' in vout.keys():
-                txoutput['address'] = vout['addresses'][0]
-            else:
-                txoutput['address'] = ''
-            txoutput['spent'] = vout['spent_by_tx'] != ""
-            new_element['outputs'].append(txoutput)
+                txoutput.address = vout['addresses'][0]
+            txoutput.spent = vout['spent_by_tx'] != ""
 
         # Now we must calculate the total fee
-        total_inputs = sum([a['amount'] for a in new_element['inputs']])
-        total_outputs = sum([a['amount'] for a in new_element['outputs']])
-        new_element['total_fee'] = (total_inputs - total_outputs) / 1e8
+        total_inputs = sum([a['amount'] for a in new_element.btclike_transaction.inputs])
+        total_outputs = sum([a['amount'] for a in new_element.btclike_transaction.outputs])
+        new_element.total_fee = (total_inputs - total_outputs) / 1e8
 
-        new_element['fee'] = (total_inputs - total_outputs) / element['vsize']
-        new_element['fee_metric'] = VBYTE
+        new_element.btclike_transaction.fee = (total_inputs - total_outputs) / element['vsize']
+        new_element.fee_metric = wallet_pb2.VBYTE
         return new_element
 
     # BTC.com's rate limits are unknown.
@@ -109,29 +95,25 @@ class BTCcomAddress:
         for utxo in utxos:
             total_balance += utxo["amount"]
             # Careful: Block height #0 is the Genesis block - don't want to exclude that.
-            if utxo["height"] is not None:
+            if utxo["confirmed"]:
                 confirmed_balance += utxo["amount"]
         return total_balance, confirmed_balance
         
     def get_utxos(self):
-        self.height = self.get_block_height()
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions)-1, -1, -1):
-            for utxo in [u for u in utxos]:
-                # Check if any utxo has been spent in this transaction
-                for vin in self.transactions[i]["inputs"]:
-                    if vin["txid"] == utxo["txid"] and vin["index"] == utxo["index"]:
-                        # Spent
-                        utxos.remove(utxo)
-            for out in self.transactions[i]["outputs"]:
-                if out["address"] in self.addresses:
+            for out in self.transactions[i].outputs:
+                if out.spent:
+                    continue
+                if out.address in self.addresses:
                     utxo = {}
-                    utxo["address"] = out["address"]
-                    utxo["txid"] = self.transactions[i]["txid"]
-                    utxo["index"] = out["index"]
-                    utxo["amount"] = out["amount"]
-                    utxo["height"] = self.transactions[i]["height"]
+                    utxo["address"] = out.address
+                    utxo["txid"] = self.transactions[i].txid
+                    utxo["index"] = out.index
+                    utxo["amount"] = out.amount
+                    utxo["height"] = self.transactions[i].height
+                    utxo["confirmed"] = self.transactions[i].confirmed
                     utxos.append(utxo)
         return utxos
 
@@ -170,7 +152,7 @@ class BTCcomAddress:
             self.transactions = [*self.get_transaction_history()]
         else:
             # First element is the most recent transactions
-            txhash = self.transactions[0]["txid"]
+            txhash = self.transactions[0].txid
             txs = [*self._get_transaction_history(txhash)]
             txs.extend(self.transactions)
             self.transactions = txs
