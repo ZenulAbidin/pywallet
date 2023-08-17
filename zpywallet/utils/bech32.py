@@ -65,7 +65,7 @@ def bech32_create_checksum(hrp, data, spec):
     return [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
 
 
-def _bech32_encode(hrp, data, spec):
+def _bech32_encode(hrp, data, spec) -> str:
     """Compute a Bech32 string given HRP and data values."""
     combined = data + bech32_create_checksum(hrp, data, spec)
     return hrp + '1' + ''.join([CHARSET[d] for d in combined])
@@ -133,5 +133,5 @@ def bech32_encode(hrp, witver, witprog):
     spec = Encoding.BECH32 if witver == 0 else Encoding.BECH32M
     ret = _bech32_encode(hrp, [witver] + convertbits(witprog, 8, 5), spec)
     if bech32_decode(hrp, ret) == (None, None):
-        return None
+        raise ValueError("Bech32 encode failed for this address")
     return ret

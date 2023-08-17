@@ -1,21 +1,14 @@
-from .blockchain_info import BlockchainInfoAPIClient
 from .blockcypher import BlockcypherAPIClient
-from .blockstream import BlockstreamAPIClient
-from .btcdotcom import BTCDotComAPIClient
-from .esplora import EsploraAPIClient
-from .fullnode import BitcoinRPCClient
-from .mempoolspace import MempoolSpaceAPIClient
 from ...generated import wallet_pb2
 from ...errors import NetworkException
 
-class BitcoinAPIClient:
-    """ Load balancer for all BTC address providers provided to an instance of this class,
+class BCYAPIClient:
+    """ Load balancer for all BCY address providers provided to an instance of this class,
         using the round robin scheduling algorithm.
     """
 
     def __init__(self, providers: bytes, addresses, max_cycles=100,
-                 transactions=None, esplora_endpoints=None,
-                 fullnode_endpoints=None, blockcypher_token=None):
+                 transactions=None, blockcypher_token=None):
         provider_bitmask = int.from_bytes(providers, 'big')
         self.provider_list = []
         self.current_index = 0
@@ -35,40 +28,18 @@ class BitcoinAPIClient:
 
         self.transactions = transactions
 
-        if provider_bitmask & 1 << wallet_pb2.BTC_BLOCKCHAIN_INFO + 1:
-            self.provider_list.append(BlockchainInfoAPIClient(addresses, transactions=transactions))
-        if provider_bitmask & 1 << wallet_pb2.BTC_BLOCKCYPHER + 1:
+        if provider_bitmask & 1 << wallet_pb2.DASH_BLOCKCYPHER + 1:
             self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions, api_key=blockcypher_token))
-        if provider_bitmask & 1 << wallet_pb2.BTC_BLOCKSTREAM + 1:
-            self.provider_list.append(BlockstreamAPIClient(addresses, transactions=transactions))
-        if provider_bitmask & 1 << wallet_pb2.BTC_BTCDOTCOM + 1:
-            self.provider_list.append(BTCDotComAPIClient(addresses, transactions=transactions))
-        if provider_bitmask & 1 << wallet_pb2.BTC_ESPLORA + 1:
-            for endpoint in esplora_endpoints:
-                self.provider_list.append(EsploraAPIClient(addresses, endpoint, transactions=transactions))
-        if provider_bitmask & 1 << wallet_pb2.BTC_FULLNODE + 1:
-            for endpoint in fullnode_endpoints:
-                if '@' in endpoint:
-                    credentials, _ = endpoint.split("@", 1)
-                    if ':' in credentials:
-                        username, password = credentials.split(":", 1)
-                    else:
-                        username, password = None, None
-                else:
-                    username, password = None, None
-                self.provider_list.append(BitcoinRPCClient(addresses, endpoint, rpc_user=username, rpc_password=password, transactions=transactions))
-        if provider_bitmask & 1 << wallet_pb2.BTC_MEMPOOLSPACE + 1:
-            self.provider_list.append(MempoolSpaceAPIClient(addresses, transactions=transactions))
 
         
         self.get_transaction_history()
 
     def get_balance(self):
         """
-        Retrieves the balance of the Bitcoin address.
+        Retrieves the balance of the Blockcypher address.
 
         Returns:
-            float: The balance of the Bitcoin address in BTC.
+            float: The balance of the Blockcypher address in BCY.
 
         Raises:
             Exception: If the API request fails or the address balance cannot be retrieved.

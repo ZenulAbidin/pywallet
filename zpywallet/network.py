@@ -411,8 +411,8 @@ class DogecoinTestNet(CryptoNetwork):
     BECH32_PREFIX = None # Bech32 not supported
 
 
-class BlockCypherTestNet(CryptoNetwork):
-    """BlockCypher TestNet version bytes.
+class BlockcypherTestNet(CryptoNetwork):
+    """Blockcypher TestNet version bytes.
     From http://dev.blockcypher.com/#testing
     """
     NAME = "BlockCypher"

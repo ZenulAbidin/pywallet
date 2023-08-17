@@ -6,15 +6,14 @@ from .mempoolspace import MempoolSpaceAPIClient
 from ...generated import wallet_pb2
 from ...errors import NetworkException
 
-class BTCTestAPIClient:
+class BitcoinTestAPIClient:
     """ Load balancer for all BTC address providers provided to an instance of this class,
         using the round robin scheduling algorithm.
     """
 
     def __init__(self, providers: bytes, addresses, max_cycles=100,
                  transactions=None, esplora_endpoints=None,
-                 fullnode_endpoints=None, fullnode_passprotected_endpoints=None,
-                 blockcypher_token=None):
+                 fullnode_endpoints=None, blockcypher_token=None):
         provider_bitmask = int.from_bytes(providers, 'big')
         self.provider_list = []
         self.current_index = 0
@@ -43,8 +42,14 @@ class BTCTestAPIClient:
                 self.provider_list.append(EsploraAPIClient(addresses, endpoint, transactions=transactions))
         if provider_bitmask & 1 << wallet_pb2.BTCTEST_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
-                self.provider_list.append(BitcoinRPCClient(addresses, endpoint, transactions=transactions))
-            for endpoint, username, password in fullnode_passprotected_endpoints:
+                if '@' in endpoint:
+                    credentials, _ = endpoint.split("@", 1)
+                    if ':' in credentials:
+                        username, password = credentials.split(":", 1)
+                    else:
+                        username, password = None, None
+                else:
+                    username, password = None, None
                 self.provider_list.append(BitcoinRPCClient(addresses, endpoint, rpc_user=username, rpc_password=password, transactions=transactions))
         if provider_bitmask & 1 << wallet_pb2.BTCTEST_MEMPOOLSPACE + 1:
             self.provider_list.append(MempoolSpaceAPIClient(addresses, transactions=transactions))

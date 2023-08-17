@@ -4,9 +4,9 @@
 __all__ = [
     'bcy',
     'btc',
+    'btctest',
     'dash',
     'doge',
     'eth',
-    'ltc',
-    'legacy_fullnode'
+    'ltc'
 ]

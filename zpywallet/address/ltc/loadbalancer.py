@@ -9,8 +9,7 @@ class LitecoinAPIClient:
     """
 
     def __init__(self, providers: bytes, addresses, max_cycles=100,
-                 transactions=None, fullnode_endpoints=None, fullnode_passprotected_endpoints=None,
-                 blockcypher_token=None):
+                 transactions=None, fullnode_endpoints=None, blockcypher_token=None):
         provider_bitmask = int.from_bytes(providers, 'big')
         self.provider_list = []
         self.current_index = 0
@@ -34,8 +33,14 @@ class LitecoinAPIClient:
             self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions, api_key=blockcypher_token))
         if provider_bitmask & 1 << wallet_pb2.LTC_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
-                self.provider_list.append(LitecoinRPCClient(addresses, endpoint, transactions=transactions))
-            for endpoint, username, password in fullnode_passprotected_endpoints:
+                if '@' in endpoint:
+                    credentials, _ = endpoint.split("@", 1)
+                    if ':' in credentials:
+                        username, password = credentials.split(":", 1)
+                    else:
+                        username, password = None, None
+                else:
+                    username, password = None, None
                 self.provider_list.append(LitecoinRPCClient(addresses, endpoint, rpc_user=username, rpc_password=password, transactions=transactions))
 
         

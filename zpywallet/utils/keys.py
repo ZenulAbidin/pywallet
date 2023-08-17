@@ -669,7 +669,7 @@ class PublicKey:
 
         # Put the version byte in front, 0x00 for Mainnet, 0x6F for testnet
         version = bytes([self.network.PUBKEY_ADDRESS])
-        return b58encode_check(version + self.hash160(compressed))
+        return ensure_str(b58encode_check(version + self.hash160(compressed)))
 
 
     def bech32_address(self, compressed=True, witness_version=0):
@@ -705,8 +705,7 @@ class PublicKey:
         elif "HEX" not in self.network.ADDRESS_MODE:
             raise unsupported_feature_exception_factory(self.network.NAME, "hexadecimal addresses")
 
-        version = '0x'
-        return version + binascii.hexlify(self.keccak[12:]).decode('ascii')
+        return '0x' + binascii.hexlify(self.keccak[12:]).decode('ascii')
 
 
     def address(self, compressed=True, witness_version=0):
@@ -718,5 +717,4 @@ class PublicKey:
         elif self.network.ADDRESS_MODE[0] == "HEX":
             return self.hex_address()
         else:
-            # How is this possible??
             raise unsupported_feature_exception_factory(self.network.NAME, "addresses")
