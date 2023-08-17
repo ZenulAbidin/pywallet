@@ -81,7 +81,7 @@ class BitcoinRPCClient:
         return new_element
 
 
-    def __init__(self, addresses, rpc_url, rpc_user, rpc_password, client_number=0, user_id=0, last_update=0, max_tx_at_once=1000, transactions=None):
+    def __init__(self, addresses, rpc_url, rpc_user=None, rpc_password=None, client_number=0, user_id=0, last_update=0, max_tx_at_once=1000, transactions=None):
         self.rpc_url = rpc_url
         self.rpc_user = rpc_user
         self.rpc_password = rpc_password
