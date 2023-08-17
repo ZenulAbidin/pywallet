@@ -77,7 +77,7 @@ class EsploraAddress:
         new_element.fee_metric = wallet_pb2.VBYTE
         return new_element
 
-    def __init__(self, addresses, endpoint=, request_interval=(3,1), transactions=None):
+    def __init__(self, addresses, endpoint, request_interval=(3,1), transactions=None):
         """
         Initializes an instance of the EsploraAddress class.
 
