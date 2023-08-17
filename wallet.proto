@@ -1,38 +1,83 @@
 syntax = "proto3";
 
 enum Network {
-    BITCOIN_SEGWIT_MAINNET = 0;
-    BITCOIN_MAINNET = 1;
-    BITCOIN_SEGWIT_TESTNET = 2;
-    BITCOIN_TESTNET = 3;
-    LITECOIN_SEGWIT_MAINNET = 4;
-    LITECOIN_MAINNET = 5;
-    LITECOIN_BTC_MAINNET = 6;
-    LITECOIN_BTC_SEGWIT_MAINNET = 7;
-    LITECOIN_TESTNET = 8;
-    LITECOIN_SEGWIT_TESTNET = 9;
-    ETHEREUM_MAINNET = 10;
-    DOGECOIN_MAINNET = 11;
-    DOGECOIN_BTC_MAINNET = 12;
-    DOGECOIN_TESTNET = 13;
-    DASH_MAINNET = 14;
-    DASH_INVERTED_MAINNET = 15;
-    DASH_BTC_MAINNET = 16;
-    DASH_TESTNET = 17;
-    DASH_INVERTED_TESTNET = 18;
-    BITCOIN_CASH_MAINNET = 19;
-    BLOCKCYPHER_TESTNET = 20;
+  BITCOIN_SEGWIT_MAINNET = 0;
+  BITCOIN_MAINNET = 1;
+  BITCOIN_SEGWIT_TESTNET = 2;
+  BITCOIN_TESTNET = 3;
+  LITECOIN_SEGWIT_MAINNET = 4;
+  LITECOIN_MAINNET = 5;
+  LITECOIN_BTC_MAINNET = 6;
+  LITECOIN_BTC_SEGWIT_MAINNET = 7;
+  LITECOIN_TESTNET = 8;
+  LITECOIN_SEGWIT_TESTNET = 9;
+  ETHEREUM_MAINNET = 10;
+  DOGECOIN_MAINNET = 11;
+  DOGECOIN_BTC_MAINNET = 12;
+  DOGECOIN_TESTNET = 13;
+  DASH_MAINNET = 14;
+  DASH_INVERTED_MAINNET = 15;
+  DASH_BTC_MAINNET = 16;
+  DASH_TESTNET = 17;
+  DASH_INVERTED_TESTNET = 18;
+  BITCOIN_CASH_MAINNET = 19;
+  BLOCKCYPHER_TESTNET = 20;
 }
 
-enum CryptoProvider {
-    option allow_alias = true;
-    BLOCKCYPHER = 0;
-    ESPLORA = 1;
-    BLOCKSTREAM = 1;
-    BTC_COM = 2;
-    BLOCKCHAIN_INFO = 3; // NOT RECOMMENDED
-    FULLNODE = 4;
+enum BCYProvider {
+  BCY_BLOCKCYPHER = 0;
 }
+
+enum BTCProvider {
+  BTC_BLOCKCYPHER = 0;
+  BTC_BLOCKSTREAM = 1;
+  BTC_MEMPOOLSPACE = 2;
+  BTC_BTCDOTCOM = 3;
+  BTC_BLOCKCHAIN_INFO = 4; // NOT RECOMMENDED
+  BTC_ESPLORA = 5;
+  BTC_FULLNODE = 6;
+}
+
+enum BTCTestProvider {
+  BTCTEST_BLOCKCYPHER = 0;
+  BTCTEST_BLOCKSTREAM = 1;
+  BTCTEST_MEMPOOLSPACE = 2;
+  BTCTEST_ESPLORA = 3;
+  BTCTEST_FULLNODE = 4;
+}
+
+enum DASHProvider {
+  DASH_BLOCKCYPHER = 0;
+  DASH_FULLNODE = 1;
+}
+
+enum DOGEProvider {
+  DOGE_BLOCKCYPHER = 0;
+}
+
+enum ETHProvider {
+  ETH_QUICKNODE = 0;
+  ETH_ALCHEMY = 1;
+  ETH_GETBLOCK = 2;
+  ETH_INFURA = 3;
+  ETH_FULLNODE = 4;
+}
+
+enum LTCProvider {
+  LTC_BLOCKCYPHER = 0;
+  LTC_FULLNODE = 1;
+}
+
+message CryptoProvider {
+  BCYProvider bcy_provider = 1;
+  BTCProvider btc_provider = 2;
+  BTCTestProvider btctest_provider = 3;
+  DASHProvider dash_provider = 4;
+  DOGEProvider doge_provider = 5;
+  ETHProvider eth_provider = 6;
+  LTCProvider ltc_provider = 7;
+}
+
 
 message Wallet {
     // Address type (legacy, segwit, hex, ... detected by the first element of ADDRESS_MODE)
@@ -43,7 +88,7 @@ message Wallet {
     fixed32 change_gap_limit = 5;
     repeated Address addresses = 6;
     repeated Transaction transactions = 7;
-    CryptoProvider setting_default_crypto_provider = 8;
+    CryptoProvider crypto_providers = 8;
 }
 
 message Address {
