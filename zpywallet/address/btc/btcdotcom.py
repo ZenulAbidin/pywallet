@@ -4,7 +4,7 @@ import time
 from ...errors import NetworkException
 from ...generated import wallet_pb2
 
-class BTCcomAddress:
+class BTCDotComAddress:
     """
     A class representing a Bitcoin address.
 
@@ -64,7 +64,7 @@ class BTCcomAddress:
     # BTC.com's rate limits are unknown.
     def __init__(self, addresses, request_interval=(1000,1), transactions=None):
         """
-        Initializes an instance of the BTCcomAddress class.
+        Initializes an instance of the BTCDotComAddress class.
 
         Args:
             addresses (list): A list of human-readable Bitcoin addresses.
