@@ -3,5 +3,6 @@ __all__ = [
     'blockcypher',
     'btccom',
     'esplora',
-    'fullnode'
+    'fullnode',
+    'roundrobin'
 ]

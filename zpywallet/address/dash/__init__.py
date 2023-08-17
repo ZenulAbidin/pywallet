@@ -1,3 +1,5 @@
 __all__ = [
-    'blockcypher'
+    'blockcypher',
+    'fullnode',
+    'loadbalancer'
 ]

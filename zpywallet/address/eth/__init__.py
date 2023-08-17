@@ -3,5 +3,6 @@ __all__ = [
     'fullnode',
     'getblock',
     'infura',
+    'loadbalancer',
     'quicknode'
 ]
