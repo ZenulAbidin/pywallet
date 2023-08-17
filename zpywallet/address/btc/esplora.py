@@ -77,17 +77,17 @@ class EsploraAddress:
         new_element.fee_metric = wallet_pb2.VBYTE
         return new_element
 
-    def __init__(self, addresses, endpoint="https://blockstream.info/api", request_interval=(3,1), transactions=None):
+    def __init__(self, addresses, endpoint, request_interval=(3,1), transactions=None):
         """
         Initializes an instance of the EsploraAddress class.
 
         Args:
             addresses (list): A list of human-readable Bitcoin addresses.
-            endpoint (str): The Esplora endpoint to use. Defaults to Blockstream's endpoint.
+            endpoint (str): The Esplora endpoint to use.
             request_interval (tuple): A pair of integers indicating the number of requests allowed during
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
-        # Blockstream.info's rate limits are unknown.
+        # exampBlockstream.info's rate limits are unknown.
         # Ostensibly there are no limits for that site, but I got 429 errors when testing with (1000,1), so
         # the default limit will be the same as for mempool.space - 3 requests per second.
         self.requests, self.interval_sec = request_interval

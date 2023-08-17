@@ -77,13 +77,13 @@ class EsploraAddress:
         new_element.fee_metric = wallet_pb2.VBYTE
         return new_element
 
-    def __init__(self, addresses, endpoint="https://blockstream.info/testnet/api", request_interval=(3,1), transactions=None):
+    def __init__(self, addresses, endpoint=, request_interval=(3,1), transactions=None):
         """
         Initializes an instance of the EsploraAddress class.
 
         Args:
-            addresses (list): A list of human-readable Bitcoin address.es
-            endpoint (str): The Esplora endpoint to use. Defaults to Blockstream's endpoint.
+            addresses (list): A list of human-readable Bitcoin addresses.
+            endpoint (str): The Esplora endpoint to use.
             request_interval (tuple): A pair of integers indicating the number of requests allowed during
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
