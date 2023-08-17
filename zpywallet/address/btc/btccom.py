@@ -73,7 +73,7 @@ class BTCcomAddress:
         """
         self.requests, self.interval_sec = request_interval
         self.addresses = addresses
-        if transactions:
+        if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
             self.transactions = [*self._get_transaction_history()]

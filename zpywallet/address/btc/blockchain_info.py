@@ -47,7 +47,7 @@ class BlockchainInfoAddress:
         """
         self.addresses = addresses
         self.requests, self.interval_sec = request_interval
-        if transactions:
+        if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
             self.transactions = [*self._get_transaction_history()]

@@ -93,7 +93,7 @@ class BitcoinRPCClient:
         self.last_update = last_update
         self.height = self.get_block_height()
         self._load_addresses()
-        if transactions:
+        if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
             self.transactions = [*self._get_transaction_history()]

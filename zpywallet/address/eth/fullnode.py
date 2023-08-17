@@ -49,7 +49,7 @@ class EthereumRPCClient:
         self.transactions = []
         self.addresses = addresses
         self.height = self.get_block_height()
-        if transactions:
+        if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
             self.transactions = [*self._get_transaction_history()]
