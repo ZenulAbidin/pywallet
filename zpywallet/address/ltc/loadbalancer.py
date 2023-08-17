@@ -1,9 +1,9 @@
-from .blockcypher import BlockcypherAddress
+from .blockcypher import BlockcypherAPIClient
 from .fullnode import LitecoinRPCClient
 from ...generated import wallet_pb2
 from ...errors import NetworkException
 
-class LitecoinAddressLoadBalancer:
+class LitecoinAPIClient:
     """ Load balancer for all LTC address providers provided to an instance of this class,
         using the round robin scheduling algorithm.
     """
@@ -31,7 +31,7 @@ class LitecoinAddressLoadBalancer:
         self.transactions = transactions
 
         if provider_bitmask & 1 << wallet_pb2.LTC_BLOCKCYPHER + 1:
-            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, api_key=blockcypher_token))
+            self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions, api_key=blockcypher_token))
         if provider_bitmask & 1 << wallet_pb2.LTC_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
                 self.provider_list.append(LitecoinRPCClient(addresses, endpoint, transactions=transactions))

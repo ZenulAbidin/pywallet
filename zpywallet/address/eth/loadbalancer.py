@@ -6,7 +6,7 @@ from .fullnode import EthereumRPCClient
 from ...generated import wallet_pb2
 from ...errors import NetworkException
 
-class EthereumAddressLoadBalancer:
+class EthereumAPIClient:
     """ Load balancer for all LTC address providers provided to an instance of this class,
         using the round robin scheduling algorithm.
     """

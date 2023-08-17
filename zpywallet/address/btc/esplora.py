@@ -4,7 +4,7 @@ import requests
 from ...errors import NetworkException
 from ...generated import wallet_pb2
 
-class EsploraAddress:
+class EsploraAPIClient:
     """
     A class representing a Bitcoin address.
 
@@ -79,7 +79,7 @@ class EsploraAddress:
 
     def __init__(self, addresses, endpoint, request_interval=(3,1), transactions=None):
         """
-        Initializes an instance of the EsploraAddress class.
+        Initializes an instance of the EsploraAPIClient class.
 
         Args:
             addresses (list): A list of human-readable Bitcoin addresses.

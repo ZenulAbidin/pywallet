@@ -1,8 +1,8 @@
-from .blockcypher import BlockcypherAddress
+from .blockcypher import BlockcypherAPIClient
 from ...generated import wallet_pb2
 from ...errors import NetworkException
 
-class DogecoinAddressLoadBalancer:
+class DogecoinAPIClient:
     """ Load balancer for all DOGE address providers provided to an instance of this class,
         using the round robin scheduling algorithm.
     """
@@ -29,7 +29,7 @@ class DogecoinAddressLoadBalancer:
         self.transactions = transactions
 
         if provider_bitmask & 1 << wallet_pb2.DASH_BLOCKCYPHER + 1:
-            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, api_key=blockcypher_token))
+            self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions, api_key=blockcypher_token))
 
         
         self.get_transaction_history()

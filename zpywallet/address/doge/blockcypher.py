@@ -10,7 +10,7 @@ from ...generated import wallet_pb2
 def deduplicate(elements):
     return reduce(lambda re, x: re+[x] if x not in re else re, elements, [])
 
-class BlockcypherAddress:
+class BlockcypherAPIClient:
     """
     A class representing a Dogecoin address.
 
@@ -79,7 +79,7 @@ class BlockcypherAddress:
 
     def __init__(self, addresses, request_interval=(3,1), transactions=None, api_key=None):
         """
-        Initializes an instance of the BlockcypherAddress class.
+        Initializes an instance of the BlockcypherAPIClient class.
 
         Args:
             addresses (list): A list of human-readable Dogecoin addresses.

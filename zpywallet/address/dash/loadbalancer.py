@@ -1,9 +1,9 @@
-from .blockcypher import BlockcypherAddress
+from .blockcypher import BlockcypherAPIClient
 from .fullnode import DashRPCClient
 from ...generated import wallet_pb2
 from ...errors import NetworkException
 
-class DashAddressLoadBalancer:
+class DashAPIClient:
     """ Load balancer for all DASH address providers provided to an instance of this class,
         using the round robin scheduling algorithm.
     """
@@ -31,7 +31,7 @@ class DashAddressLoadBalancer:
         self.transactions = transactions
 
         if provider_bitmask & 1 << wallet_pb2.DASH_BLOCKCYPHER + 1:
-            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, api_key=blockcypher_token))
+            self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions, api_key=blockcypher_token))
         if provider_bitmask & 1 << wallet_pb2.DASH_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
                 self.provider_list.append(DashRPCClient(addresses, endpoint, transactions=transactions))

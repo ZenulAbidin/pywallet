@@ -4,7 +4,7 @@ import time
 from ...errors import NetworkException
 from ...generated import wallet_pb2
 
-class BlockchainInfoAddress:
+class BlockchainInfoAPIClient:
     """
     A class representing a Bitcoin address.
 
