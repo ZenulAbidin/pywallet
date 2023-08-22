@@ -68,19 +68,8 @@ enum LTCProvider {
   LTC_FULLNODE = 1;
 }
 
-message CryptoProvider {
-  BCYProvider bcy_provider = 1;
-  BTCProvider btc_provider = 2;
-  BTCTestProvider btctest_provider = 3;
-  DASHProvider dash_provider = 4;
-  DOGEProvider doge_provider = 5;
-  ETHProvider eth_provider = 6;
-  LTCProvider ltc_provider = 7;
-}
-
-
 message Wallet {
-    // Address type (legacy, segwit, hex, ... detected by the first element of ADDRESS_MODE)
+    // Address type (legacy, segwit, hex, ... is detected by the first element of ADDRESS_MODE)
     Network network = 1;
     bytes encrypted_seed_phrase = 2;
     fixed32 height = 3;
@@ -88,7 +77,15 @@ message Wallet {
     fixed32 change_gap_limit = 5;
     repeated Address addresses = 6;
     repeated Transaction transactions = 7;
-    CryptoProvider crypto_providers = 8;
+    uint32 crypto_providers = 8;
+    repeated string fullnode_endpoints = 9;
+    repeated string esplora_endpoints = 10;
+    string blockcypher_token = 11;
+    string alchemy_token = 12;
+    string getblock_token = 13;
+    string infura_token = 14;
+    string quicknode_name = 15;
+    string quicknode_token = 16;
 }
 
 message Address {
