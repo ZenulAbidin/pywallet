@@ -28,7 +28,7 @@ version = load_version()
 setup(
     name='zpywallet',
     version=version,
-    description="Simple BIP32 (HD) wallet creation for BTC, BCH, LTC, DASH, USDT (Omni) and DOGE",
+    description="Multi-coin BIP32 (HD) wallet creation, transaction listener, creation and broadcasting",
     long_description=long_description,
     url='https://github.com/ZenulAbidin/pywallet',
     author='Ali Sherief',
@@ -45,9 +45,10 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     platforms = ['any'],
-    keywords='bitcoin, wallet, litecoin, hd-wallet, dogecoin, dashcoin, tether, address, crypto, python',
+    keywords='bitcoin, wallet, litecoin, hd-wallet, dogecoin, dashcoin, ethereum, address, crypto, python',
     packages = find_packages(exclude=['contrib', 'docs', 'tests', 'demo', 'demos', 'examples']),
     package_data={'': ['AUTHORS', 'LICENSE']}
 )
