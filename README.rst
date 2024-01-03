@@ -19,9 +19,13 @@ ZPyWallet
     :alt: Code coverage
 
 
-ZPyWallet is a Python-based hierarchical deterministic (HD) wallet generator. HD wallets allow you to 
-generate a tree-like structure of cryptographic key pairs from a single seed phrase, providing a
-convenient way to manage multiple accounts or addresses securely.
+ZPyWallet is a Python-based hierarchical deterministic (HD) wallet generator and transaction manager.
+HD wallets allow you to  generate a tree-like structure of cryptographic key pairs from a single
+seed phrase, providing a convenient way to manage multiple accounts or addresses securely.
+
+ZPyWallet can generate transactions quickly, because it defers transaction validity to the broadcasting
+stage. It can also coordinate the creation and broadcasting of transactions to different nodes,
+and can decode transactions as well.
 
 BIP32 (or HD for "hierarchical deterministic") wallets allow you to create
 child wallets which can only generate public keys and don't expose a
@@ -33,6 +37,9 @@ Features
 
 - Simple BIP32 (HD) wallet creation for BTC, BCH, ETH, LTC, DASH, DOGE, and many other networks
 - Generate a hierarchical deterministic wallet from a mnemonic seed phrase.
+- Create and broadcast RBF-aware transactions to pre-defined or custom nodes
+- Decode existing transactions
+- Monitor for incoming transactions
 - Derive multiple accounts or addresses from the generated wallet.
 - Support for popular cryptocurrencies such as Bitcoin, Ethereum, and more.
 - BIP32 and BIP39 compliant.
@@ -40,7 +47,13 @@ Features
 - Supports generating P2WPKH (segwit) keys and bech32 addresses for supported networks
 - Sign and verify messages in Bitcoin-Qt and RFC2440 format
 
+Limitations
+===========
 
+- Address types that use complex scripts such as P2WSH, P2WPKH-P2SH, and Taproot currently can only be decoded but not created.
+- Multisig addresses are not supported.
+- Transactions cannot be created with timelocks yet.
+- In the case of Ethereum, alternate chains (e.g. Testnet) are not supported yet.
 
 History
 =======

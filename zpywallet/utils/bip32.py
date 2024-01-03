@@ -58,7 +58,7 @@ class HDWallet(object):
                  public_pair=None,
                  public_key=None,
                  mnemonic=None,
-                 network="btc"):
+                 network=BitcoinSegwitMainNet):
         """Construct a new BIP32 compliant wallet.
 
         You probably don't want to use this init methd. Instead use one
@@ -504,7 +504,7 @@ class HDWallet(object):
                                       witness_version=witness_version))
 
     @classmethod
-    def deserialize(cls, key, network="btc"):
+    def deserialize(cls, key, network=BitcoinSegwitMainNet):
         """Load an extended BIP32 private key from a hex string.
 
         The key consists of

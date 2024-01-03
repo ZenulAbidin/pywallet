@@ -7,6 +7,7 @@ import binascii
 import unittest
 from zpywallet import wallet
 from zpywallet.bip38 import Bip38PrivateKey
+from zpywallet.network import BitcoinSegwitMainNet
 from zpywallet.utils.bip32 import HDWallet
 from zpywallet.errors import IncompatibleNetworkException
 from zpywallet.utils.keys import PrivateKey
@@ -23,22 +24,19 @@ class TestZPyWallet(unittest.TestCase):
 
     def test_000_create_wallet(self):
         """Test something."""
-        hdw = wallet.create_wallet_json()
-        assert hdw
-
         mne = wallet.generate_mnemonic(strength=128)
         assert mne.count(' ') == 11
 
         hdw = wallet.create_wallet(mnemonic="nature story debris circle decrease post "
                                     "gesture cute burger chef silent grief",
-                                    network="btc")
+                                    network=BitcoinSegwitMainNet)
         assert hdw.serialize_b58(private=True) == \
             "xprv9s21ZrQH143K26AwKW3o1D9uVbbYJp4RCLWCVQNfarQ59cgG8udwc5SVGxrTPNo2HXLNK8ZJoavsNYuExeMmdmmGVZZh5M77UV6qbMisVSm"
 
     def test_001_bip32(self):
         """Test BIP32 confirmance."""
 
-        hdw = HDWallet.from_master_seed(binascii.unhexlify("000102030405060708090a0b0c0d0e0f"), network="btc")
+        hdw = HDWallet.from_master_seed(binascii.unhexlify("000102030405060708090a0b0c0d0e0f"), network=BitcoinSegwitMainNet)
         assert hdw.serialize_b58(private=False) == "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8"
         assert hdw.serialize_b58(private=True) == "xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHi"
 
@@ -64,7 +62,8 @@ class TestZPyWallet(unittest.TestCase):
 
     def test_002_bip32(self):
         """Test BIP32 confirmance."""
-        hdw = HDWallet.from_master_seed(binascii.unhexlify("fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542"), network="btc")
+        hdw = HDWallet.from_master_seed(binascii.unhexlify("fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542"),
+                                        network=BitcoinSegwitMainNet)
         assert hdw.serialize_b58(private=False) == "xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB"
         assert hdw.serialize_b58(private=True) == "xprv9s21ZrQH143K31xYSDQpPDxsXRTUcvj2iNHm5NUtrGiGG5e2DtALGdso3pGz6ssrdK4PFmM8NSpSBHNqPqm55Qn3LqFtT2emdEXVYsCzC2U"
 
@@ -90,7 +89,8 @@ class TestZPyWallet(unittest.TestCase):
 
     def test_003_bip32(self):
         """Test BIP32 confirmance - retention of leading zeroes."""
-        hdw = HDWallet.from_master_seed(binascii.unhexlify("4b381541583be4423346c643850da4b320e46a87ae3d2a4e6da11eba819cd4acba45d239319ac14f863b8d5ab5a0d0c64d2e8a1e7d1457df2e5a3c51c73235be"), network="btc")
+        hdw = HDWallet.from_master_seed(binascii.unhexlify("4b381541583be4423346c643850da4b320e46a87ae3d2a4e6da11eba819cd4acba45d239319ac14f863b8d5ab5a0d0c64d2e8a1e7d1457df2e5a3c51c73235be"),
+                                        network=BitcoinSegwitMainNet)
         assert hdw.serialize_b58(private=False) == "xpub661MyMwAqRbcEZVB4dScxMAdx6d4nFc9nvyvH3v4gJL378CSRZiYmhRoP7mBy6gSPSCYk6SzXPTf3ND1cZAceL7SfJ1Z3GC8vBgp2epUt13"
         assert hdw.serialize_b58(private=True) == "xprv9s21ZrQH143K25QhxbucbDDuQ4naNntJRi4KUfWT7xo4EKsHt2QJDu7KXp1A3u7Bi1j8ph3EGsZ9Xvz9dGuVrtHHs7pXeTzjuxBrCmmhgC6"
 
@@ -100,7 +100,8 @@ class TestZPyWallet(unittest.TestCase):
 
     def test_004_bip32(self):
         """Test BIP32 confirmance - retention of leading zeroes."""
-        hdw = HDWallet.from_master_seed(binascii.unhexlify("3ddd5602285899a946114506157c7997e5444528f3003f6134712147db19b678"), network="btc")
+        hdw = HDWallet.from_master_seed(binascii.unhexlify("3ddd5602285899a946114506157c7997e5444528f3003f6134712147db19b678"),
+                                        network=BitcoinSegwitMainNet)
         assert hdw.serialize_b58(private=False) == "xpub661MyMwAqRbcGczjuMoRm6dXaLDEhW1u34gKenbeYqAix21mdUKJyuyu5F1rzYGVxyL6tmgBUAEPrEz92mBXjByMRiJdba9wpnN37RLLAXa"
         assert hdw.serialize_b58(private=True) == "xprv9s21ZrQH143K48vGoLGRPxgo2JNkJ3J3fqkirQC2zVdk5Dgd5w14S7fRDyHH4dWNHUgkvsvNDCkvAwcSHNAQwhwgNMgZhLtQC63zxwhQmRv"
 
@@ -207,7 +208,7 @@ class TestZPyWallet(unittest.TestCase):
 
     def test_007_brainwallet(self):
         """Tests brainwallet generation."""
-        w = HDWallet.from_brainwallet("crazy horse battery staple", network="btc")
+        w = HDWallet.from_brainwallet("crazy horse battery staple", network=BitcoinSegwitMainNet)
         assert w.private_key.to_wif(compressed=True) == "KzJp5B7mDpZ7kMHv67GowQRys9W9Hbaa5Rzj4PCoiyXfTk1fGAvH"
 
     def test_008_bip38(self):

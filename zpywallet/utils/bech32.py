@@ -131,6 +131,8 @@ def bech32_decode(hrp, addr):
 def bech32_encode(hrp, witver, witprog):
     """Encode a segwit address."""
     spec = Encoding.BECH32 if witver == 0 else Encoding.BECH32M
+    if len(witprog) < 2 or len(witprog) > 40:
+        raise ValueError("Witness program must be between 2 and 40 bytes")
     ret = _bech32_encode(hrp, [witver] + convertbits(witprog, 8, 5), spec)
     if bech32_decode(hrp, ret) == (None, None):
         raise ValueError("Bech32 encode failed for this address")

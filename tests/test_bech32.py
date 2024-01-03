@@ -190,5 +190,5 @@ class TestSegwitAddress(unittest.TestCase):
     def test_invalid_address_enc(self):
         """Test whether address encoding fails on invalid input."""
         for hrp, version, length in INVALID_ADDRESS_ENC:
-            code = bech32.bech32_encode(hrp, version, [0] * length)
-            self.assertIsNone(code)
+            with self.assertRaises(ValueError):
+                code = bech32.bech32_encode(hrp, version, [0] * length)
