@@ -16,3 +16,4 @@ Icon
 .tox
 .benchmarks
 .pytest_cache
+.coverage
