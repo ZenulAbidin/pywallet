@@ -10,7 +10,7 @@ from .ltc.all import broadcast_transaction_ltc
 from .ltctest.all import broadcast_transaction_ltctest
 from ..network import *
 
-def broadcast_transaction(transaction: str, network):
+def broadcast_transaction(transaction: bytes, network):
     if network.COIN == "BTC":
         if not network.TESTNET:
             broadcast_transaction_btc(transaction)
