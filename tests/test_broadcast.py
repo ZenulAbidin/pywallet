@@ -6,7 +6,7 @@
 import binascii
 import unittest
 from zpywallet.broadcast import broadcast_transaction
-from zpywallet.utils import network
+from zpywallet import network
 
 class TestBroadcast(unittest.TestCase):
     def setUp(self):
