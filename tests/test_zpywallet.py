@@ -23,7 +23,7 @@ class TestZPyWallet(unittest.TestCase):
         """Tear down test fixtures, if any."""
 
     def test_000_create_wallet(self):
-        """Test something."""
+        """Test wallet creation."""
         mne = wallet.generate_mnemonic(strength=128)
         assert mne.count(' ') == 11
 
