@@ -7,7 +7,10 @@ def broadcast_transaction_btctest_blockchair(raw_transaction_hex):
     api_url = "https://api.blockchair.com/bitcoin/testnet/push/transaction"
     payload = {"data": raw_transaction_hex}
 
-    response = requests.post(api_url, data=payload)
+    try:
+        response = requests.post(api_url, data=payload)
+    except ConnectionError as e:
+        raise NetworkException("Connection error while broadcasting transaction: {}".format(str(e)))
 
     if response.status_code == 200:
         return hashlib.sha256(hashlib.sha256(raw_transaction_hex.encode()).digest()).digest()  # Transaction ID

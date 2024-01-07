@@ -12,11 +12,12 @@ def broadcast_transaction_eth_etherscan(raw_transaction_hex, api_key):
 
     try:
         response = requests.get(api_url, params=payload)
-        result = response.json()
+    except ConnectionError as e:
+        raise NetworkException("Connection error while broadcasting transaction: {}".format(str(e)))
+    
+    result = response.json()
 
-        if result.get("status") == "1":
-            return result.get("result")
-        else:
-            raise NetworkException(f"Failed to broadcast Ethereum transaction using Etherscan: {result.get('message')}")
-    except Exception as e:
-        raise NetworkException(f"Failed to broadcast Ethereum transaction using Etherscan: {e}")
+    if result.get("status") == "1":
+        return result.get("result")
+    else:
+        raise NetworkException(f"Failed to broadcast Ethereum transaction using Etherscan: {result.get('message')}")
