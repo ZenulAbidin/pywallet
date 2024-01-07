@@ -1,39 +1,68 @@
-from .btc.all import broadcast_transaction_btc
-from .btctest.all import broadcast_transaction_btctest
-from .bcy.all import broadcast_transaction_bcy
-from .eth.all import broadcast_transaction_eth
-from .dash.all import broadcast_transaction_dash
-from .dashtest.all import broadcast_transaction_dashtest
-from .doge.all import broadcast_transaction_doge
-from .dogetest.all import broadcast_transaction_dogetest
-from .ltc.all import broadcast_transaction_ltc
-from .ltctest.all import broadcast_transaction_ltctest
+from .bcy.all import broadcast_transaction_bcy, tx_hash_bcy
+from .btc.all import broadcast_transaction_btc, tx_hash_btc
+from .btctest.all import broadcast_transaction_btctest, tx_hash_btctest
+from .dash.all import broadcast_transaction_dash, tx_hash_dash
+from .dashtest.all import broadcast_transaction_dashtest, tx_hash_dashtest
+from .doge.all import broadcast_transaction_doge, tx_hash_doge
+from .dogetest.all import broadcast_transaction_dogetest, tx_hash_dogetest
+from .eth.all import broadcast_transaction_eth, tx_hash_eth
+from .ltc.all import broadcast_transaction_ltc, tx_hash_ltc
+from .ltctest.all import broadcast_transaction_ltctest, tx_hash_ltctest
 from ..network import *
 
 def broadcast_transaction(transaction: bytes, network):
     if network.COIN == "BTC":
         if not network.TESTNET:
-            broadcast_transaction_btc(transaction)
+            return broadcast_transaction_btc(transaction)
         else:
-            broadcast_transaction_btctest(transaction)
+            return broadcast_transaction_btctest(transaction)
     elif network.COIN == "LTC":
         if not network.TESTNET:
-            broadcast_transaction_ltc(transaction)
+            return broadcast_transaction_ltc(transaction)
         else:
             broadcast_transaction_ltctest(transaction)
     elif network.COIN == "DASH":
         if not network.TESTNET:
-            broadcast_transaction_dash(transaction)
+            return broadcast_transaction_dash(transaction)
         else:
             broadcast_transaction_dashtest(transaction)
     elif network.COIN == "DOGE":
         if not network.TESTNET:
-            broadcast_transaction_doge(transaction)
+            return broadcast_transaction_doge(transaction)
         else:
             broadcast_transaction_dogetest(transaction)
     elif network.COIN == "ETH":
-        broadcast_transaction_eth(transaction)
+        return broadcast_transaction_eth(transaction)
     elif network.COIN == "BCY":
-        broadcast_transaction_bcy(transaction)
+        return broadcast_transaction_bcy(transaction)
+    else:
+        raise ValueError("Cannot broadcast transaction: Unsupported network")
+    
+
+def tx_hash(transaction: bytes, network):
+    if network.COIN == "BTC":
+        if not network.TESTNET:
+            return tx_hash_btc(transaction)
+        else:
+            return tx_hash_btctest(transaction)
+    elif network.COIN == "LTC":
+        if not network.TESTNET:
+            return tx_hash_ltc(transaction)
+        else:
+            tx_hash_ltctest(transaction)
+    elif network.COIN == "DASH":
+        if not network.TESTNET:
+            return tx_hash_dash(transaction)
+        else:
+            tx_hash_dashtest(transaction)
+    elif network.COIN == "DOGE":
+        if not network.TESTNET:
+            return tx_hash_doge(transaction)
+        else:
+            tx_hash_dogetest(transaction)
+    elif network.COIN == "ETH":
+        return tx_hash_eth(transaction)
+    elif network.COIN == "BCY":
+        return tx_hash_bcy(transaction)
     else:
         raise ValueError("Cannot broadcast transaction: Unsupported network")

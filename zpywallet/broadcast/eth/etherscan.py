@@ -17,7 +17,5 @@ def broadcast_transaction_eth_etherscan(raw_transaction_hex, api_key):
     
     result = response.json()
 
-    if result.get("status") == "1":
-        return result.get("result")
-    else:
+    if response.status_code >= 300 and result.get("status") == "1":
         raise NetworkException(f"Failed to broadcast Ethereum transaction using Etherscan: {result.get('message')}")

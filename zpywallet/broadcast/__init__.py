@@ -14,4 +14,4 @@ __all__ = [
     'ltctest'
 ]
 
-from .broadcast import broadcast_transaction
+from .broadcast import broadcast_transaction, tx_hash

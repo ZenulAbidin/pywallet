@@ -1,3 +1,4 @@
+import binascii
 import hashlib
 from .bitaps import *
 from .blockchain_info import *
@@ -11,6 +12,9 @@ from .fullnode import *
 from .mempool_space import *
 from .smartbit import *
 from .viabtc import *
+
+def tx_hash_btc(raw_transaction_hex):
+    return binascii.hexlify(hashlib.sha256(hashlib.sha256(raw_transaction_hex).digest()).digest())
 
 def broadcast_transaction_btc(raw_transaction_hex: bytes, rpc_nodes=[], esplora_nodes=[]):
     errors = []
@@ -77,4 +81,4 @@ def broadcast_transaction_btc(raw_transaction_hex: bytes, rpc_nodes=[], esplora_
         except NetworkException as e:
             errors.append(e)
 
-    return hashlib.sha256(hashlib.sha256(raw_transaction_hex).digest()).digest(), errors
+    return errors

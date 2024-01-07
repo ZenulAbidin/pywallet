@@ -10,7 +10,11 @@ def broadcast_transaction_btc_full_node(raw_transaction_hex, rpc_user, rpc_passw
         "params": [raw_transaction_hex],
     }
 
-    response = requests.post(rpc_url, json=payload)
+    try:
+        response = requests.post(rpc_url, json=payload)
+    except Exception as e:
+        raise NetworkException(f"Failed to connect to RPC interface: {str(e)}")
+
     result = response.json()
 
     if "error" in result:

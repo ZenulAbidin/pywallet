@@ -12,7 +12,5 @@ def broadcast_transaction_btctest_esplora(raw_transaction_hex, esplora_url):
     except Exception as e:
         raise NetworkException("Connection error while broadcasting transaction: {}".format(str(e)))
 
-    if response.status_code == 200:
-        return hashlib.sha256(hashlib.sha256(raw_transaction_hex.encode()).digest()).digest()  # Transaction ID
-    else:
+    if response.status_code >= 300:
         raise NetworkException(f"Failed to broadcast transaction using Esplora API: {response.text}")

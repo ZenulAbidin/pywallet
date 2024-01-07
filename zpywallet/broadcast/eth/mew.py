@@ -14,7 +14,5 @@ def broadcast_transaction_eth_mew(raw_transaction_hex):
         raise NetworkException("Connection error while broadcasting transaction: {}".format(str(e)))
     result = response.json()
 
-    if response.status_code == 200 and result.get("status") == "1":
-        return result.get("result")
-    else:
+    if response.status_code >= 300 and result.get("status") == "1":
         raise NetworkException(f"Failed to broadcast Ethereum transaction using MyEtherWallet: {result.get('message')}")

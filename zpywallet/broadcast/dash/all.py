@@ -1,6 +1,11 @@
+import binascii
 import hashlib
 from .blockcypher import *
 from .fullnode import *
+
+
+def tx_hash_dash(raw_transaction_hex):
+    return binascii.hexlify(hashlib.sha256(hashlib.sha256(raw_transaction_hex).digest()).digest())
 
 def broadcast_transaction_dash(raw_transaction_hex: bytes, rpc_nodes=[]):
     errors = []
@@ -15,4 +20,4 @@ def broadcast_transaction_dash(raw_transaction_hex: bytes, rpc_nodes=[]):
         except NetworkException as e:
             errors.append(e)
 
-    return hashlib.sha256(hashlib.sha256(raw_transaction_hex).digest()).digest(), errors
+    return errors

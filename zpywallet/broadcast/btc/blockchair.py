@@ -13,7 +13,5 @@ def broadcast_transaction_btc_blockchair(raw_transaction_hex):
     
     result = response.json()
 
-    if response.status_code == 200 and result.get("status") == "success":
-        return result.get("data").get("transaction_hash")
-    else:
+    if response.status_code >= 300:
         raise NetworkException(f"Failed to broadcast Bitcoin transaction using Blockchair API: {result.get('message')}")
