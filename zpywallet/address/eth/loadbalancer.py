@@ -1,7 +1,3 @@
-from .alchemy import AlchemyRPCClient
-from .getblock import GetBlockRPCClient
-from .infura import InfuraRPCClient
-from .quicknode import QuickNodeRPCClient
 from .fullnode import EthereumRPCClient
 from ...generated import wallet_pb2
 from ...errors import NetworkException
@@ -12,8 +8,7 @@ class EthereumAPIClient:
     """
 
     def __init__(self, providers: bytes, addresses, max_cycles=100,
-                 transactions=None, fullnode_endpoints=None, alchemy_token=None, getblock_token=None,
-                 infura_token=None, quicknode_name=None, quicknode_token=None):
+                 transactions=None, fullnode_endpoints=None):
         provider_bitmask = int.from_bytes(providers, 'big')
         self.provider_list = []
         self.current_index = 0
@@ -33,18 +28,9 @@ class EthereumAPIClient:
 
         self.transactions = transactions
 
-        if provider_bitmask & 1 << wallet_pb2.ETH_ALCHEMY + 1:
-            self.provider_list.append(AlchemyRPCClient(addresses, alchemy_token, transactions=transactions))
         if provider_bitmask & 1 << wallet_pb2.ETH_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
                 self.provider_list.append(EthereumRPCClient(addresses, endpoint, transactions=transactions))
-        if provider_bitmask & 1 << wallet_pb2.ETH_GETBLOCK + 1:
-            self.provider_list.append(GetBlockRPCClient(addresses, getblock_token, transactions=transactions))
-        if provider_bitmask & 1 << wallet_pb2.ETH_INFURA + 1:
-            self.provider_list.append(InfuraRPCClient(addresses, infura_token, transactions=transactions))
-        if provider_bitmask & 1 << wallet_pb2.ETH_ALCHEMY + 1:
-            self.provider_list.append(QuickNodeRPCClient(addresses, quicknode_name, quicknode_token, transactions=transactions))
-
         
         self.get_transaction_history()
 

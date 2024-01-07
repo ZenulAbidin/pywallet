@@ -4,5 +4,5 @@ __all__ = [
     'btccom',
     'esplora',
     'fullnode',
-    'roundrobin'
+    'loadbalancer'
 ]

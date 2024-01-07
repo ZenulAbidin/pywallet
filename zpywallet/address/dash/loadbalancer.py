@@ -9,7 +9,7 @@ class DashAPIClient:
     """
 
     def __init__(self, providers: bytes, addresses, max_cycles=100,
-                 transactions=None, fullnode_endpoints=None, blockcypher_token=None):
+                 transactions=None, fullnode_endpoints=None, blockcypher_tokens=None):
         provider_bitmask = int.from_bytes(providers, 'big')
         self.provider_list = []
         self.current_index = 0
@@ -30,7 +30,12 @@ class DashAPIClient:
         self.transactions = transactions
 
         if provider_bitmask & 1 << wallet_pb2.DASH_BLOCKCYPHER + 1:
-            self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions, api_key=blockcypher_token))
+            tokens = blockcypher_tokens
+            if not tokens:
+                tokens = []
+            for token in tokens:
+                self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions, api_key=token))
+            self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions)) # No token (free) version
         if provider_bitmask & 1 << wallet_pb2.DASH_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
                 if '@' in endpoint:

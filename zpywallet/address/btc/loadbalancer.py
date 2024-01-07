@@ -15,7 +15,7 @@ class BitcoinAPIClient:
 
     def __init__(self, providers: bytes, addresses, max_cycles=100,
                  transactions=None, esplora_endpoints=None,
-                 fullnode_endpoints=None, blockcypher_token=None):
+                 fullnode_endpoints=None, blockcypher_tokens=None):
         provider_bitmask = int.from_bytes(providers, 'big')
         self.provider_list = []
         self.current_index = 0
@@ -38,7 +38,12 @@ class BitcoinAPIClient:
         if provider_bitmask & 1 << wallet_pb2.BTC_BLOCKCHAIN_INFO + 1:
             self.provider_list.append(BlockchainInfoAPIClient(addresses, transactions=transactions))
         if provider_bitmask & 1 << wallet_pb2.BTC_BLOCKCYPHER + 1:
-            self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions, api_key=blockcypher_token))
+            tokens = blockcypher_tokens
+            if not tokens:
+                tokens = []
+            for token in tokens:
+                self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions, api_key=token))
+            self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions)) # No token (free) version
         if provider_bitmask & 1 << wallet_pb2.BTC_BLOCKSTREAM + 1:
             self.provider_list.append(BlockstreamAPIClient(addresses, transactions=transactions))
         if provider_bitmask & 1 << wallet_pb2.BTC_BTCDOTCOM + 1:
