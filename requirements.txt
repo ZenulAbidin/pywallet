@@ -5,3 +5,4 @@ requests==2.31.0
 protobuf==3.20.3
 pycryptodomex==3.18.0
 base58==2.1.1
+web3
