@@ -12,7 +12,7 @@ def broadcast_transaction_eth_etherscan(raw_transaction_hex, api_key):
 
     try:
         response = requests.get(api_url, params=payload)
-    except ConnectionError as e:
+    except Exception as e:
         raise NetworkException("Connection error while broadcasting transaction: {}".format(str(e)))
     
     result = response.json()

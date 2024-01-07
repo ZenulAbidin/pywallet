@@ -9,7 +9,7 @@ def broadcast_transaction_btctest_mempool_space(raw_transaction_hex):
 
     try:
         response = requests.post(api_url, json=payload)
-    except ConnectionError as e:
+    except Exception as e:
         raise NetworkException("Connection error while broadcasting transaction: {}".format(str(e)))
 
     if response.status_code == 200:

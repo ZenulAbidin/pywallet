@@ -8,7 +8,7 @@ def broadcast_transaction_btc_blockchair(raw_transaction_hex):
 
     try:
         response = requests.post(api_url, json=payload)
-    except ConnectionError as e:
+    except Exception as e:
         raise NetworkException("Connection error while broadcasting transaction: {}".format(str(e)))
     
     result = response.json()
