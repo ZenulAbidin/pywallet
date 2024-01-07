@@ -76,7 +76,7 @@ message Wallet {
     uint32 crypto_providers = 8;
     repeated string fullnode_endpoints = 9;
     repeated string esplora_endpoints = 10;
-    string blockcypher_tokens = 11; //TODO not sure what to do with this....
+    repeated string blockcypher_tokens = 11;
 }
 
 message Address {
