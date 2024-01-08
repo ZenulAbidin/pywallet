@@ -8,11 +8,15 @@ from .blockstream import *
 from .esplora import *
 from .fullnode import *
 from .mempool_space import *
+from ...nodes.btctest import *
 
 def tx_hash_btctest(raw_transaction_hex):
     return binascii.hexlify(hashlib.sha256(hashlib.sha256(raw_transaction_hex).digest()).digest())
 
-async def broadcast_transaction_btctest(raw_transaction_hex: bytes, rpc_nodes=[], esplora_nodes=[]):
+async def broadcast_transaction_btctest(raw_transaction_hex: bytes, **kwargs):
+    rpc_nodes = kwargs.get('rpc_nodes') or []
+    esplora_nodes = kwargs.get('esplora_nodes') or []
+
     raw_transaction_hex = raw_transaction_hex.decode()
     tasks = []
 
@@ -22,8 +26,12 @@ async def broadcast_transaction_btctest(raw_transaction_hex: bytes, rpc_nodes=[]
     tasks.append(asyncio.create_task(broadcast_transaction_btctest_blockstream(raw_transaction_hex)))
     tasks.append(asyncio.create_task(broadcast_transaction_btctest_mempool_space(raw_transaction_hex)))
     for node in rpc_nodes:
-        tasks.append(asyncio.create_task(broadcast_transaction_btctest_full_node(raw_transaction_hex, node)))
+        tasks.append(asyncio.create_task(broadcast_transaction_btctest_full_node(raw_transaction_hex, **node)))
+    for node in btctest_nodes:
+        tasks.append(asyncio.create_task(broadcast_transaction_btctest_full_node(raw_transaction_hex, **node)))
     for node in esplora_nodes:
-        tasks.append(asyncio.create_task(broadcast_transaction_btctest_esplora(raw_transaction_hex, node)))
+        tasks.append(asyncio.create_task(broadcast_transaction_btctest_esplora(raw_transaction_hex, **node)))
+    for node in btc_esplora_nodes:
+        tasks.append(asyncio.create_task(broadcast_transaction_btc_esplora(raw_transaction_hex, **node)))
     
     await asyncio.gather(*tasks, return_exceptions=True)

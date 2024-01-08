@@ -11,31 +11,31 @@ from .ltc.all import broadcast_transaction_ltc, tx_hash_ltc
 from .ltctest.all import broadcast_transaction_ltctest, tx_hash_ltctest
 from ..network import *
 
-def broadcast_transaction(transaction: bytes, network):
+def broadcast_transaction(transaction: bytes, network, **kwargs):
     if network.COIN == "BTC":
         if not network.TESTNET:
-            asyncio.run(broadcast_transaction_btc(transaction))
+            asyncio.run(broadcast_transaction_btc(transaction, **kwargs))
         else:
-            asyncio.run(broadcast_transaction_btctest(transaction))
+            asyncio.run(broadcast_transaction_btctest(transaction, **kwargs))
     elif network.COIN == "LTC":
         if not network.TESTNET:
-            asyncio.run(broadcast_transaction_ltc(transaction))
+            asyncio.run(broadcast_transaction_ltc(transaction, **kwargs))
         else:
-            broadcast_transaction_ltctest(transaction)
+            broadcast_transaction_ltctest(transaction, **kwargs)
     elif network.COIN == "DASH":
         if not network.TESTNET:
-            asyncio.run(broadcast_transaction_dash(transaction))
+            asyncio.run(broadcast_transaction_dash(transaction, **kwargs))
         else:
-            broadcast_transaction_dashtest(transaction)
+            broadcast_transaction_dashtest(transaction, **kwargs)
     elif network.COIN == "DOGE":
         if not network.TESTNET:
-            asyncio.run(broadcast_transaction_doge(transaction))
+            asyncio.run(broadcast_transaction_doge(transaction, **kwargs))
         else:
-            broadcast_transaction_dogetest(transaction)
+            broadcast_transaction_dogetest(transaction, **kwargs)
     elif network.COIN == "ETH":
-        asyncio.run(broadcast_transaction_eth(transaction))
+        asyncio.run(broadcast_transaction_eth(transaction, **kwargs))
     elif network.COIN == "BCY":
-        asyncio.run(broadcast_transaction_bcy(transaction))
+        asyncio.run(broadcast_transaction_bcy(transaction, **kwargs))
     else:
         raise ValueError("Cannot broadcast transaction: Unsupported network")
     

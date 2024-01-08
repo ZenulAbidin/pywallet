@@ -3,9 +3,9 @@ import requests
 from ...errors import NetworkException
 
 async def broadcast_transaction_doge_full_node(raw_transaction_hex, **kwargs):
-    user = kwargs['user']
-    password = kwargs['password']
-    url = kwargs['url']
+    user = kwargs.get('user')
+    password = kwargs.get('password')
+    url = kwargs.get('url')
     if user and password:
         rpc_url = f"http://{user}:{password}@{url}"
     else:
