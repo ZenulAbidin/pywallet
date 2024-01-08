@@ -6,7 +6,6 @@ from .blockchain_info import *
 from .blockchair import *
 from .blockcypher import *
 from .blockstream import *
-from .coinify import *
 from .esplora import *
 from .f2pool import *
 from .fullnode import *
@@ -29,7 +28,6 @@ async def broadcast_transaction_btc(raw_transaction_hex: bytes, **kwargs):
     tasks.append(asyncio.create_task(broadcast_transaction_btc_blockchair(raw_transaction_hex)))
     tasks.append(asyncio.create_task(broadcast_transaction_btc_blockcypher(raw_transaction_hex)))
     tasks.append(asyncio.create_task(broadcast_transaction_btc_blockstream(raw_transaction_hex)))
-    tasks.append(asyncio.create_task(broadcast_transaction_btc_coinify(raw_transaction_hex)))
     tasks.append(asyncio.create_task(broadcast_transaction_btc_f2pool(raw_transaction_hex)))
     tasks.append(asyncio.create_task(broadcast_transaction_btc_mempool_space(raw_transaction_hex)))
     tasks.append(asyncio.create_task(broadcast_transaction_btc_smartbit(raw_transaction_hex)))
