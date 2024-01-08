@@ -17,7 +17,6 @@ async def broadcast_transaction_eth(raw_transaction_hex: bytes, **kwargs):
     tasks = []
 
     tasks.append(asyncio.create_task(broadcast_transaction_eth_blockcypher(raw_transaction_hex)))
-    tasks.append(asyncio.create_task(broadcast_transaction_eth_etherscan(raw_transaction_hex)))
     tasks.append(asyncio.create_task(broadcast_transaction_eth_mew(raw_transaction_hex)))
     for node in rpc_nodes:
         tasks.append(asyncio.create_task(broadcast_transaction_eth_generic(raw_transaction_hex, **node)))
