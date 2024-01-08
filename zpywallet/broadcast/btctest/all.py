@@ -31,7 +31,7 @@ async def broadcast_transaction_btctest(raw_transaction_hex: bytes, **kwargs):
         tasks.append(asyncio.create_task(broadcast_transaction_btctest_full_node(raw_transaction_hex, **node)))
     for node in esplora_nodes:
         tasks.append(asyncio.create_task(broadcast_transaction_btctest_esplora(raw_transaction_hex, **node)))
-    for node in btc_esplora_nodes:
-        tasks.append(asyncio.create_task(broadcast_transaction_btc_esplora(raw_transaction_hex, **node)))
+    for node in btctest_esplora_nodes:
+        tasks.append(asyncio.create_task(broadcast_transaction_btctest_esplora(raw_transaction_hex, **node)))
     
     await asyncio.gather(*tasks, return_exceptions=True)
