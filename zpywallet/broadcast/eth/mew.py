@@ -9,7 +9,7 @@ async def broadcast_transaction_eth_mew(raw_transaction_hex):
     }
 
     try:
-        response = requests.post(api_url, json=payload)
+        response = requests.post(api_url, json=payload, timeout=30)
     except Exception as e:
         raise NetworkException("Connection error while broadcasting transaction: {}".format(str(e)))
     result = response.json()

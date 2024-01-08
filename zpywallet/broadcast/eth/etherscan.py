@@ -11,7 +11,7 @@ async def broadcast_transaction_eth_etherscan(raw_transaction_hex, api_key):
     }
 
     try:
-        response = requests.get(api_url, params=payload)
+        response = requests.get(api_url, params=payload, timeout=30)
     except Exception as e:
         raise NetworkException("Connection error while broadcasting transaction: {}".format(str(e)))
     

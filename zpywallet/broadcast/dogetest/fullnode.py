@@ -18,7 +18,7 @@ async def broadcast_transaction_dogetest_full_node(raw_transaction_hex, **kwargs
     }
 
     try:
-        response = requests.post(rpc_url, json=payload)
+        response = requests.post(rpc_url, json=payload, timeout=30)
     except Exception as e:
         raise NetworkException(f"Failed to connect to RPC interface: {str(e)}")
 
