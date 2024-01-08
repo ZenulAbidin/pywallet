@@ -8,4 +8,4 @@ base58==2.1.1
 #web3==6.13.0
 # The web3 package currently pulls setuptools which makes tests run longer.
 # This fork bypasses that. This is a temporary workaround.
-git+https://github.com/ZenulAbidin/web3
+git+https://github.com/ZenulAbidin/web3.py
