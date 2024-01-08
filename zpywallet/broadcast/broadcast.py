@@ -1,3 +1,4 @@
+import asyncio
 from .bcy.all import broadcast_transaction_bcy, tx_hash_bcy
 from .btc.all import broadcast_transaction_btc, tx_hash_btc
 from .btctest.all import broadcast_transaction_btctest, tx_hash_btctest
@@ -13,28 +14,28 @@ from ..network import *
 def broadcast_transaction(transaction: bytes, network):
     if network.COIN == "BTC":
         if not network.TESTNET:
-            return broadcast_transaction_btc(transaction)
+            asyncio.run(broadcast_transaction_btc(transaction))
         else:
-            return broadcast_transaction_btctest(transaction)
+            asyncio.run(broadcast_transaction_btctest(transaction))
     elif network.COIN == "LTC":
         if not network.TESTNET:
-            return broadcast_transaction_ltc(transaction)
+            asyncio.run(broadcast_transaction_ltc(transaction))
         else:
             broadcast_transaction_ltctest(transaction)
     elif network.COIN == "DASH":
         if not network.TESTNET:
-            return broadcast_transaction_dash(transaction)
+            asyncio.run(broadcast_transaction_dash(transaction))
         else:
             broadcast_transaction_dashtest(transaction)
     elif network.COIN == "DOGE":
         if not network.TESTNET:
-            return broadcast_transaction_doge(transaction)
+            asyncio.run(broadcast_transaction_doge(transaction))
         else:
             broadcast_transaction_dogetest(transaction)
     elif network.COIN == "ETH":
-        return broadcast_transaction_eth(transaction)
+        asyncio.run(broadcast_transaction_eth(transaction))
     elif network.COIN == "BCY":
-        return broadcast_transaction_bcy(transaction)
+        asyncio.run(broadcast_transaction_bcy(transaction))
     else:
         raise ValueError("Cannot broadcast transaction: Unsupported network")
     
@@ -42,27 +43,27 @@ def broadcast_transaction(transaction: bytes, network):
 def tx_hash(transaction: bytes, network):
     if network.COIN == "BTC":
         if not network.TESTNET:
-            return tx_hash_btc(transaction)
+            asyncio.run(tx_hash_btc(transaction))
         else:
-            return tx_hash_btctest(transaction)
+            asyncio.run(tx_hash_btctest(transaction))
     elif network.COIN == "LTC":
         if not network.TESTNET:
-            return tx_hash_ltc(transaction)
+            asyncio.run(tx_hash_ltc(transaction))
         else:
             tx_hash_ltctest(transaction)
     elif network.COIN == "DASH":
         if not network.TESTNET:
-            return tx_hash_dash(transaction)
+            asyncio.run(tx_hash_dash(transaction))
         else:
             tx_hash_dashtest(transaction)
     elif network.COIN == "DOGE":
         if not network.TESTNET:
-            return tx_hash_doge(transaction)
+            asyncio.run(tx_hash_doge(transaction))
         else:
             tx_hash_dogetest(transaction)
     elif network.COIN == "ETH":
-        return tx_hash_eth(transaction)
+        asyncio.run(tx_hash_eth(transaction))
     elif network.COIN == "BCY":
-        return tx_hash_bcy(transaction)
+        asyncio.run(tx_hash_bcy(transaction))
     else:
         raise ValueError("Cannot broadcast transaction: Unsupported network")
