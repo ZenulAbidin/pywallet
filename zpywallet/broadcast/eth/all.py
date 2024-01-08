@@ -9,7 +9,7 @@ from ...nodes.eth import *
 
 
 def tx_hash_eth(raw_transaction_hex):
-    return binascii.hexlify(hashlib.sha256(hashlib.sha256(raw_transaction_hex).digest()).digest())
+    return b"0x" + binascii.hexlify(hashlib.sha256(hashlib.sha256(raw_transaction_hex).digest()).digest())
 
 async def broadcast_transaction_eth(raw_transaction_hex: bytes, **kwargs):
     rpc_nodes = kwargs.get('rpc_nodes') or []
