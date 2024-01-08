@@ -1,7 +1,7 @@
 import requests
 from ...errors import NetworkException
 
-def broadcast_transaction_btc_blockchair(raw_transaction_hex):
+async def broadcast_transaction_btc_blockchair(raw_transaction_hex):
     api_url = "https://api.blockchair.com/bitcoin/push/transaction"
 
     payload = {"data": raw_transaction_hex}

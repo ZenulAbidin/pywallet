@@ -1,9 +1,8 @@
 import requests
-import hashlib
 
 from ...errors import NetworkException
 
-def broadcast_transaction_btc_esplora(raw_transaction_hex, esplora_url):
+async def broadcast_transaction_btc_esplora(raw_transaction_hex, esplora_url):
     api_url = f"{esplora_url}/tx"
     payload = {"tx": raw_transaction_hex}
 

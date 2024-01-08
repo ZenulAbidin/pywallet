@@ -1,9 +1,8 @@
 import requests
-import hashlib
 
 from ...errors import NetworkException
 
-def broadcast_transaction_ltc_blockstream(raw_transaction_hex):
+async def broadcast_transaction_ltc_blockstream(raw_transaction_hex):
     api_url = "https://blockstream.info/ltc/tx"
     payload = {"tx": raw_transaction_hex}
 

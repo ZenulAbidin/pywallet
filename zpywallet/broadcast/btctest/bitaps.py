@@ -1,9 +1,8 @@
 import requests
-import hashlib
 
 from ...errors import NetworkException
 
-def broadcast_transaction_btctest_bitaps(raw_transaction_hex):
+async def broadcast_transaction_btctest_bitaps(raw_transaction_hex):
     api_url = "https://api.bitaps.com/btc/testnet/v1/create/tx/push"
     payload = {"hex": raw_transaction_hex}
 

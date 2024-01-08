@@ -1,9 +1,8 @@
 import requests
-import hashlib
 
 from ...errors import NetworkException
 
-def broadcast_transaction_btctest_mempool_space(raw_transaction_hex):
+async def broadcast_transaction_btctest_mempool_space(raw_transaction_hex):
     api_url = "https://mempool.space/testnet/api/tx"
     payload = {"hex": raw_transaction_hex}
 

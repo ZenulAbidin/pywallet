@@ -1,8 +1,15 @@
 import requests
 from ...errors import NetworkException
 
-def broadcast_transaction_dogetest_full_node(raw_transaction_hex, rpc_user, rpc_password, rpc_host, rpc_port):
-    rpc_url = f"http://{rpc_user}:{rpc_password}@{rpc_host}:{rpc_port}"
+async def broadcast_transaction_dogetest_full_node(raw_transaction_hex, **kwargs):
+    user = kwargs['user']
+    password = kwargs['password']
+    url = kwargs['url']
+    if user and password:
+        rpc_url = f"http://{user}:{password}@{url}"
+    else:
+        rpc_url = url
+        
     payload = {
         "jsonrpc": "2.0",
         "id": "1",

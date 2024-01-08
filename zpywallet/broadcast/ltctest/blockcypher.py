@@ -1,9 +1,8 @@
 import requests
-import hashlib
 
 from ...errors import NetworkException
 
-def broadcast_transaction_ltctest_blockcypher(raw_transaction_hex):
+async def broadcast_transaction_ltctest_blockcypher(raw_transaction_hex):
     api_url = "https://api.blockcypher.com/v1/ltc/test3/txs/push"
     payload = {"tx": raw_transaction_hex}
 

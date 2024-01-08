@@ -1,9 +1,8 @@
 import requests
-import hashlib
 
 from ...errors import NetworkException
 
-def broadcast_transaction_btc_viabtc(raw_transaction_hex):
+async def broadcast_transaction_btc_viabtc(raw_transaction_hex):
     api_url = "https://www.viabtc.com/res/tx/send"
     payload = {"rawtx": raw_transaction_hex}
 

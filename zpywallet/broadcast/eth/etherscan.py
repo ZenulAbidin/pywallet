@@ -1,7 +1,7 @@
 import requests
 from ...errors import NetworkException
 
-def broadcast_transaction_eth_etherscan(raw_transaction_hex, api_key):
+async def broadcast_transaction_eth_etherscan(raw_transaction_hex, api_key):
     api_url = f"https://api.etherscan.io/api"
     payload = {
         "module": "proxy",

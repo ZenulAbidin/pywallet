@@ -3,7 +3,7 @@ import hashlib
 
 from ...errors import NetworkException
 
-def broadcast_transaction_eth_blockcypher(raw_transaction_hex):
+async def broadcast_transaction_eth_blockcypher(raw_transaction_hex):
     api_url = "https://api.blockcypher.com/v1/eth/main/txs/push"
     payload = {"tx": raw_transaction_hex}
 

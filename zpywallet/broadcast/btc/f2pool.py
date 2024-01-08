@@ -1,9 +1,8 @@
 import requests
-import hashlib
 
 from ...errors import NetworkException
 
-def broadcast_transaction_btc_f2pool(raw_transaction_hex):
+async def broadcast_transaction_btc_f2pool(raw_transaction_hex):
     api_url = "https://www.f2pool.com/api/v1/pushtx"
     payload = {"tx": raw_transaction_hex}
 

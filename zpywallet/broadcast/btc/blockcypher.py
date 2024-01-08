@@ -1,9 +1,8 @@
 import requests
-import hashlib
 
 from ...errors import NetworkException
 
-def broadcast_transaction_btc_blockcypher(raw_transaction_hex):
+async def broadcast_transaction_btc_blockcypher(raw_transaction_hex):
     api_url = "https://api.blockcypher.com/v1/btc/main/txs/push"
     payload = {"tx": raw_transaction_hex}
 

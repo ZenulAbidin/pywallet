@@ -1,7 +1,7 @@
 import requests
 from ...errors import NetworkException
 
-def broadcast_transaction_eth_mew(raw_transaction_hex):
+async def broadcast_transaction_eth_mew(raw_transaction_hex):
     api_url = "https://api.mewapi.io/v1/transaction/sendRaw"
 
     payload = {

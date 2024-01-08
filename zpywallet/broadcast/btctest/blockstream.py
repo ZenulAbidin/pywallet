@@ -1,9 +1,8 @@
 import requests
-import hashlib
 
 from ...errors import NetworkException
 
-def broadcast_transaction_btctest_blockstream(raw_transaction_hex):
+async def broadcast_transaction_btctest_blockstream(raw_transaction_hex):
     api_url = "https://blockstream.info/testnet/api/tx"
     payload = {"tx": raw_transaction_hex}
 

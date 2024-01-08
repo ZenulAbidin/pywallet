@@ -1,9 +1,8 @@
 import requests
-import hashlib
 
 from ...errors import NetworkException
 
-def broadcast_transaction_btc_smartbit(raw_transaction_hex):
+async def broadcast_transaction_btc_smartbit(raw_transaction_hex):
     api_url = "https://api.smartbit.com.au/v1/blockchain/pushtx"
     payload = {"hex": raw_transaction_hex}
 
