@@ -1,4 +1,5 @@
 import requests
+import random
 from ...errors import NetworkException
 
 async def broadcast_transaction_btc_full_node(raw_transaction_hex, **kwargs):
@@ -12,7 +13,7 @@ async def broadcast_transaction_btc_full_node(raw_transaction_hex, **kwargs):
         
     payload = {
         "jsonrpc": "2.0",
-        "id": "1",
+        "id": f"{random.randint(1, (2<<31) - 1)}",
         "method": "sendrawtransaction",
         "params": [raw_transaction_hex],
     }

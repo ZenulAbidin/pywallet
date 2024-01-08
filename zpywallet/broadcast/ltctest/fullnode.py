@@ -1,3 +1,4 @@
+import random
 import requests
 from ...errors import NetworkException
 
@@ -12,7 +13,7 @@ async def broadcast_transaction_ltctest_full_node(raw_transaction_hex, **kwargs)
         
     payload = {
         "jsonrpc": "2.0",
-        "id": "1",
+        "id": f"{random.randint(1, (2<<31) - 1)}",
         "method": "sendrawtransaction",
         "params": [raw_transaction_hex],
     }
