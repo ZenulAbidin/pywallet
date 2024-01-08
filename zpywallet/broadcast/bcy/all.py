@@ -12,4 +12,7 @@ async def broadcast_transaction_bcy(raw_transaction_hex: bytes):
 
     tasks.append(asyncio.create_task(broadcast_transaction_bcy_blockcypher(raw_transaction_hex)))
     
-    await asyncio.gather(*tasks, return_exceptions=True)
+    try:
+        await asyncio.gather(*tasks, return_exceptions=True)
+    except Exception as e:
+        pass

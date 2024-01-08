@@ -20,4 +20,7 @@ async def broadcast_transaction_dash(raw_transaction_hex: bytes, **kwargs):
     for node in dash_nodes:
         tasks.append(asyncio.create_task(broadcast_transaction_dash_full_node(raw_transaction_hex, **node)))
     
-    await asyncio.gather(*tasks, return_exceptions=True)
+    try:
+        await asyncio.gather(*tasks, return_exceptions=True)
+    except Exception as e:
+        pass

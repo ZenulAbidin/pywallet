@@ -21,4 +21,7 @@ async def broadcast_transaction_ltctest(raw_transaction_hex: bytes, **kwargs):
     for node in rpc_nodes:
         tasks.append(asyncio.create_task(broadcast_transaction_ltctest_full_node(raw_transaction_hex, **node)))
     
-    await asyncio.gather(*tasks, return_exceptions=True)
+    try:
+        await asyncio.gather(*tasks, return_exceptions=True)
+    except Exception as e:
+        pass
