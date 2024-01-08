@@ -8,5 +8,8 @@ doge_nodes = [
     },
     {
         'url': 'https://dogechain.rpc.thirdweb.com/'
+    },
+    {
+        'url': 'https://rpc.dogechain.dog'
     }
 ]
