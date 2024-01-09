@@ -1,8 +1,8 @@
-from .blockcypher import BlockcypherAPIClient
+from .blockcypher import BlockcypherAddress
 from ...generated import wallet_pb2
 from ...errors import NetworkException
 
-class BCYAPIClient:
+class BCYAddress:
     """ Load balancer for all BCY address providers provided to an instance of this class,
         using the round robin scheduling algorithm.
 
@@ -10,12 +10,13 @@ class BCYAPIClient:
     """
 
     def __init__(self, providers: bytes, addresses, max_cycles=100,
-                 transactions=None, blockcypher_tokens=None):
+                 transactions=None, **kwargs):
         provider_bitmask = int.from_bytes(providers, 'big')
         self.provider_list = []
         self.current_index = 0
         self.addresses = addresses
         self.max_cycles = max_cycles
+        blockcypher_tokens = kwargs.get('blockcypher_tokens')
 
         # Set everything to an empty list so that providers do not immediately start fetching
         # transactions and to avoid exceptions in loops later in this method.
@@ -35,10 +36,18 @@ class BCYAPIClient:
             if not tokens:
                 tokens = []
             for token in tokens:
-                self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions, api_key=token))
-            self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions)) # No token (free) version
+                self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, api_key=token))
+            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions)) # No token (free) version
 
-        
+    def sync(self):
+        working_provider_list = []
+        for provider in self.provider_list:
+            try:
+                provider.sync()
+                working_provider_list.append(provider)
+            except NetworkException:
+                pass
+        self.provider_list = working_provider_list
         self.get_transaction_history()
 
     def get_balance(self):
@@ -84,7 +93,9 @@ class BCYAPIClient:
         if not self.provider_list:
             return
         
-        self.current_index = (self.current_index + 1) % len(self.provider_list)
+        newindex = (self.current_index + 1) % len(self.provider_list)
+        self.provider_list[newindex].transactions = self.provider_list[self.current_index].transactions
+        self.current_index = newindex
     
     def get_transaction_history(self):
         ntransactions = -1  # Set to invalid value for the first iteration

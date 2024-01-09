@@ -41,13 +41,13 @@ from .network import (
     BlockcypherTestNet
 )
 
-from .address.bcy.loadbalancer import BCYAPIClient
-from .address.btc.loadbalancer import BitcoinAPIClient
-from .address.btctest.loadbalancer import BitcoinTestAPIClient
-from .address.dash.loadbalancer import DashAPIClient
-from .address.doge.loadbalancer import DogecoinAPIClient
-from .address.eth.loadbalancer import EthereumAPIClient
-from .address.ltc.loadbalancer import LitecoinAPIClient
+from .address.bcy.loadbalancer import BCYAddress
+from .address.btc.loadbalancer import BitcoinAddress
+from .address.btctest.loadbalancer import BitcoinTestAddress
+from .address.dash.loadbalancer import DashAddress
+from .address.doge.loadbalancer import DogecoinAddress
+from .address.eth.loadbalancer import EthereumAddress
+from .address.ltc.loadbalancer import LitecoinAddress
 
 from .utils.aes import encrypt
 
@@ -220,19 +220,19 @@ class Wallet:
             
 
         if network == BlockcypherTestNet:
-            address_client = BCYAPIClient(providers, addresses, transactions=transactions,
+            address_client = BCYAddress(providers, addresses, transactions=transactions,
                                               blockcypher_token=blockcypher_token,
                                               max_cycles=max_cycles
                                               )
         elif network == BitcoinSegwitMainNet or network == BitcoinMainNet:
-            address_client = BitcoinAPIClient(providers, addresses, transactions=transactions,
+            address_client = BitcoinAddress(providers, addresses, transactions=transactions,
                                               esplora_endpoints=esplora_endpoints,
                                               fullnode_endpoints=fullnode_endpoints,
                                               blockcypher_token=blockcypher_token,
                                               max_cycles=max_cycles
                                               )
         elif network == BitcoinSegwitTestNet or network == BitcoinTestNet:
-            address_client = BitcoinTestAPIClient(providers, addresses, transactions=transactions,
+            address_client = BitcoinTestAddress(providers, addresses, transactions=transactions,
                                               esplora_endpoints=esplora_endpoints,
                                               fullnode_endpoints=fullnode_endpoints,
                                               blockcypher_token=blockcypher_token,
@@ -240,25 +240,25 @@ class Wallet:
                                               )
         elif network == LitecoinSegwitMainNet or network == LitecoinMainNet or \
                 network == LitecoinBTCSegwitMainNet or network == LitecoinBTCMainNet:
-            address_client = LitecoinAPIClient(providers, addresses, transactions=transactions,
+            address_client = LitecoinAddress(providers, addresses, transactions=transactions,
                                               fullnode_endpoints=fullnode_endpoints,
                                               blockcypher_token=blockcypher_token,
                                               max_cycles=max_cycles
                                               )
         elif network == DogecoinMainNet or network == DogecoinBTCMainNet:
-            address_client = DogecoinAPIClient(providers, addresses, transactions=transactions,
+            address_client = DogecoinAddress(providers, addresses, transactions=transactions,
                                               blockcypher_token=blockcypher_token,
                                               max_cycles=max_cycles
                                               )
         elif network == DashMainNet or network == DashInvertedMainNet or \
                 network == DashBTCMainNet:
-            address_client = DashAPIClient(providers, addresses, transactions=transactions,
+            address_client = DashAddress(providers, addresses, transactions=transactions,
                                               fullnode_endpoints=fullnode_endpoints,
                                               blockcypher_token=blockcypher_token,
                                               max_cycles=max_cycles
                                               )
         elif network == EthereumMainNet:
-            address_client = EthereumAPIClient(providers, addresses, transactions=transactions,
+            address_client = EthereumAddress(providers, addresses, transactions=transactions,
                                               fullnode_endpoints=fullnode_endpoints,
                                               alchemy_token=alchemy_token,
                                               getblock_token=getblock_token,

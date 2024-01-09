@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # flake8: noqa: C0301
 
-"""Tests for `zpywallet` package."""
+"""Tests for transaction broadcasting."""
 
 import binascii
 import unittest

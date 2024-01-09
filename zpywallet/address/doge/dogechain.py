@@ -1,6 +1,9 @@
-from functools import reduce
-import time
 import requests
+import time
+import websocket
+import json
+
+from functools import reduce
 
 from ...errors import NetworkException
 from ...utils.utils import convert_to_utc_timestamp
@@ -9,85 +12,101 @@ from ...generated import wallet_pb2
 def deduplicate(elements):
     return reduce(lambda re, x: re+[x] if x not in re else re, elements, [])
 
-class BlockcypherAddress:
+class DogeChainAddress:
     """
-    A class representing a Litecoin address.
+    A class representing a Dogecoin address.
 
-    This class allows you to retrieve the balance and transaction history of a Litecoin address using the Blockcypher API.
+    This class allows you to retrieve the balance and transaction history of a Dogecoin address using the DogeChain API.
 
     Args:
-        address (str): The human-readable Litecoin address.
-        api_key (str): The API key for accessing the Blockcypher API.
+        address (str): The human-readable Dogecoin address.
 
     Attributes:
-        address (str): The human-readable Litecoin address.
-        api_key (str): The API key for accessing the Blockcypher API.
+        address (str): The human-readable Dogecoin address.
 
     Methods:
-        get_balance(): Retrieves the balance of the Litecoin address.
-        get_transaction_history(): Retrieves the transaction history of the Litecoin address.
+        get_balance(): Retrieves the balance of the Dogecoin address.
+        get_transaction_history(): Retrieves the transaction history of the Dogecoin address.
 
     Raises:
         Exception: If the API request fails or the address balance/transaction history cannot be retrieved.
     """
 
     def _clean_tx(self, element):
+        url = f"https://dogechain.info/api/v1/transaction/{element['hash']}"
+        for attempt in range(3, -1, -1):
+            if attempt == 0:
+                raise NetworkException("Network request failure")
+            try:
+                response = requests.get(url, timeout=60)
+                if response.status_code == 200:
+                    data = element
+                    element = response.json()['transaction']
+                    break
+                else:
+                    raise NetworkException("Failed to retrieve transaction history")
+            except requests.RequestException:
+                pass
+
         new_element = wallet_pb2.Transaction()
         new_element.txid = element['hash']
         
-        if 'block_height' not in element.keys():
+        if element['confirmations'] == 0:
             new_element.confirmed = False
-        elif element['block_height'] == -1:
-            new_element.confirmed = False
-        elif element['block_index'] == 0:
-            new_element.confirmed = True
             new_element.height = 0
         else:
             new_element.confirmed = True
-            new_element.height = element['block_height']
+            url = f"https://dogechain.info/api/v1/block/{element['block_hash']}"
+            for attempt in range(3, -1, -1):
+                if attempt == 0:
+                    raise NetworkException("Network request failure")
+                try:
+                    response = requests.get(url, timeout=60)
+                    if response.status_code == 200:
+                        new_element.height = response.json()['block']['height']
+                        break
+                    else:
+                        raise NetworkException("Failed to retrieve transaction history")
+                except requests.RequestException:
+                    pass
         
-        if 'confirmed' in element.keys():
-            new_element.timestamp = convert_to_utc_timestamp(element['confirmed'].split(".")[0].split('Z')[0], '%Y-%m-%dT%H:%M:%S')
+        new_element.timestamp = element['time']
         
         for vin in element['inputs']:
             txinput = new_element.btclike_transaction.inputs.add()
-            txinput.txid = '' if 'prev_hash' not in vin.keys() else vin['prev_hash']
-            txinput.index = vin['output_index']
-            txinput.amount = 0 if 'output_value' not in vin.keys() else int(vin['output_value'])
+            txinput.txid = '' if 'previous_output' not in vin.keys() else vin['previous_output'].get('hash') or ''
+            txinput.index = 0 if 'previous_output' not in vin.keys() else vin['previous_output'].get('pos') or 0
+            txinput.amount = 0 if 'value' not in vin.keys() else int(float(vin['value']) * 1e8)
         
         i = 0
         for vout in element['outputs']:
             txoutput = new_element.btclike_transaction.outputs.add()
-            txoutput.amount = int(vout['value'])
+            txoutput.amount = int(float(vout['value']) * 1e8)
             txoutput.index = i
             i += 1
-            if vout['addresses']:
-                txoutput.address = vout['addresses'][0]
-            txoutput.spent = 'spent_by' in vout.keys()
+            txoutput.address = vout['address']
+            txoutput.spent = vout['spent'] is not None
         
         # Now we must calculate the total fee
         total_inputs = sum([a.amount for a in new_element.btclike_transaction.inputs])
         total_outputs = sum([a.amount for a in new_element.btclike_transaction.outputs])
         new_element.total_fee = total_inputs - total_outputs
 
-        size_element = element['vsize'] if 'vsize' in element.keys() else element['size']
-        new_element.btclike_transaction.fee = int(new_element.total_fee // size_element)
-        new_element.fee_metric = wallet_pb2.VBYTE
+        new_element.btclike_transaction.fee = int(float(element['fee']) * 1e8)
+        new_element.fee_metric = wallet_pb2.BYTE
         
         return new_element
 
-    def __init__(self, addresses, request_interval=(3,1), transactions=None, api_key=None):
+    def __init__(self, addresses, request_interval=(3,1), transactions=None):
         """
-        Initializes an instance of the BlockcypherAddress class.
+        Initializes an instance of the DogeChainAddress class.
 
         Args:
-            addresses (list): A list of human-readable Litecoin addresses.
-            api_key (str): The API key for accessing the Blockcypher API.
+            addresses (list): A list of human-readable Dogecoin addresses.
             request_interval (tuple): A pair of integers indicating the number of requests allowed during
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
         self.addresses = addresses
-        self.api_key = api_key
         self.requests, self.interval_sec = request_interval
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
@@ -100,10 +119,10 @@ class BlockcypherAddress:
 
     def get_balance(self):
         """
-        Retrieves the balance of the Bitcoin address.
+        Retrieves the balance of the Dogecoin address.
 
         Returns:
-            float: The balance of the Bitcoin address in BTC.
+            float: The balance of the Dogecoin address in BTC.
 
         Raises:
             Exception: If the API request fails or the address balance cannot be retrieved.
@@ -114,23 +133,17 @@ class BlockcypherAddress:
         for utxo in utxos:
             total_balance += utxo["amount"]
             # Careful: Block height #0 is the Genesis block - don't want to exclude that.
-            # (Not that it returns it ever though!)
             if utxo["confirmed"]:
                 confirmed_balance += utxo["amount"]
         return total_balance, confirmed_balance
         
     def get_utxos(self):
-        self.height = self.get_block_height()
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions)-1, -1, -1):
-            for utxo in [u for u in utxos]:
-                # Check if any utxo has been spent in this transaction
-                for vin in self.transactions[i].inputs:
-                    if vin.spent or (vin.txid == utxo["txid"] and vin["index"] == utxo.index):
-                        # Spent
-                        utxos.remove(utxo)
             for out in self.transactions[i].outputs:
+                if out.spent:
+                    continue
                 if out.address in self.addresses:
                     utxo = {}
                     utxo["address"] = out.address
@@ -145,31 +158,37 @@ class BlockcypherAddress:
     def get_block_height(self):
         """Returns the current block height."""
 
-        url = "https://api.blockcypher.com/v1/ltc/main"
-        params = None
-        if self.api_key:
-            params = {"token", self.api_key}
+        # Dogechain gives us the block height through a web socket
+        # This only works because the block mining for Dogecoin is very fast.
+        uri = "wss://ws.dogechain.info/inv"
         for attempt in range(3, -1, -1):
             if attempt == 0:
-                raise NetworkException("Network request failure")
+                                raise NetworkException("Network request failure")
             try:
-                response = requests.get(url, params=params, timeout=60)
-                if response.status_code == 200:
-                    data = response.json()
-                else:
-                    raise NetworkException("Failed to retrieve block height")
-                break
+                ws = websocket.create_connection(uri)
+                message = {"op": "ping_block"}
+                ws.send(json.dumps(message))
+
+                # Ignore the pong response
+                ws.recv()
+                # And get the real response
+                response = json.loads(ws.recv())
             except requests.RequestException:
                 pass
-            except requests.exceptions.JSONDecodeError:
-                pass
-
-        self.height = data["height"]
+            finally:
+                try:
+                    ws.close()
+                except Exception:
+                    pass
+                break
+        
+        self.height = response['x']['height']
         return self.height
+        
 
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Litecoin address from cached data augmented with network data.
+        Retrieves the transaction history of the Dogecoin address from cached data augmented with network data.
 
         Returns:
             list: A list of dictionaries representing the transaction history.
@@ -185,13 +204,13 @@ class BlockcypherAddress:
             txs = [*self._get_transaction_history(txhash)]
             txs.extend(self.transactions)
             self.transactions = txs
-                    
+
         self.transactions = deduplicate(self.transactions)
         return self.transactions
 
     def _get_transaction_history(self, txhash=None):
         """
-        Retrieves the transaction history of the Litecoin address. (internal method that makes the network query)
+        Retrieves the transaction history of the Dogecoin address. (internal method that makes the network query)
 
         Parameters:
             txhash (str): Get all transactions before (and not including) txhash.
@@ -203,61 +222,50 @@ class BlockcypherAddress:
         Raises:
             Exception: If the API request fails or the transaction history cannot be retrieved.
         """
-        params = None
-        if self.api_key:
-            params = {"token", self.api_key}
         for address in self.addresses:
-            interval = 50
-            block_height = 0
-
-            # Set a very high UTXO limit for those rare address that have crazy high input/output counts.
-            txlimit = 10000
-
-            url = f"https://api.blockcypher.com/v1/ltc/main/addrs/{address}/full?limit={interval}&txlimit={txlimit}"
+            i = 1
+            url = f"https://dogechain.info/api/v1/address/transactions/{address}/{i}"
             for attempt in range(3, -1, -1):
                 if attempt == 0:
                     raise NetworkException("Network request failure")
                 try:
-                    response = requests.get(url, params=params, timeout=60)
+                    response = requests.get(url, timeout=60)
                     if response.status_code == 200:
                         data = response.json()
                         break
                     else:
-                        raise NetworkException("Failed to retrieve transaction history")
+                                                raise NetworkException("Failed to retrieve transaction history")
                 except requests.RequestException:
                     pass
 
-            for tx in data["txs"]:
-                time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
+            for tx in data["transactions"]:
+                time.sleep(self.interval_sec/(self.requests*len(data["transactions"])))
                 if txhash and tx["hash"] == txhash:
                     return
                 yield self._clean_tx(tx)
-            if 'hasMore' not in data.keys():
+            if not data["transactions"]:
                 return
-            else:
-                block_height = data["txs"][-1]["block_height"]
             
-            while 'hasMore' in data.keys() and data['hasMore']:
-                url = f"https://api.blockcypher.com/v1/ltc/main/addrs/{address}/full?limit={interval}&before={block_height}&txlimit={txlimit}"
+            while data["transactions"]:
+                i += 1
+                url = f"https://dogechain.info/api/v1/address/transactions/{address}/{i}"
                 for attempt in range(3, -1, -1):
                     if attempt == 0:
-                        raise NetworkException("Network request failure")
+                                                raise NetworkException("Network request failure")
                     try:
-                        response = requests.get(url, params=params, timeout=60)
+                        response = requests.get(url, timeout=60)
                         break
                     except requests.RequestException:
                         pass
 
                 if response.status_code == 200:
                     data = response.json()
-                    for tx in data["txs"]:
-                        time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
+                    for tx in data["transactions"]:
+                        time.sleep(self.interval_sec/(self.requests*len(data["transactions"])))
                         if txhash and tx["hash"] == txhash:
                             return
                         yield self._clean_tx(tx)
-                    if 'hasMore' not in data.keys():
+                    if not data["transactions"]:
                         return
-                    else:
-                        block_height = data["txs"][-1]["block_height"]
                 else:
-                    raise NetworkException("Failed to retrieve transaction history")
+                                        raise NetworkException("Failed to retrieve transaction history")

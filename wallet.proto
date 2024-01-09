@@ -53,6 +53,7 @@ enum DASHProvider {
 
 enum DOGEProvider {
   DOGE_BLOCKCYPHER = 0;
+  DOGE_DOGECHAIN = 1;
 }
 
 enum ETHProvider {
@@ -62,6 +63,12 @@ enum ETHProvider {
 enum LTCProvider {
   LTC_BLOCKCYPHER = 0;
   LTC_FULLNODE = 1;
+}
+
+message RPCNode {
+  string url = 1;
+  string user = 2;
+  string password = 3;
 }
 
 message Wallet {
@@ -74,8 +81,8 @@ message Wallet {
     repeated Address addresses = 6;
     repeated Transaction transactions = 7;
     uint32 crypto_providers = 8;
-    repeated string fullnode_endpoints = 9;
-    repeated string esplora_endpoints = 10;
+    repeated RPCNode fullnode_endpoints = 9;
+    repeated RPCNode esplora_endpoints = 10;
     repeated string blockcypher_tokens = 11;
 }
 

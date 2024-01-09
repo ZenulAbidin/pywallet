@@ -4,7 +4,7 @@ import time
 from ...errors import NetworkException
 from ...generated import wallet_pb2
 
-class BlockchainInfoAPIClient:
+class BlockchainInfoAddress:
     """
     A class representing a Bitcoin address.
 
@@ -50,7 +50,10 @@ class BlockchainInfoAPIClient:
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
-            self.transactions = [*self._get_transaction_history()]
+            self.transactions = []
+
+    def sync(self):
+        self.transactions = [*self._get_transaction_history()]
         self.height = self.get_block_height()
 
     def _clean_tx(self, element):
@@ -63,7 +66,7 @@ class BlockchainInfoAPIClient:
             new_element.confirmed = False
 
         if new_element.confirmed:
-            new_element.timestamp = element['block_time']
+            new_element.timestamp = element['time']
 
         for vin in element['inputs']:
             txinput = new_element.btclike_transaction.inputs.add()
@@ -73,23 +76,23 @@ class BlockchainInfoAPIClient:
             # and once we get a sane API, we can fill in the txid properly.
             # (It also only supports Bitcoin, so there's that.)
             txinput.index = vin['prev_out']['n']
-            txinput.amount = vin['prev_out']['value'] / 1e8
+            txinput.amount = int(vin['prev_out']['value'] * 1e8)
         
         for vout in element['out']:
             txoutput = new_element.btclike_transaction.outputs.add()
-            txoutput.amount = vout['value'] / 1e8
+            txoutput.amount = int(vout['value'] * 1e8)
             txoutput.index = vout['n']
             if 'addr' in vout.keys():
                 txoutput.address = vout['addr']
             txoutput.spent = vout['spent']
         
         # Now we must calculate the total fee
-        total_inputs = sum([a['amount'] for a in new_element.btclike_transaction.inputs])
-        total_outputs = sum([a['amount'] for a in new_element.btclike_transaction.inputs])
+        total_inputs = sum([a.amount for a in new_element.btclike_transaction.inputs])
+        total_outputs = sum([a.amount for a in new_element.btclike_transaction.outputs])
         new_element.total_fee = total_inputs - total_outputs
 
         # Blockchain.info API does not support vbytes. It only returns bytes.
-        new_element.btclike_transaction.fee = new_element.total_fee / element['size']
+        new_element.btclike_transaction.fee = int(new_element.total_fee // element['size'])
         new_element.fee_metric = wallet_pb2.BYTE
         
         return new_element
@@ -153,6 +156,8 @@ class BlockchainInfoAPIClient:
                 break
             except requests.RequestException:
                 pass
+            except requests.exceptions.JSONDecodeError:
+                pass
         if response.status_code == 200:
             return response.json()["height"]
         else:
@@ -171,15 +176,14 @@ class BlockchainInfoAPIClient:
         """
         self.height = self.get_block_height()
         if len(self.transactions) == 0:
-            self.transactions = [*self.get_transaction_history()]
+            self.transactions = [*self._get_transaction_history()]
         else:
             # First element is the most recent transactions
             txhash = self.transactions[0].txid
             txs = [*self._get_transaction_history(txhash)]
             txs.extend(self.transactions)
             self.transactions = txs
-            del txs
-        
+                    
         return self.transactions
 
     def _get_transaction_history(self, txhash=None):
@@ -206,12 +210,14 @@ class BlockchainInfoAPIClient:
                     raise NetworkException("Network request failure")
                 try:
                     response = requests.get(url, timeout=60)
-                    break
+                    if response.status_code == 200:
+                        data = response.json()
+                        break
+                    else:
+                        raise NetworkException("Failed to retrieve transaction history")
                 except requests.RequestException:
                     pass
 
-            if response.status_code == 200:
-                data = response.json()
                 # The rate limit is 1 request every 10 seconds, so we will amortize the speed bump by sleeping every 200 milliseconds.
                 # Since we have max 50 transactions, total execution time will be at least 10 seconds incuding the sleep time and user
                 # code execution time, and if there are less than 50 transactions, we are finished fetching transactions anyway.

@@ -6,3 +6,5 @@ __all__ = [
     'loadbalancer',
     'mempoolspace'
 ]
+
+from .loadbalancer import BitcoinTestAddress

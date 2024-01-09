@@ -1,42 +1,49 @@
-from .blockcypher import BlockcypherAPIClient
+from .blockcypher import BlockcypherAddress
+from .dogechain import DogeChainAddress
 from ...generated import wallet_pb2
 from ...errors import NetworkException
+from ...nodes.eth import eth_nodes
 
-class DogecoinAPIClient:
+class DogecoinAddress:
     """ Load balancer for all DOGE address providers provided to an instance of this class,
         using the round robin scheduling algorithm.
     """
 
     def __init__(self, providers: bytes, addresses, max_cycles=100,
-                 transactions=None, blockcypher_tokens=None):
+                 transactions=None, **kwargs):
         provider_bitmask = int.from_bytes(providers, 'big')
         self.provider_list = []
         self.current_index = 0
         self.addresses = addresses
         self.max_cycles = max_cycles
+        blockcypher_tokens = kwargs.get('blockcypher_tokens')
 
         # Set everything to an empty list so that providers do not immediately start fetching
         # transactions and to avoid exceptions in loops later in this method.
         if not transactions:
             transactions = []
-        if not esplora_endpoints:
-            esplora_endpoints = []
-        if not fullnode_endpoints:
-            fullnode_endpoints = []
-        if not fullnode_passprotected_endpoints:
-            fullnode_passprotected_endpoints = []
 
         self.transactions = transactions
 
-        if provider_bitmask & 1 << wallet_pb2.DASH_BLOCKCYPHER + 1:
+        if provider_bitmask & 1 << wallet_pb2.DOGE_BLOCKCYPHER + 1:
             tokens = blockcypher_tokens
             if not tokens:
                 tokens = []
             for token in tokens:
-                self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions, api_key=token))
-            self.provider_list.append(BlockcypherAPIClient(addresses, transactions=transactions)) # No token (free) version
+                self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, api_key=token))
+            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions)) # No token (free) version
+        if provider_bitmask & 1 << wallet_pb2.DOGE_DOGECHAIN + 1:
+            self.provider_list.append(DogeChainAddress(addresses, transactions=transactions))
 
-        
+    def sync(self):
+        working_provider_list = []
+        for provider in self.provider_list:
+            try:
+                provider.sync()
+                working_provider_list.append(provider)
+            except NetworkException:
+                pass
+        self.provider_list = working_provider_list
         self.get_transaction_history()
 
     def get_balance(self):
@@ -63,7 +70,7 @@ class DogecoinAPIClient:
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions)-1, -1, -1):
-            for out in self.transactions[i].outputs:
+            for out in self.transactions[i].btclike_transaction.outputs:
                 if out.spent:
                     continue
                 if out.address in self.addresses:
@@ -82,11 +89,12 @@ class DogecoinAPIClient:
         if not self.provider_list:
             return
         
-        self.current_index = (self.current_index + 1) % len(self.provider_list)
+        newindex = (self.current_index + 1) % len(self.provider_list)
+        self.provider_list[newindex].transactions = self.provider_list[self.current_index].transactions
+        self.current_index = newindex
     
     def get_transaction_history(self):
         ntransactions = -1  # Set to invalid value for the first iteration
-        last_transaction = None if len(self.transactions) == 0 else self.transactions[-1]
         cycle = 1
         while ntransactions != len(self.transactions):
             if cycle > self.max_cycles:
@@ -94,12 +102,12 @@ class DogecoinAPIClient:
             ntransactions = len(self.transactions)
             self.provider_list[self.current_index].transactions = self.transactions
             try:
-                self.provider_list[self.current_index].get_transaction_history(txhash=last_transaction)
+                self.provider_list[self.current_index].get_transaction_history()
                 self.transactions = self.provider_list[self.current_index].transactions
                 break
             except NetworkException:
                 self.transactions = self.provider_list[self.current_index].transactions
-                last_transaction = None if len(self.transactions) == 0 else self.transactions[-1]
                 self.advance_to_next_provider()
                 cycle += 1
+        return self.transactions
     

@@ -6,3 +6,4 @@ protobuf==4.25.1
 pycryptodomex==3.18.0
 base58==2.1.1
 web3==6.13.0
+websocket-cient

@@ -4,7 +4,7 @@ import time
 from ...errors import NetworkException
 from ...generated import wallet_pb2
 
-class BTCDotComAPIClient:
+class BTCDotComAddress:
     """
     A class representing a Bitcoin address.
 
@@ -40,12 +40,12 @@ class BTCDotComAPIClient:
             txinput = new_element.btclike_transaction.inputs.add()
             txinput.txid = vin['prev_tx_hash']
             txinput.index = vin['prev_position']
-            txinput.amount = vin['prev_value'] / 1e8
+            txinput.amount = int(vin['prev_value'])
 
         i = 0 
         for vout in element['outputs']:
             txoutput = new_element.btclike_transaction.outputs.add()
-            txoutput.amount = vout['value'] / 1e8
+            txoutput.amount = int(vout['value'])
             txoutput.index = i
             i += 1
             if 'addresses' in vout.keys():
@@ -53,18 +53,18 @@ class BTCDotComAPIClient:
             txoutput.spent = vout['spent_by_tx'] != ""
 
         # Now we must calculate the total fee
-        total_inputs = sum([a['amount'] for a in new_element.btclike_transaction.inputs])
-        total_outputs = sum([a['amount'] for a in new_element.btclike_transaction.outputs])
-        new_element.total_fee = (total_inputs - total_outputs) / 1e8
+        total_inputs = sum([a.amount for a in new_element.btclike_transaction.inputs])
+        total_outputs = sum([a.amount for a in new_element.btclike_transaction.outputs])
+        new_element.total_fee = (total_inputs - total_outputs)
 
-        new_element.btclike_transaction.fee = (total_inputs - total_outputs) / element['vsize']
+        new_element.btclike_transaction.fee = int((total_inputs - total_outputs) // element['vsize'])
         new_element.fee_metric = wallet_pb2.VBYTE
         return new_element
 
     # BTC.com's rate limits are unknown.
     def __init__(self, addresses, request_interval=(1000,1), transactions=None):
         """
-        Initializes an instance of the BTCDotComAPIClient class.
+        Initializes an instance of the BTCDotComAddress class.
 
         Args:
             addresses (list): A list of human-readable Bitcoin addresses.
@@ -76,7 +76,10 @@ class BTCDotComAPIClient:
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
-            self.transactions = [*self._get_transaction_history()]
+            self.transactions = []
+
+    def sync(self):
+        self.transactions = [*self._get_transaction_history()]
         self.height = self.get_block_height()
 
     def get_balance(self):
@@ -128,6 +131,8 @@ class BTCDotComAPIClient:
                 break
             except requests.RequestException:
                 pass
+            except requests.exceptions.JSONDecodeError:
+                pass
         if response.status_code == 200:
             data = response.json()
             self.height = data["data"]["height"]
@@ -149,15 +154,14 @@ class BTCDotComAPIClient:
             Exception: If the API request fails or the transaction history cannot be retrieved.
         """
         if len(self.transactions) == 0:
-            self.transactions = [*self.get_transaction_history()]
+            self.transactions = [*self._get_transaction_history()]
         else:
             # First element is the most recent transactions
             txhash = self.transactions[0].txid
             txs = [*self._get_transaction_history(txhash)]
             txs.extend(self.transactions)
             self.transactions = txs
-            del txs
-        
+                    
         return self.transactions
 
     def _get_transaction_history(self, txhash=None):
@@ -184,12 +188,14 @@ class BTCDotComAPIClient:
                     raise NetworkException("Network request failure")
                 try:
                     response = requests.get(url, timeout=60)
-                    break
+                    if response.status_code == 200:
+                        data = response.json()
+                        break
+                    else:
+                        raise NetworkException("Failed to retrieve transaction history")
                 except requests.RequestException:
                     pass
 
-            if response.status_code == 200:
-                data = response.json()
                 if data["data"]["list"] is None:
                     return
                 for tx in data["data"]["list"]:

@@ -61,42 +61,45 @@ class BitcoinRPCClient:
                 res = self._send_rpc_request('getrawtransaction', params=[vin['txid']])
                 rawtx = res['result']
                 fine_rawtx, _ = parse_transaction_simple(rawtx)
-                txinput.amount = fine_rawtx["outputs"][txinput.index]["value"] / 1e8
+                txinput.amount = int(fine_rawtx["outputs"][txinput.index]["value"])
 
         for vout in element['vout']:
             txoutput = new_element.btclike_transaction.outputs.add()
-            txoutput.amount = vout['value']
+            txoutput.amount = int(vout['value'])
             txoutput.index = vout['n']
             if 'address' in vout['scriptPubKey']:
                 txoutput.address = vout['scriptPubKey']['address']
         
         # Now we must calculate the total fee
-        total_inputs = sum([a['amount'] for a in new_element.btclike_transaction.inputs])
-        total_outputs = sum([a['amount'] for a in new_element.btclike_transaction.outputs])
+        total_inputs = sum([a.amount for a in new_element.btclike_transaction.inputs])
+        total_outputs = sum([a.amount for a in new_element.btclike_transaction.outputs])
 
-        new_element.total_fee = (total_inputs - total_outputs) / 1e8
+        new_element.total_fee = (total_inputs - total_outputs)
 
-        new_element.btclike_transaction.fee = (total_inputs - total_outputs) / element['vsize']
+        new_element.btclike_transaction.fee = int((total_inputs - total_outputs) // element['vsize'])
         new_element.fee_metric = wallet_pb2.VBYTE
         return new_element
 
-    def __init__(self, addresses, rpc_url, rpc_user=None, rpc_password=None, client_number=0, user_id=0, last_update=0, max_tx_at_once=1000, transactions=None):
-        self.rpc_url = rpc_url
-        self.rpc_user = rpc_user
-        self.rpc_password = rpc_password
-        self.client_number = client_number
-        self.user_id = user_id
-        self.max_tx_at_once = max_tx_at_once
+    def __init__(self, addresses, last_update=0, transactions=None, **kwargs):
+        self.rpc_url = kwargs.get('url')
+        self.rpc_user = kwargs.get('user')
+        self.rpc_password = kwargs.get('password')
+        self.client_number = kwargs.get('client_number') or 0
+        self.user_id = kwargs.get('user_id') or 0
+        self.max_tx_at_once = kwargs.get('max_tx_at_once') or 1000
         
         self.transactions = []
         self.addresses = addresses
         self.last_update = last_update
-        self.height = self.get_block_height()
-        self._load_addresses()
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
-            self.transactions = [*self._get_transaction_history()]
+            self.transactions = []
+    
+    def sync(self):
+        self.height = self.get_block_height()
+        self._load_addresses()
+        self.transactions = [*self._get_transaction_history()]
     
     def _send_rpc_request(self, method, params=None, as_wallet=False):
         payload = {
@@ -106,14 +109,19 @@ class BitcoinRPCClient:
             'id': random.randint(1, 999999)
         }
         # Full nodes wallet RPC requests are notoriously slow if there are many transactions in the node.
-        response = requests.post(f"{self.rpc_url}/wallet/zpywallet_{self.client_number}_{self.user_id}" if as_wallet \
-                                 else self.rpc_url, auth=(self.rpc_user, self.rpc_password), json=payload, timeout=86400)
-        #response.raise_for_status()
-        return response.json()
+        try:
+            response = requests.post(f"{self.rpc_url}/wallet/zpywallet_{self.client_number}_{self.user_id}" if as_wallet \
+                                     else self.rpc_url, auth=(self.rpc_user, self.rpc_password), json=payload, timeout=86400)
+            return response.json()
+        except Exception as e:
+            raise NetworkException(f"RPC call failed: {str(e)}")
     
     def get_block_height(self):
         response = self._send_rpc_request('getblockchaininfo')
-        return response['result']['blocks']
+        try:
+            return response['result']['blocks']
+        except Exception as e:
+            raise NetworkException(f"Failed to make RPC Call: {str(e)}")
 
     def _load_addresses(self):
         # Create a new temporary wallet
@@ -194,15 +202,14 @@ class BitcoinRPCClient:
             Exception: If the RPC request fails or the transaction history cannot be retrieved.
         """
         if len(self.transactions) == 0:
-            self.transactions = [*self.get_transaction_history()]
+            self.transactions = [*self._get_transaction_history()]
         else:
             # First element is the most recent transactions
             txhash = self.transactions[0].txid
             txs = [*self._get_transaction_history(txhash)]
             txs.extend(self.transactions)
             self.transactions = txs
-            del txs
-    
+                
     def _get_transaction_history(self, txhash=None):
         try:
             # Load the temporary wallet
