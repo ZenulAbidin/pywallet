@@ -43,7 +43,7 @@ class DogecoinAddress:
                 working_provider_list.append(provider)
             except NetworkException:
                 pass
-        self.provider_list = working_provider_list
+        # self.provider_list = working_provider_list
         self.get_transaction_history()
 
     def get_balance(self):
@@ -60,10 +60,9 @@ class DogecoinAddress:
         total_balance = 0
         confirmed_balance = 0
         for utxo in utxos:
-            total_balance += utxo["amount"]
-            # Careful: Block height #0 is the Genesis block - don't want to exclude that.
-            if utxo["confirmed"]:
-                confirmed_balance += utxo["amount"]
+            total_balance += utxo.amount
+            if utxo.confirmed:
+                confirmed_balance += utxo.amount
         return total_balance, confirmed_balance
         
     def get_utxos(self):
@@ -74,13 +73,13 @@ class DogecoinAddress:
                 if out.spent:
                     continue
                 if out.address in self.addresses:
-                    utxo = {}
-                    utxo["address"] = out.address
-                    utxo["txid"] = self.transactions[i].txid
-                    utxo["index"] = out.index
-                    utxo["amount"] = out.amount
-                    utxo["height"] = self.transactions[i].height
-                    utxo["confirmed"] = self.transactions[i].confirmed
+                    utxo = wallet_pb2.UTXO()
+                    utxo.address = out.address
+                    utxo.txid = self.transactions[i].txid
+                    utxo.index = out.index
+                    utxo.amount = out.amount
+                    utxo.height = self.transactions[i].height
+                    utxo.confirmed = self.transactions[i].confirmed
                     utxos.append(utxo)
         return utxos
 
@@ -99,10 +98,10 @@ class DogecoinAddress:
         while ntransactions != len(self.transactions):
             if cycle > self.max_cycles:
                 raise NetworkException(f"None of the address providers are working after f{self.max_cycles} tries")
-            ntransactions = len(self.transactions)
             self.provider_list[self.current_index].transactions = self.transactions
             try:
                 self.provider_list[self.current_index].get_transaction_history()
+                ntransactions = len(self.transactions)
                 self.transactions = self.provider_list[self.current_index].transactions
                 break
             except NetworkException:

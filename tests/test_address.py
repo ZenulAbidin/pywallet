@@ -52,7 +52,7 @@ class TestBroadcast(unittest.TestCase):
 
     def test_004_eth_address(self):
         """Test fetching Ethereum addressses"""
-        b = DashAddress(b'\xff', ['0x383d4669f177182f2c8c90cecd291190ea04edad'])
+        b = EthereumAddress(b'\xff', ['0x383d4669f177182f2c8c90cecd291190ea04edad'])
         #b.sync() # Do not sync, because that will take forever
         #b.get_transaction_history() # For similar reasons, do not get the transaction history
         b.get_block_height()

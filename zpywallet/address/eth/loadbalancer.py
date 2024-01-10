@@ -37,7 +37,7 @@ class EthereumAddress:
                 working_provider_list.append(provider)
             except NetworkException:
                 pass
-        self.provider_list = working_provider_list
+        # self.provider_list = working_provider_list
         self.get_transaction_history()
 
     def get_balance(self):
@@ -45,40 +45,23 @@ class EthereumAddress:
         Retrieves the balance of the Ethereum address.
 
         Returns:
-            float: The balance of the Ethereum address in LTC.
+            float: The balance of the Ethereum address in ETH.
 
         Raises:
             Exception: If the API request fails or the address balance cannot be retrieved.
         """
-        utxos = self.get_utxos()
-        total_balance = 0
-        confirmed_balance = 0
-        for utxo in utxos:
-            total_balance += utxo["amount"]
-            # Careful: Block height #0 is the Genesis block - don't want to exclude that.
-            if utxo["confirmed"]:
-                confirmed_balance += utxo["amount"]
-        return total_balance, confirmed_balance
-        
-    def get_utxos(self):
-        # Transactions are generated in reverse order
-        #XXX I expect this to fail, because ETH does not use UTXOs!
-        utxos = []
-        for i in range(len(self.transactions)-1, -1, -1):
-            for out in self.transactions[i].btclike_transaction.outputs:
-                if out.spent:
-                    continue
-                if out.address in self.addresses:
-                    utxo = {}
-                    utxo["address"] = out.address
-                    utxo["txid"] = self.transactions[i].txid
-                    utxo["index"] = out.index
-                    utxo["amount"] = out.amount
-                    utxo["height"] = self.transactions[i].height
-                    utxo["confirmed"] = self.transactions[i].confirmed
-                    utxos.append(utxo)
-        return utxos
+        cycle = 1
+        while cycle <= self.max_cycles:
+            self.provider_list[self.current_index].transactions = self.transactions
+            try:
+                return self.provider_list[self.current_index].get_balance()
+            except NetworkException:
+                self.transactions = self.provider_list[self.current_index].transactions
+                self.advance_to_next_provider()
+                cycle += 1
+        raise NetworkException(f"None of the address providers are working after f{self.max_cycles} tries")
 
+        
 
     def advance_to_next_provider(self):
         if not self.provider_list:
@@ -94,10 +77,10 @@ class EthereumAddress:
         while ntransactions != len(self.transactions):
             if cycle > self.max_cycles:
                 raise NetworkException(f"None of the address providers are working after f{self.max_cycles} tries")
-            ntransactions = len(self.transactions)
             self.provider_list[self.current_index].transactions = self.transactions
             try:
                 self.provider_list[self.current_index].get_transaction_history()
+                ntransactions = len(self.transactions)
                 self.transactions = self.provider_list[self.current_index].transactions
                 break
             except NetworkException:

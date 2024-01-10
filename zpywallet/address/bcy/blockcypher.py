@@ -112,9 +112,9 @@ class BlockcypherAddress:
         total_balance = 0
         confirmed_balance = 0
         for utxo in utxos:
-            total_balance += utxo["amount"]
-            if utxo["confirmed"]:
-                confirmed_balance += utxo["amount"]
+            total_balance += utxo.amount
+            if utxo.confirmed:
+                confirmed_balance += utxo.amount
         return total_balance, confirmed_balance
         
     def get_utxos(self):
@@ -125,13 +125,13 @@ class BlockcypherAddress:
                 if out.spent:
                     continue
                 if out.address in self.addresses:
-                    utxo = {}
-                    utxo["address"] = out.address
-                    utxo["txid"] = self.transactions[i].txid
-                    utxo["index"] = out.index
-                    utxo["amount"] = out.amount
-                    utxo["height"] = self.transactions[i].height
-                    utxo["confirmed"] = self.transactions[i].confirmed
+                    utxo = wallet_pb2.UTXO()
+                    utxo.address = out.address
+                    utxo.txid = self.transactions[i].txid
+                    utxo.index = out.index
+                    utxo.amount = out.amount
+                    utxo.height = self.transactions[i].height
+                    utxo.confirmed = self.transactions[i].confirmed
                     utxos.append(utxo)
         return utxos
 

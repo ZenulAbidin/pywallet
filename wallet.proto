@@ -118,7 +118,7 @@ message BTCLikeInput {
 // Output for Bitcoin transaction
 message BTCLikeOutput {
   uint64 amount = 1;          // Value of the output in the smallest unit of Bitcoin
-  string address = 2;         // Recipient's address (could be Bitcoin or Ethereum address)
+  string address = 2;         // Recipient's address
   uint64 index = 3;           // Output position (index) in the Transaction
   bool spent = 4;             // Has this output been spent?
 }
@@ -145,4 +145,16 @@ message Transaction {
 
   BTCLikeTransaction btclike_transaction = 15;
   ETHLikeTransaction ethlike_transaction = 14;
+}
+
+// Unspent transaction output local to this wallet
+// Contains information required to sign a transaction
+message UTXO {
+  uint64 amount = 1;          // Value of the output in the smallest unit of Bitcoin
+  string address = 2;         // Recipient's address (could be Bitcoin)
+  string txid = 3;            // Output transaction hash (required for spending)
+  uint64 index = 4;           // Output position (index) in the transaction (required for spending)
+  string privatekey = 5;      // WIF private key (required for spending)
+  bool confirmed = 6;         // Has this output been confirmed?
+  uint64 height = 7;          // Block height the UTXO is in. 0 if unconfirmed.
 }
