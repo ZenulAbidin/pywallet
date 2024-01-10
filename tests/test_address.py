@@ -71,7 +71,6 @@ class TestBroadcast(unittest.TestCase):
         try:
             # b.sync()
             # b.get_transaction_history()
-            b.get_block_height()
             b.get_balance()
         except NetworkException as e:
             pass
