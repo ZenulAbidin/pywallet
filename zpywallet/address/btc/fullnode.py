@@ -111,7 +111,8 @@ class BitcoinRPCClient:
         # Full nodes wallet RPC requests are notoriously slow if there are many transactions in the node.
         try:
             response = requests.post(f"{self.rpc_url}/wallet/zpywallet_{self.client_number}_{self.user_id}" if as_wallet \
-                                     else self.rpc_url, auth=(self.rpc_user, self.rpc_password), json=payload, timeout=86400)
+                                     else self.rpc_url, auth=(self.rpc_user, self.rpc_password) if self.rpc_user and \
+                                        self.rpc_password else None, json=payload, timeout=86400)
             return response.json()
         except Exception as e:
             raise NetworkException(f"RPC call failed: {str(e)}")
