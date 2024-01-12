@@ -14,7 +14,7 @@ class BitcoinAddress:
         using the round robin scheduling algorithm.
     """
 
-    def __init__(self, providers: bytes, addresses, max_cycles=100,
+    def __init__(self, addresses, providers: bytes = b'\xff\xff', max_cycles=100,
                  transactions=None, **kwargs):
         provider_bitmask = int.from_bytes(providers, 'big')
         self.provider_list = []

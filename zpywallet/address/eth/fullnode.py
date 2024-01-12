@@ -71,7 +71,10 @@ class EthereumWeb3Client:
         balance = 0
         for address in self.addresses:
             balance += self.web3.eth.get_balance(address)
-        return balance # Ethereum has no unconfirmed balances or transactions.
+        
+        # Ethereum has no unconfirmed balances or transactions.
+        # But for compatibility reasons, we still return it as a 2-tuple.
+        return (balance, balance)
                 
     # In Ethereum, only one transaction per account can be included in a block at a time.
     def _get_transaction_history(self, block_height=None):

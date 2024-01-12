@@ -9,7 +9,7 @@ class BCYAddress:
         Note: Some web-based providers use API keys. You can speficy an array
     """
 
-    def __init__(self, providers: bytes, addresses, max_cycles=100,
+    def __init__(self, addresses, providers: bytes = b'\xff\xff', max_cycles=100,
                  transactions=None, **kwargs):
         provider_bitmask = int.from_bytes(providers, 'big')
         self.provider_list = []
