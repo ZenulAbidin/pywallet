@@ -66,11 +66,9 @@ class TestAddress(unittest.TestCase):
     def test_004_eth_address(self):
         """Test fetching Ethereum addressses"""
         b = EthereumAddress(['0x383d4669f177182f2c8c90cecd291190ea04edad'])
-        #b.sync() # Do not sync, because that will take forever
-        #b.get_transaction_history() # For similar reasons, do not get the transaction history
         try:
-            # b.sync()
-            # b.get_transaction_history()
+            b.sync()
+            # b.get_transaction_history()  # On EVM chains, this scans all blocks and takes forever.
             b.get_balance()
         except NetworkException as e:
             pass

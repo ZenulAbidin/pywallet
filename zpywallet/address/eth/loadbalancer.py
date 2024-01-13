@@ -4,7 +4,7 @@ from ...errors import NetworkException
 from ...nodes.eth import eth_nodes
 
 class EthereumAddress:
-    """ Load balancer for all LTC address providers provided to an instance of this class,
+    """ Load balancer for all ETH address providers provided to an instance of this class,
         using the round robin scheduling algorithm.
     """
 
@@ -29,16 +29,19 @@ class EthereumAddress:
         if provider_bitmask & 1 << wallet_pb2.ETH_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
                 self.provider_list.append(EthereumWeb3Client(addresses, transactions=transactions, **endpoint))
+
     def sync(self):
-        working_provider_list = []
-        for provider in self.provider_list:
-            try:
-                provider.sync()
-                working_provider_list.append(provider)
-            except NetworkException:
-                pass
-        # self.provider_list = working_provider_list
-        self.get_transaction_history()
+        # Avoid collecting transaction history unless explicitly requested, because on EVM chains this is very slow.
+        return
+        # working_provider_list = []
+        # for provider in self.provider_list:
+        #     try:
+        #         provider.sync()
+        #         working_provider_list.append(provider)
+        #     except NetworkException:
+        #         pass
+        # # self.provider_list = working_provider_list
+        # self.get_transaction_history()
 
     def get_balance(self):
         """
