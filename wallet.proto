@@ -84,6 +84,7 @@ message Wallet {
     repeated RPCNode fullnode_endpoints = 9;
     repeated RPCNode esplora_endpoints = 10;
     repeated string blockcypher_tokens = 11;
+    string derivation_path = 12;
 }
 
 message Address {
