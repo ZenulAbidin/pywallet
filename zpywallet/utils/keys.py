@@ -642,6 +642,64 @@ class PublicKey:
         """
         return self.ripe_compressed if compressed else self.ripe
 
+    def p2pkh_script(self, compressed=True):
+        """ Return the P2PKH script bytes contianing the public key's hash.
+        Undefined for EVM blockchains.
+
+        Args:
+            compressed (bool): Whether or not the compressed key should
+               be used.
+        Returns:
+            bytes: A P2PKH script.
+        """
+        if (compressed and not self.ripe_compressed) or (not compressed and not self.ripe):
+            return None
+        # OP_DUP OP_HASH160 (OP_PUSH of pubkeyhash) OP_EQUALVERIFY OP_CHECKSIG
+        return b"\x76\xa9\x14" + (self.ripe_compressed if compressed else self.ripe) + b"\x88\xac"
+    
+    @classmethod
+    def p2sh_script(cls, script_hash):
+        """ Return the P2SH script bytes contianing the specified script hash.
+        Only applicable to Bitcoin-like blockchains
+
+        Args:
+            script_hash (bytes): The script hash to use.
+        Returns:
+            bytes: A P2SH script.
+        """
+        # OP_HASH160 (OP_PUSH of scripthash) OP_EQUAL
+        return b"\xa9\x14" + script_hash + b"\x87"
+    
+    # P2SH-P2WPKH is currently not supported
+    def p2wpkh_script(self, compressed=True):
+        """ Return the P2WPKH script bytes contianing the public key's hash.
+        Undefined by EVM blockchains.
+
+        Args:
+            compressed (bool): Whether or not the compressed key should
+               be used. DO NOT change this value or you might make
+                a non-standard transaction.
+        Returns:
+            bytes: A P2WPKH script.
+        """
+        if (compressed and not self.ripe_compressed) or (not compressed and not self.ripe):
+            return None
+        # OP_0 (OP_PUSH of pubkeyhash)
+        return b"\x00\x14" + (self.ripe_compressed if compressed else self.ripe)
+    
+    @classmethod
+    def p2sh_script(cls, script_hash):
+        """ Return the P2SH script bytes contianing the specified script hash.
+        Only applicable to Bitcoin-like blockchains
+
+        Args:
+            script_hash (bytes): The script hash to use.
+        Returns:
+            bytes: A P2SH script.
+        """
+        # OP_0 (OP_PUSH of scripthash)
+        return b"\x00\x20" + script_hash
+
     def keccak256(self):
         """ Return the Keccak-256 hash of the SHA-256 hash of the
         public key. Only defined if hex addresses are supported by
