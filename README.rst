@@ -216,3 +216,9 @@ This module has been hardened against various types of attacks:
   code are installed using pip. The rest are hardcoded directly into ZPyWallet. This prevents many kinds
   of supply chain attacks.
 - Coincurve is using libsecp256k1, which protects keys from various power and RF frequency analysis side-channels.
+
+
+NO WARRANTY
+===========
+
+ZPyWallet is provided without any sort of warranty of any kind. Additionally, I am not responsible for damages caused by the use of this program, including but not limited to lost coins. Read the license file for full details.
