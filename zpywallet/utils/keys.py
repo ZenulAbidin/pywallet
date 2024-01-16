@@ -20,7 +20,7 @@ import coincurve
 
 from .keccak import Keccak256
 from .base58 import b58encode_check, b58decode_check
-from .bech32 import bech32_encode
+from .bech32 import bech32_decode, bech32_encode
 from .ripemd160 import ripemd160
 from .utils import ensure_bytes, ensure_str
 from ..network import BitcoinSegwitMainNet
@@ -657,8 +657,23 @@ class PublicKey:
         # OP_DUP OP_HASH160 (OP_PUSH of pubkeyhash) OP_EQUALVERIFY OP_CHECKSIG
         return b"\x76\xa9\x14" + (self.ripe_compressed if compressed else self.ripe) + b"\x88\xac"
     
+
     @classmethod
-    def p2sh_script(cls, script_hash):
+    def p2pkh(cls, pubkey_hash):
+        """ Return the P2PKH script bytes contianing the specified pubkey hash.
+        Only applicable to Bitcoin-like blockchains.
+
+        Args:
+            pubkey_hash (bytes): The pubkey hash to use.
+        Returns:
+            bytes: A P2PKH script.
+        """
+        # OP_DUP OP_HASH160 (OP_PUSH of pubkeyhash) OP_EQUALVERIFY OP_CHECKSIG
+        return b"\x76\xa9\x14" + pubkey_hash + b"\x88\xac"
+    
+
+    @classmethod
+    def p2sh(cls, script_hash):
         """ Return the P2SH script bytes contianing the specified script hash.
         Only applicable to Bitcoin-like blockchains
 
@@ -687,18 +702,63 @@ class PublicKey:
         # OP_0 (OP_PUSH of pubkeyhash)
         return b"\x00\x14" + (self.ripe_compressed if compressed else self.ripe)
     
+
     @classmethod
-    def p2sh_script(cls, script_hash):
-        """ Return the P2SH script bytes contianing the specified script hash.
-        Only applicable to Bitcoin-like blockchains
+    def p2wpkh(cls, pubkey_hash):
+        """ Return the P2WPKH script bytes contianing the specified pubkey hash.
+        Only applicable to Bitcoin-like blockchains.
+
+        Args:
+            pubkey_hash (bytes): The pubkey hash to use.
+        Returns:
+            bytes: A P2WPKH script.
+        """
+        # OP_DUP OP_HASH160 (OP_PUSH of pubkeyhash) OP_EQUALVERIFY OP_CHECKSIG
+        return b"\x00\x14" + pubkey_hash
+
+    @classmethod
+    def p2wsh(cls, script_hash):
+        """ Return the P2WSH script bytes contianing the specified script hash.
+        Only applicable to Bitcoin-like blockchains.
 
         Args:
             script_hash (bytes): The script hash to use.
         Returns:
-            bytes: A P2SH script.
+            bytes: A P2WSH script.
         """
         # OP_0 (OP_PUSH of scripthash)
         return b"\x00\x20" + script_hash
+    
+    @classmethod
+    def script(cls, address, network):
+        """ Returns the appropriate script depending on the address value.
+        Only applicable to Bitcoin-like blockchains.
+
+        Args:
+            address (string) the address to get the script for.
+            network (string) the network for this address
+        Returns:
+            bytes: the address script.
+        """
+        if network.SUPPORTS_EVM:
+            return None # Undefined
+        else:
+            try:
+                b = b58decode_check(address)
+                if b[0] == network.PUBKEY_ADDRESS:
+                    return b"\x76\xa9\x14" + b[1:] + b"\x88\xac"
+                elif b[0] == network.SCRIPT_ADDRESS:
+                    return b"\x76\xa9\x14" + b[1:] + b"\x88\xac"
+                else:
+                    raise ValueError("Unknown address type")
+            except ValueError as e:
+                b = bech32_decode(network.BECH32_PREFIX, address)[1]
+                if len(b) == 20:
+                    return b"\x00\x14" + b
+                elif len(b) == 32:
+                    return b"\x00\x20" + b
+                else:
+                    raise ValueError("Unknown address type")
 
     def keccak256(self):
         """ Return the Keccak-256 hash of the SHA-256 hash of the

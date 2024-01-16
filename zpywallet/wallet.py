@@ -17,7 +17,8 @@ from .utils.bip32 import (
 )
 
 from .utils.keys import (
-    PrivateKey
+    PrivateKey,
+    PublicKey
 )
 from .transactions.encode import create_transaction
 from .transactions.decode import transaction_size_simple
@@ -56,6 +57,8 @@ from .address.dash import DashAddress
 from .address.doge import DogecoinAddress
 from .address.eth import EthereumAddress
 from .address.ltc import LitecoinAddress
+
+from .nodes.eth import eth_nodes
 
 from .utils.aes import decrypt, encrypt
 
@@ -119,7 +122,8 @@ def create_keypair(network=BitcoinSegwitMainNet):
 class Wallet:
     """Data class representing a cryptocurrency wallet."""
 
-    def __init__(self, network, seed_phrase, password, receive_gap_limit=10000, change_gap_limit=1000,
+    # TODO change this to 10000
+    def __init__(self, network, seed_phrase, password, receive_gap_limit=100, change_gap_limit=1000,
                   derivation_path = None, _with_wallet=True, **kwargs):
         
         fullnode_endpoints = kwargs.get('fullnode_endpoints')
@@ -142,6 +146,9 @@ class Wallet:
                 self.wallet.derivation_path = derivation_path
             else:
                 raise ValueError("Invalid derivation path")
+            
+            if not seed_phrase:
+                seed_phrase = generate_mnemonic()
             
             # We do not save the password. Instead, we are going to generate a base64-encrypted
             # serialization of this wallet file using the password.
@@ -227,7 +234,7 @@ class Wallet:
             
 
     @classmethod
-    def load_wallet(cls, data: bytes):
+    def deserialize(cls, data: bytes):
         self = cls(_with_wallet=False)
         self.wallet = wallet_pb2.Wallet.ParseFromString(data)
 
@@ -330,7 +337,7 @@ class Wallet:
             tx_array.append(Transaction(t, self.network))
         return tx_array
     
-    def get_utxos(self, max_cycles=100):
+    def get_utxos(self, max_cycles=100, only_confirmed=False):
         addresses = [a.address for a in self.wallet.addresses]
 
         transactions = self.get_transaction_history(max_cycles=max_cycles)
@@ -341,7 +348,34 @@ class Wallet:
                     utxo_set.append(UTXO(t, i, addresses, only_mine=True))
                 except ValueError:
                     pass
+        
+        if only_confirmed:
+            whole_utxo_set = utxo_set
+            utxo_set = []
+            for i in whole_utxo_set:
+                if i.confirmed():
+                    utxo_set.append(i)
         return utxo_set
+    
+    def _to_human_friendly_utxo(self, inputs, private_keys):
+        new_inputs = []
+        for ii in inputs:
+            u = inputs[ii]
+            for i in range (len(private_keys)):
+                private_key = private_keys[i]
+                privkey = PrivateKey.from_wif(private_key, self._network)
+                a = [privkey.public_key.base58_address(True),
+                     privkey.public_key.base58_address(False),
+                     privkey.public_key.bech32_address()]
+                u._output['private_key'] = private_key if u._output['address'] in a else None
+                u._output['script_pubkey'] = PublicKey.script(u._output['address', self._network])
+                del(privkey)
+                del(private_key)
+                if u._output['private_key'] == None:
+                    continue
+                new_inputs.append(u)
+                break
+        return new_inputs
     
     def get_balance(self, in_standard_units=True, max_cycles=100):
         addresses = [a.address for a in self.wallet.addresses]
@@ -389,10 +423,7 @@ class Wallet:
         addresses = self.addresses()
         return addresses[randrange(0, len(addresses))]
 
-    # Fee rate is in the unit used by the network, ie. vbytes, bytes or wei
-    def create_transaction(self, password: bytes, destinations: List[Destination], fee_rate, spend_unconfirmed_inputs=False, **kwargs):
-        inputs = self.get_utxos()
-        
+    def try_decrypt_privkeys(self, password):
         private_keys = []
         for p in self.encrypted_private_keys:
             try:
@@ -400,38 +431,42 @@ class Wallet:
             except PermissionError as e:
                 del(private_keys)
                 raise e
+        return private_keys
 
-        if not spend_unconfirmed_inputs:
-            _inputs = []
-            for i in inputs:
-                if i.confirmed():
-                    _inputs.append(i)
-            inputs = _inputs
 
-        for ii in inputs:
-            u = inputs[ii]
-            for i in range (len(private_keys)):
-                private_key = private_keys[i]
-                privkey = PrivateKey.from_wif(private_key, self._network)
-                a = [privkey.public_key.base58_address(True),
-                     privkey.public_key.base58_address(False),
-                     privkey.public_key.bech32_address()]
-                u._output['private_key'] = private_key if u._output['address'] in a else None
-                if u._output['address'] == a[0]:
-                    u._output['script_pubkey'] = privkey.public_key.p2pkh_script(True)
-                elif u._output['address'] == a[1]:
-                    u._output['script_pubkey'] = privkey.public_key.p2pkh_script(False)
-                if u._output['address'] == a[2]:
-                    u._output['script_pubkey'] = privkey.public_key.p2wpkh_script()
-                del(privkey)
-                del(private_key)
-                inputs[ii] = u
-
+    def _add_stock_nodes(self):
         fullnode_endpoints = []
         for f in self.wallet.fullnode_endpoints:
             _f = {}
             _f['url'] = f.url
             fullnode_endpoints.append(_f)
+        if not self._network.SUPPORTS_EVM:
+            return fullnode_endpoints
+        else:
+            if self._network.COIN == "ETH":
+                fullnode_endpoints.extend(eth_nodes)
+            return fullnode_endpoints
+        
+    def _calculate_change(self, inputs, destinations, fee_rate):
+        temp_transaction = create_transaction(inputs, destinations, network=self._network)
+        size = transaction_size_simple(temp_transaction)
+        total_inputs = sum([i.amount() for i in inputs])
+        total_outputs = sum([o.amount() for o in destinations])
+        if total_inputs > total_outputs + size*fee_rate:
+            raise ValueError("Not enough balance for this transaction")
+        change = Destination(self._network, self.random_address(), total_inputs - total_outputs - size*fee_rate)
+        return change
+
+
+    # Fee rate is in the unit used by the network, ie. vbytes, bytes or wei
+    def create_transaction(self, password: bytes, destinations: List[Destination], fee_rate, spend_unconfirmed_inputs=False, **kwargs):
+        inputs = self.get_utxos(not spend_unconfirmed_inputs)
+        
+        private_keys = self.try_decrypt_privkeys(password)
+
+        inputs = self._to_human_friendly_utxo(inputs, private_keys)
+
+        fullnode_endpoints = self._add_stock_nodes()
 
         if self._network.SUPPORTS_EVM:
             kwargs['gas'] = fee_rate
@@ -444,19 +479,12 @@ class Wallet:
         inputs_without_change = inputs
         inputs_without_change.append(change)
 
-        temp_transaction = create_transaction(inputs_without_change, destinations, network=self._network, full_nodes=fullnode_endpoints, **kwargs)
-        size = transaction_size_simple(temp_transaction)
-        total_inputs = sum([i.amount() for i in inputs])
-        total_outputs = sum([o.amount() for o in destinations])
-        if total_inputs > total_outputs + size*fee_rate:
-            raise ValueError("Not enough balance for this transaction")
-        change = Destination(self._network, self.random_address(), total_inputs - total_outputs - size*fee_rate)
-        inputs.append(change)
-        return create_transaction(inputs, destinations, network=self._network, full_nodes=fullnode_endpoints, **kwargs)
+        inputs.append(self._calculate_change(inputs_without_change, destinations, fee_rate))
+        return create_transaction(inputs, destinations, network=self._network)
 
 
     def broadcast_transaction(self, transaction: bytes):
         broadcast_transaction(transaction, self._network)
 
-    def serialze(self):
+    def serialize(self):
         return self.wallet.SerializeToString()

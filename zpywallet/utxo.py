@@ -1,14 +1,15 @@
-from .utils.keys import PrivateKey
-from .utils.aes import decrypt
 from .transaction import Transaction
 
 # NOTE: Currently, UTXO can only detect compressed/uncompressed P2PKH (legacy "1")
 # and compressed P2WPKH (bech32 "bc1q") addresses.
 class UTXO:
-    def __init__(self, transaction: Transaction, index: int, addresses=[], only_mine=False):
+    def __init__(self, transaction: Transaction, index: int, addresses=[], only_mine=False, _unsafe_internal_testing_only=None):
+        if _unsafe_internal_testing_only:
+            self._output = _unsafe_internal_testing_only
+            return
+        
         if transaction.network().SUPPORTS_EVM:
             raise ValueError("Blockchain does not support UTXOs")
-
         
         self._network = transaction.network()
         outputs = transaction.sat_outputs(only_unspent=True)
@@ -16,7 +17,6 @@ class UTXO:
             output = outputs[index]
             output['txid'] = transaction.txid()
             #output['index'] = index # should be the same
-            del(private_keys)
             if not only_mine or output['address'] in addresses:
                 self._output = output
             else:

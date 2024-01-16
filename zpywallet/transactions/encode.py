@@ -1,8 +1,8 @@
+import binascii
 import hashlib
 import web3
 from ..network import BitcoinSegwitMainNet
 from ..utils.keys import PrivateKey
-from ..utils.aes import decrypt
 
 from ..utxo import UTXO
 from ..destination import Destination
@@ -76,8 +76,8 @@ def script_is_p2wsh(script):
     return len(script) == 34 and script[0:2] == b"\x00\x20"
 
 
-def int_to_hex(i, min_bytes):
-    return i.to_bytes(max(min_bytes, (i.bit_length() + 7) // 8), byteorder="little").hex().encode()
+def int_to_hex(i, min_bytes=1):
+    return i.to_bytes(max(min_bytes, (i.bit_length() + 7) // 8), byteorder="little") #.hex().encode()
 
 def create_varint(value):
     if value < 0xfd:
@@ -119,9 +119,11 @@ def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4):
 
         # Sign it
         p = PrivateKey.from_wif(private_key)
-        der = p.der_sign(partial_transaction) + sighash
+        der = p.der_sign(partial_transaction) + bytes([sighash])
+        # I would like to mention that this only works if the data being pushed is less than 76 bytes.
+        # Otherwise we need to use OP_PUSHDATA<1/2/4>
         script = int_to_hex(len(der)) + der + int_to_hex(len(script_pubkey)) + script_pubkey
-        signatures.append(int_to_hex(script) + script)
+        signatures.append(create_varint(len(script)) + script)
 
     # Now that we have all the signatures, we can assemble the signed transaction
     signed_transaction = bytes_1
@@ -132,7 +134,7 @@ def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4):
     signed_transaction += bytes_3
     signed_transaction += bytes_4
 
-    return signed_transaction
+    return signed_transaction.hex().encode()
     
 
 
@@ -191,15 +193,15 @@ def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4):
     # Assemble the witness stack, one per input
     # Note that for legacy inputs, their witness stack is just b'0x00'
     for w in witness_stack:
-        signed_transaction += int_to_hex(len(w))
+        signed_transaction += create_varint(len(w)) # I'm not sure if this should also be a varint
         witness_bytes = b""
         for w_elem in w:
-            witness_bytes += int_to_hex(len(w_elem)) + w_elem
-        signed_transaction += int_to_hex(len(witness_bytes)) + witness_bytes
+            witness_bytes += create_varint(len(w_elem)) + w_elem
+        signed_transaction += create_varint(len(witness_bytes)) + witness_bytes
 
     signed_transaction += bytes_4
 
-    return signed_transaction
+    return signed_transaction.hex().encode()
     
 
 def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True, network=BitcoinSegwitMainNet, full_nodes=[], **kwargs):
@@ -208,15 +210,15 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
     destination tuples.
     Never call this function directly, it does not automatically calculate change or fees. Instead, use Wallet.create_transaction().
     """
-
+    #import pdb; pdb.set_trace()
     # First, construct the raw transacation
     if network.SUPPORTS_EVM:
         try:
-            return create_web3_transaction(inputs[0].address(), outputs[0].address(), outputs[0].amount(), inputs[0].private_key, full_nodes, **kwargs)
+            return create_web3_transaction(inputs[0].address(), outputs[0].address(), outputs[0].amount(), inputs[0]._private_key(), full_nodes, **kwargs)
         finally:
             del(inputs)
     else:
-        tx_bytes_1 = tx_bytes_2 = tx_bytes_3 = b""
+        tx_bytes_1 = tx_bytes_2 = tx_bytes_3 = tx_bytes_4 = b""
         tx_bytes_1 += int_to_hex(1, 4) # Version 1 transaction
         if network.SUPPORTS_SEGWIT:
             tx_bytes_1 += b"\x00\x01" # Signal segwit support
@@ -226,7 +228,7 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
         for o in outputs:
             tx_bytes_3 += int_to_hex(o.amount(), 8)
             script = o.script_pubkey()
-            tx_bytes_3 += int_to_hex(len(script))
+            tx_bytes_3 += create_varint(len(script))
             tx_bytes_3 += script            
 
         # Inputs
@@ -234,8 +236,8 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
         tx_bytes_2_inputs = []
         for i in inputs:
             input_bytes_1 = input_bytes_2 = input_bytes_3 = input_bytes_4 = b""
-            input_bytes_1 += i.txid()
-            input_bytes_1 += int_to_hex(i.index())
+            input_bytes_1 += binascii.unhexlify(i.txid().encode())
+            input_bytes_1 += int_to_hex(i.index(), 4)
 
             # The transacion cannot be signed until it is fully constructed.
             # To avoid a chicken-and-egg, we set the signature scripts to empty.
@@ -266,7 +268,7 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
                 segwit_payload += i.txid + int_to_hex(i.index())
 
                 # scriptCode of the input (serialized as scripts inside CTxOuts)
-                segwit_payload += i.script_pubkey()
+                segwit_payload += i._script_pubkey()
 
                 # value of the output spent by this input (8-byte little endian)
                 segwit_payload += int_to_hex(i.amount(), 8)
@@ -285,7 +287,7 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
 
 
             # If this is a segwit transaction these will need to go into witness data eventually.
-            tx_bytes_2_inputs.append([input_bytes_1, input_bytes_2, input_bytes_3, i.script_pubkey(), i.private_key(), SIGHASH_ALL, segwit_payload])
+            tx_bytes_2_inputs.append([input_bytes_1, input_bytes_2, input_bytes_3, i._script_pubkey(), i._private_key(), SIGHASH_ALL, segwit_payload])
         
         # tx_bytes_3 should also contain the witness data
 
