@@ -2,7 +2,7 @@ import hashlib
 import web3
 from ..network import BitcoinSegwitMainNet
 from ..utils.keys import PrivateKey
-from ..utils.aes import decode
+from ..utils.aes import decrypt
 
 from ..utxo import UTXO
 from ..destination import Destination
