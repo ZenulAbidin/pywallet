@@ -77,7 +77,7 @@ def script_is_p2wsh(script):
 
 
 def int_to_hex(i, min_bytes=1):
-    return i.to_bytes(max(min_bytes, (i.bit_length() + 7) // 8), byteorder="little") #.hex().encode()
+    return i.to_bytes(max(min_bytes, (i.bit_length() + 7) // 8), byteorder="little")
 
 def create_varint(value):
     if value < 0xfd:
@@ -138,7 +138,7 @@ def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4):
     signed_transaction += bytes_3
     signed_transaction += bytes_4
 
-    return signed_transaction.hex().encode()
+    return signed_transaction.hex()
     
 
 
@@ -208,7 +208,7 @@ def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4):
 
     signed_transaction += bytes_4
 
-    return signed_transaction.hex().encode()
+    return signed_transaction.hex()
     
 
 def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True, network=BitcoinSegwitMainNet, full_nodes=[], **kwargs):
@@ -221,7 +221,8 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
     # First, construct the raw transacation
     if network.SUPPORTS_EVM:
         try:
-            return create_web3_transaction(inputs[0].address(), outputs[0].address(), outputs[0].amount(), inputs[0]._private_key(), full_nodes, **kwargs)
+            return create_web3_transaction(inputs[0].address(), outputs[0].address(), outputs[0].amount(in_standard_units=False),
+                                           inputs[0]._private_key(), full_nodes, **kwargs)
         finally:
             del(inputs)
     else:
@@ -240,7 +241,7 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
         # We process the outputs before the inputs so that we can use it for segwit transactions.
         tx_bytes_3 += create_varint(len(outputs))
         for o in outputs:
-            tx_bytes_3 += int_to_hex(o.amount(), 8)
+            tx_bytes_3 += int_to_hex(o.amount(in_standard_units=False), 8)
             script = o.script_pubkey()
             tx_bytes_3 += create_varint(len(script))
             tx_bytes_3 += script            

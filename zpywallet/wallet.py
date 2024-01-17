@@ -450,12 +450,12 @@ class Wallet:
     def _calculate_change(self, inputs, destinations, fee_rate):
         temp_transaction = create_transaction(inputs, destinations, network=self._network)
         size = transaction_size_simple(temp_transaction)
-        total_inputs = sum([i.amount() for i in inputs])
-        total_outputs = sum([o.amount() for o in destinations])
-        if total_inputs > total_outputs + size*fee_rate:
+        total_inputs = sum([i.amount(in_standard_units=False) for i in inputs])
+        total_outputs = sum([o.amount(in_standard_units=False) for o in destinations])
+        if total_inputs < total_outputs + size*fee_rate:
             raise ValueError("Not enough balance for this transaction")
-        change = Destination(self._network, self.random_address(), total_inputs - total_outputs - size*fee_rate)
-        return change
+        change = total_inputs - total_outputs - size*fee_rate
+        return None if change <= 0 else Destination(self._network, self.random_address(), change / 1e8)
 
 
     # Fee rate is in the unit used by the network, ie. vbytes, bytes or wei
@@ -479,7 +479,9 @@ class Wallet:
         inputs_without_change = inputs
         inputs_without_change.append(change)
 
-        inputs.append(self._calculate_change(inputs_without_change, destinations, fee_rate))
+        change = self._calculate_change(inputs_without_change, destinations, fee_rate)
+        if change:
+            inputs.append(change)
         return create_transaction(inputs, destinations, network=self._network)
 
 
