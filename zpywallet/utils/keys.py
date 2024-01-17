@@ -754,9 +754,9 @@ class PublicKey:
             except ValueError as e:
                 b = bech32_decode(network.BECH32_PREFIX, address)[1]
                 if len(b) == 20:
-                    return b"\x00\x14" + b
+                    return b"\x00\x14" + bytes(b)
                 elif len(b) == 32:
-                    return b"\x00\x20" + b
+                    return b"\x00\x20" + bytes(b)
                 else:
                     raise ValueError("Unknown address type")
 
