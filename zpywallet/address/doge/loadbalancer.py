@@ -107,7 +107,7 @@ class DogecoinAddress:
                     ntransactions = len(self.transactions)
                     txs = self.provider_list[self.current_index].transactions
                     break
-                except Exception:
+                except NetworkException:
                     txs = self.provider_list[self.current_index].transactions
                     self.advance_to_next_provider()
                     cycle += 1
