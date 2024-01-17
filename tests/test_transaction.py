@@ -177,5 +177,5 @@ class TestAddress(unittest.TestCase):
             change_value = total_inputs - total_outputs - size*fee_rate
             if change_value > 0:
                 change = Destination(BitcoinSegwitMainNet, '16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM', change_value / 1e8)
-                utxos.append(change)
+                destinations.append(change)
                 create_transaction(utxos, destinations, network=BitcoinSegwitMainNet, full_nodes=btc_nodes)

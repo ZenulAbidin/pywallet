@@ -481,7 +481,7 @@ class Wallet:
 
         change = self._calculate_change(inputs_without_change, destinations, fee_rate)
         if change:
-            inputs.append(change)
+            destinations.append(change)
         return create_transaction(inputs, destinations, network=self._network)
 
 
