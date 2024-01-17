@@ -215,7 +215,8 @@ class EsploraAddress:
                     return
                 yield self._clean_tx(tx)
             
-            last_tx = data[-1]["txid"]
+            if len(data) > 0:
+                last_tx = data[-1]["txid"]
             
             while len(data) > 0:
                 url = f"{self.endpoint}/address/{address}/txs/chain/{last_tx}"
