@@ -11,6 +11,7 @@ Welcome to the documentation for ZPyWallet!
    installation
    usage
    security
+   bugs
    contributing
    api_reference
 
