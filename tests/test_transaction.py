@@ -49,7 +49,7 @@ class TestAddress(unittest.TestCase):
             _u._output['private_key'] = PrivateKey.from_int(1).to_wif()
             _u._output['script_pubkey'] = PublicKey.script(u.address, BitcoinMainNet)
             utxos.append(_u)
-        if len(utxos > 0):
+        if len(utxos) > 0:
             create_transaction(utxos, destinations, network=BitcoinMainNet, full_nodes=btc_nodes)
 
     def test_001_fake_segwit_sign(self):
@@ -78,7 +78,7 @@ class TestAddress(unittest.TestCase):
             _u._output['private_key'] = PrivateKey.from_int(1).to_wif()
             _u._output['script_pubkey'] = PublicKey.script(u.address, BitcoinSegwitMainNet)
             utxos.append(_u)
-        if len(utxos > 0):
+        if len(utxos) > 0:
             create_transaction(utxos, destinations, network=BitcoinSegwitMainNet, full_nodes=btc_nodes)
 
     def test_002_segwit_sign(self):
@@ -107,7 +107,7 @@ class TestAddress(unittest.TestCase):
             _u._output['private_key'] = PrivateKey.from_int(1).to_wif()
             _u._output['script_pubkey'] = PublicKey.script(u.address, BitcoinSegwitMainNet)
             utxos.append(_u)
-        if len(utxos > 0):
+        if len(utxos) > 0:
             create_transaction(utxos, destinations, network=BitcoinSegwitMainNet, full_nodes=btc_nodes)
     
     def test_003_segwit_sign_partial(self):
@@ -136,5 +136,5 @@ class TestAddress(unittest.TestCase):
             _u._output['private_key'] = PrivateKey.from_int(1).to_wif()
             _u._output['script_pubkey'] = PublicKey.script(u.address, BitcoinSegwitMainNet)
             utxos.append(_u)
-        if len(utxos > 0):
+        if len(utxos) > 0:
             create_transaction(utxos, destinations, network=BitcoinSegwitMainNet, full_nodes=btc_nodes)
