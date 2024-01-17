@@ -228,7 +228,9 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
     else:
         all_legacy = True
         for i in inputs:
-            if i.address().startswith(network.BECH32_PREFIX):
+            try:
+                b58decode_check(i.address())
+            except ValueError:
                 all_legacy = False
                 if not network.SUPPORTS_SEGWIT:
                     raise ValueError("You must use a segwit network to use bech32 inputs")

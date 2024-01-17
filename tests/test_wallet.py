@@ -25,7 +25,7 @@ class TestWallet(unittest.TestCase):
         wallet = Wallet(BitcoinSegwitMainNet, None, "zpywallet")
         wallet_1 = Wallet(BitcoinSegwitMainNet, "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon cactus",
                           "zpywallet")
-        exported_wallet = wallet_1.serialze()
+        exported_wallet = wallet_1.serialize()
         wallet_2 = Wallet.deserialize(exported_wallet)
         
 
