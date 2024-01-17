@@ -234,55 +234,59 @@ class Wallet:
             
 
     @classmethod
-    def deserialize(cls, data: bytes):
-        self = cls(_with_wallet=False)
-        self.wallet = wallet_pb2.Wallet.ParseFromString(data)
+    def deserialize(cls, data: bytes, password):
+        wallet = wallet_pb2.Wallet.ParseFromString(data)
+        seed_phrase = decrypt(wallet.encrypted_seed_phrase, password)
 
-        if self.wallet.network == wallet_pb2.BITCOIN_SEGWIT_MAINNET:
+        if wallet.network == wallet_pb2.BITCOIN_SEGWIT_MAINNET:
             network = BitcoinSegwitMainNet
-        if self.wallet.network == wallet_pb2.BITCOIN_MAINNET:
+        if wallet.network == wallet_pb2.BITCOIN_MAINNET:
             network = BitcoinMainNet
-        if self.wallet.network == wallet_pb2.BITCOIN_SEGWIT_TESTNET:
+        if wallet.network == wallet_pb2.BITCOIN_SEGWIT_TESTNET:
             network = BitcoinSegwitTestNet
-        if self.wallet.network == wallet_pb2.BITCOIN_TESTNET:
+        if wallet.network == wallet_pb2.BITCOIN_TESTNET:
             network = BitcoinTestNet
-        if self.wallet.network == wallet_pb2.LITECOIN_SEGWIT_MAINNET:
+        if wallet.network == wallet_pb2.LITECOIN_SEGWIT_MAINNET:
             network = LitecoinSegwitMainNet
-        if self.wallet.network == wallet_pb2.LITECOIN_MAINNET:
+        if wallet.network == wallet_pb2.LITECOIN_MAINNET:
             network = LitecoinMainNet
-        if self.wallet.network == wallet_pb2.LITECOIN_BTC_SEGWIT_MAINNET:
+        if wallet.network == wallet_pb2.LITECOIN_BTC_SEGWIT_MAINNET:
             network = LitecoinBTCSegwitMainNet
-        if self.wallet.network == wallet_pb2.LITECOIN_BTC_MAINNET:
+        if wallet.network == wallet_pb2.LITECOIN_BTC_MAINNET:
             network = LitecoinBTCMainNet
-        if self.wallet.network == wallet_pb2.LITECOIN_SEGWIT_TESTNET:
+        if wallet.network == wallet_pb2.LITECOIN_SEGWIT_TESTNET:
             network = LitecoinSegwitTestNet
-        if self.wallet.network == wallet_pb2.LITECOIN_TESTNET:
+        if wallet.network == wallet_pb2.LITECOIN_TESTNET:
             network = LitecoinTestNet
-        if self.wallet.network == wallet_pb2.ETHEREUM_MAINNET:
+        if wallet.network == wallet_pb2.ETHEREUM_MAINNET:
             network = EthereumMainNet
-        if self.wallet.network == wallet_pb2.DOGECOIN_MAINNET:
+        if wallet.network == wallet_pb2.DOGECOIN_MAINNET:
             network = DogecoinMainNet
-        if self.wallet.network == wallet_pb2.DOGECOIN_BTC_MAINNET:
+        if wallet.network == wallet_pb2.DOGECOIN_BTC_MAINNET:
             network = DogecoinBTCMainNet
-        if self.wallet.network == wallet_pb2.DOGECOIN_TESTNET:
+        if wallet.network == wallet_pb2.DOGECOIN_TESTNET:
             network = DogecoinTestNet
-        if self.wallet.network == wallet_pb2.DASH_MAINNET:
+        if wallet.network == wallet_pb2.DASH_MAINNET:
             network = DashMainNet
-        if self.wallet.network == wallet_pb2.DASH_INVERTED_MAINNET:
+        if wallet.network == wallet_pb2.DASH_INVERTED_MAINNET:
             network = DashInvertedMainNet
-        if self.wallet.network == wallet_pb2.DASH_BTC_MAINNET:
+        if wallet.network == wallet_pb2.DASH_BTC_MAINNET:
             network = DashBTCMainNet
-        if self.wallet.network == wallet_pb2.DASH_TESTNET:
+        if wallet.network == wallet_pb2.DASH_TESTNET:
             network = DashTestNet
-        if self.wallet.network == wallet_pb2.DASH_INVERTED_TESTNET:
+        if wallet.network == wallet_pb2.DASH_INVERTED_TESTNET:
             network = DashInvertedTestNet
-        if self.wallet.network == wallet_pb2.BITCOIN_CASH_MAINNET:
+        if wallet.network == wallet_pb2.BITCOIN_CASH_MAINNET:
             network = BitcoinCashMainNet
-        if self.wallet.network == wallet_pb2.BLOCKCYPHER_TESTNET:
+        if wallet.network == wallet_pb2.BLOCKCYPHER_TESTNET:
             network = BlockcypherTestNet
         else:
             raise ValueError("Unkown network")
 
+        self = cls(network, seed_phrase, password, _with_wallet=False)
+        self.wallet = wallet
+        del(seed_phrase)
+        del(password)
 
     def get_transaction_history(self, max_cycles=100):
         addresses = [a.address for a in self.wallet.addresses]
