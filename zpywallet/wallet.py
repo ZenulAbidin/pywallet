@@ -123,7 +123,7 @@ class Wallet:
     """Data class representing a cryptocurrency wallet."""
 
     # TODO change this to 10000
-    def __init__(self, network, seed_phrase, password, receive_gap_limit=100, change_gap_limit=1000,
+    def __init__(self, network, seed_phrase, password, receive_gap_limit=1, change_gap_limit=1000,
                   derivation_path = None, _with_wallet=True, **kwargs):
         
         fullnode_endpoints = kwargs.get('fullnode_endpoints')
