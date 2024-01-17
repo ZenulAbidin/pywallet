@@ -8,6 +8,7 @@ While we strive to keep ZPyWallet as bug-free as possible, sometimes errors do s
   instead. (This is a bug.)
 
 **Limitations:**
+
 - ``Desination`` classes **do not take integer sats or wei values.** They only take floating-point values, which means that if you are careless
 with doing monetary arithmetic, your amount might be slightly wrong. For example, if you calculate 0.1+0.2 in floating point, you will get
 0.30000000000000004, not 0.3. This issue particularly affects Ethereum amounts since it uses 18 decimal places. In order to avoid this pitfall,
