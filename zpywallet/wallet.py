@@ -331,7 +331,7 @@ class Wallet:
 
         address_client.sync()
         transactions = address_client.get_transaction_history()
-        del self.wallet.transacations[:]
+        del self.wallet.transactions[:]
         self.wallet.transactions.extend(transactions)
         tx_array = []
         for t in transactions:
