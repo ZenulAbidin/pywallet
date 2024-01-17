@@ -97,19 +97,23 @@ class LitecoinAddress:
         self.current_index = newindex
     
     def get_transaction_history(self):
-        ntransactions = -1  # Set to invalid value for the first iteration
-        cycle = 1
-        while ntransactions != len(self.transactions):
-            if cycle > self.max_cycles:
-                raise NetworkException(f"None of the address providers are working after f{self.max_cycles} tries")
-            self.provider_list[self.current_index].transactions = self.transactions
-            try:
-                self.provider_list[self.current_index].get_transaction_history()
-                ntransactions = len(self.transactions)
-                self.transactions = self.provider_list[self.current_index].transactions
-                break
-            except NetworkException:
-                self.transactions = self.provider_list[self.current_index].transactions
-                self.advance_to_next_provider()
-                cycle += 1
+        for address in self.addresses:
+            txs = []
+            ntransactions = -1  # Set to invalid value for the first iteration
+            cycle = 1
+            while ntransactions != len(self.transactions):
+                if cycle > self.max_cycles:
+                    raise NetworkException(f"None of the address providers are working after f{self.max_cycles} tries")
+                self.provider_list[self.current_index].transactions = txs
+                self.provider_list[self.current_index].addresses = [address]
+                try:
+                    self.provider_list[self.current_index].get_transaction_history()
+                    ntransactions = len(self.transactions)
+                    txs = self.provider_list[self.current_index].transactions
+                    break
+                except NetworkException:
+                    txs = self.provider_list[self.current_index].transactions
+                    self.advance_to_next_provider()
+                    cycle += 1
+            self.transactions += txs
         return self.transactions
