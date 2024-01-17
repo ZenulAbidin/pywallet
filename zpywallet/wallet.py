@@ -430,7 +430,7 @@ class Wallet:
 
     def try_decrypt_privkeys(self, password):
         private_keys = []
-        for p in self.encrypted_private_keys:
+        for p in self.wallet.encrypted_private_keys:
             try:
                 private_keys.append(decrypt(p, password))
             except PermissionError as e:

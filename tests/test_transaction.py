@@ -17,15 +17,17 @@ from zpywallet import Wallet
 from zpywallet.nodes.btc import btc_nodes
 from zpywallet.transactions.decode import transaction_size_simple
 
+
+b = BitcoinAddress(['16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM'])
+bc = BitcoinAddress(['bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c'])
+bc2 = BitcoinAddress(['16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM', 'bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c'])
+b.sync()
+bc.sync()
+bc2.transactions = b.transactions + bc.transactions
+
 class TestAddress(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures, if any."""
-        self.b = BitcoinAddress(['16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM'])
-        self.bc = BitcoinAddress(['bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c'])
-        self.bc2 = BitcoinAddress(['16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM', 'bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c'])
-        self.b.sync()
-        self.bc.sync()
-        self.bc2.transactions = self.b.transactions + self.bc.transactions
 
     def tearDown(self):
         """Tear down test fixtures, if any."""
@@ -36,7 +38,7 @@ class TestAddress(unittest.TestCase):
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        saved_utxos = self.b.get_utxos()
+        saved_utxos = b.get_utxos()
         destinations = [Destination(BitcoinMainNet, "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001),
                         Destination(BitcoinMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
@@ -63,7 +65,7 @@ class TestAddress(unittest.TestCase):
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        saved_utxos = self.b.get_utxos()
+        saved_utxos = b.get_utxos()
         destinations = [Destination(BitcoinSegwitMainNet, "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001),
                         Destination(BitcoinSegwitMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
@@ -90,7 +92,7 @@ class TestAddress(unittest.TestCase):
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        saved_utxos = self.bc.get_utxos()
+        saved_utxos = bc.get_utxos()
         destinations = [Destination(BitcoinSegwitMainNet, "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001),
                         Destination(BitcoinSegwitMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
@@ -117,7 +119,7 @@ class TestAddress(unittest.TestCase):
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        saved_utxos = self.bc2.get_utxos()
+        saved_utxos = bc2.get_utxos()
         destinations = [Destination(BitcoinSegwitMainNet, "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001),
                         Destination(BitcoinSegwitMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
@@ -144,7 +146,7 @@ class TestAddress(unittest.TestCase):
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        saved_utxos = self.bc2.get_utxos()
+        saved_utxos = bc2.get_utxos()
         destinations = [Destination(BitcoinSegwitMainNet, "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001),
                         Destination(BitcoinSegwitMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
