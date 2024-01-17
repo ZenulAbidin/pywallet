@@ -339,7 +339,7 @@ def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, **kwar
             }
 
             # Sign the transaction
-            return web3.eth.account.signTransaction(transaction, private_key)
+            return w3.eth.account.signTransaction(transaction, private_key)
         except Exception:
             pass
     raise RuntimeError("Cannot sign web3 transaction (try specifying different nodes)")
