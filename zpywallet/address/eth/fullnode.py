@@ -2,7 +2,7 @@ from web3 import Web3
 
 from ...utils.utils import eth_transaction_hash
 from ...generated import wallet_pb2
-
+from ...utils.keccak import to_checksum_address
 
 class EthereumWeb3Client:
     """ Address querying class for Ethereum full nodes and Web3 clients.
@@ -43,7 +43,7 @@ class EthereumWeb3Client:
         self.web3 = Web3(Web3.HTTPProvider(kwargs.get('url')))
 
         self.transactions = []
-        self.addresses = [self.web3.to_checksum_address(a) for a in addresses]
+        self.addresses = [to_checksum_address(a) for a in addresses]
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:

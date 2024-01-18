@@ -9,6 +9,7 @@ from ..destination import Destination
 
 from ..utils.base58 import b58decode_check
 from ..utils.bech32 import bech32_decode
+from ..utils.keccak import to_checksum_address
 
 # Should really use list[] annotation directly but we still support Python 3.8 which does not have such syntax yet.
 from typing import List
@@ -326,12 +327,12 @@ def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, **kwar
     for node in fullnodes:
         try:
             w3 = web3.Web3(web3.HTTPProvider(node['url']))
-            nonce = w3.eth.getTransactionCount(w3.to_checksum_address(sender_address))
+            nonce = w3.eth.getTransactionCount(to_checksum_address(sender_address))
 
             # Build the transaction dictionary
             transaction = {
                 'nonce': nonce,
-                'to': w3.to_checksum_address(receiver_address),
+                'to': to_checksum_address(receiver_address),
                 'value': w3.toWei(amount, 'ether'),  # Sending 1 ether, adjust as needed
                 'gas': kwargs['gas'],#21000,  # Gas limit
                 'gasPrice': w3.toWei(kwargs['gasPrice'], 'gwei'),  # Gas price in Gwei, adjust as needed

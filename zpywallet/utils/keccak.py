@@ -367,3 +367,26 @@ Keccak224 = KeccakHash.preset(1152, 448, 224)
 Keccak256 = KeccakHash.preset(1088, 512, 256)
 Keccak384 = KeccakHash.preset(832, 768, 384)
 Keccak512 = KeccakHash.preset(576, 1024, 512)
+
+def to_checksum_address(address):
+    address = address.lower().replace('0x', '')
+    keccak_hash = Keccak256(address.encode('utf-8')).hexdigest()
+    checksum_address = '0x'
+    
+    for i in range(len(address)):
+        if int(keccak_hash[i], 16) >= 8:
+            checksum_address += address[i].upper()
+        else:
+            checksum_address += address[i]
+    return checksum_address
+
+def is_checksum_address(address):
+    address = address.replace('0x', '')
+    address_hash = Keccak256(address.lower().encode('utf-8')).hexdigest()
+    
+    for i in range(0, 40):
+        # The nth letter should be uppercase if the nth digit of casemap is 1
+        if ((int(address_hash[i], 16) > 7 and address[i].upper() != address[i]) or
+                (int(address_hash[i], 16) <= 7 and address[i].lower() != address[i])):
+            return False
+    return True
