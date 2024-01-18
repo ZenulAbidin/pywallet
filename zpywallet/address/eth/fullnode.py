@@ -43,7 +43,7 @@ class EthereumWeb3Client:
         self.web3 = Web3(Web3.HTTPProvider(kwargs.get('url')))
 
         self.transactions = []
-        self.addresses = [Web3.toChecksumAddress(a) for a in addresses]
+        self.addresses = [self.web3.toChecksumAddress(a) for a in addresses]
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
