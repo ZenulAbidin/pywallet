@@ -11,7 +11,7 @@
 
 We take the security of our project seriously. If you discover a security issue, please follow these steps to report it:
 
-1. **Contact us privately:** Email us at [ali@notatether.com](mailto:ali@notatether.com) with details of the vulnerability. Please do not disclose the issue publicly until we have had a chance to address it.
+1. **Contact us privately:** Send a message using the the "Report a vulnerability" button at the top of this page with details of the vulnerability. Please do not disclose the issue publicly until we have had a chance to address it.
 
 2. **Provide detailed information:**
    - Include a clear and detailed description of the vulnerability.
