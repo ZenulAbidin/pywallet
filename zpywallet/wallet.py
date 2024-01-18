@@ -237,7 +237,8 @@ class Wallet:
 
     @classmethod
     def deserialize(cls, data: bytes, password):
-        wallet = wallet_pb2.Wallet.ParseFromString(data)
+        wallet = wallet_pb2.Wallet
+        wallet.ParseFromString(data)
         seed_phrase = decrypt(wallet.encrypted_seed_phrase, password)
 
         if wallet.network == wallet_pb2.BITCOIN_SEGWIT_MAINNET:
