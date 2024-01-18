@@ -4,6 +4,5 @@ scrypt==0.8.20
 requests==2.31.0
 protobuf==4.25.1
 pycryptodomex==3.19.1
-base58==2.1.1
 web3==6.14.0
 websocket-client
