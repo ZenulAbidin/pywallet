@@ -243,45 +243,45 @@ class Wallet:
 
         if wallet.network == wallet_pb2.BITCOIN_SEGWIT_MAINNET:
             network = BitcoinSegwitMainNet
-        if wallet.network == wallet_pb2.BITCOIN_MAINNET:
+        elif wallet.network == wallet_pb2.BITCOIN_MAINNET:
             network = BitcoinMainNet
-        if wallet.network == wallet_pb2.BITCOIN_SEGWIT_TESTNET:
+        elif wallet.network == wallet_pb2.BITCOIN_SEGWIT_TESTNET:
             network = BitcoinSegwitTestNet
-        if wallet.network == wallet_pb2.BITCOIN_TESTNET:
+        elif wallet.network == wallet_pb2.BITCOIN_TESTNET:
             network = BitcoinTestNet
-        if wallet.network == wallet_pb2.LITECOIN_SEGWIT_MAINNET:
+        elif wallet.network == wallet_pb2.LITECOIN_SEGWIT_MAINNET:
             network = LitecoinSegwitMainNet
-        if wallet.network == wallet_pb2.LITECOIN_MAINNET:
+        elif wallet.network == wallet_pb2.LITECOIN_MAINNET:
             network = LitecoinMainNet
-        if wallet.network == wallet_pb2.LITECOIN_BTC_SEGWIT_MAINNET:
+        elif wallet.network == wallet_pb2.LITECOIN_BTC_SEGWIT_MAINNET:
             network = LitecoinBTCSegwitMainNet
-        if wallet.network == wallet_pb2.LITECOIN_BTC_MAINNET:
+        elif wallet.network == wallet_pb2.LITECOIN_BTC_MAINNET:
             network = LitecoinBTCMainNet
-        if wallet.network == wallet_pb2.LITECOIN_SEGWIT_TESTNET:
+        elif wallet.network == wallet_pb2.LITECOIN_SEGWIT_TESTNET:
             network = LitecoinSegwitTestNet
-        if wallet.network == wallet_pb2.LITECOIN_TESTNET:
+        elif wallet.network == wallet_pb2.LITECOIN_TESTNET:
             network = LitecoinTestNet
-        if wallet.network == wallet_pb2.ETHEREUM_MAINNET:
+        elif wallet.network == wallet_pb2.ETHEREUM_MAINNET:
             network = EthereumMainNet
-        if wallet.network == wallet_pb2.DOGECOIN_MAINNET:
+        elif wallet.network == wallet_pb2.DOGECOIN_MAINNET:
             network = DogecoinMainNet
-        if wallet.network == wallet_pb2.DOGECOIN_BTC_MAINNET:
+        elif wallet.network == wallet_pb2.DOGECOIN_BTC_MAINNET:
             network = DogecoinBTCMainNet
-        if wallet.network == wallet_pb2.DOGECOIN_TESTNET:
+        elif wallet.network == wallet_pb2.DOGECOIN_TESTNET:
             network = DogecoinTestNet
-        if wallet.network == wallet_pb2.DASH_MAINNET:
+        elif wallet.network == wallet_pb2.DASH_MAINNET:
             network = DashMainNet
-        if wallet.network == wallet_pb2.DASH_INVERTED_MAINNET:
+        elif wallet.network == wallet_pb2.DASH_INVERTED_MAINNET:
             network = DashInvertedMainNet
-        if wallet.network == wallet_pb2.DASH_BTC_MAINNET:
+        elif wallet.network == wallet_pb2.DASH_BTC_MAINNET:
             network = DashBTCMainNet
-        if wallet.network == wallet_pb2.DASH_TESTNET:
+        elif wallet.network == wallet_pb2.DASH_TESTNET:
             network = DashTestNet
-        if wallet.network == wallet_pb2.DASH_INVERTED_TESTNET:
+        elif wallet.network == wallet_pb2.DASH_INVERTED_TESTNET:
             network = DashInvertedTestNet
-        if wallet.network == wallet_pb2.BITCOIN_CASH_MAINNET:
+        elif wallet.network == wallet_pb2.BITCOIN_CASH_MAINNET:
             network = BitcoinCashMainNet
-        if wallet.network == wallet_pb2.BLOCKCYPHER_TESTNET:
+        elif wallet.network == wallet_pb2.BLOCKCYPHER_TESTNET:
             network = BlockcypherTestNet
         else:
             raise ValueError("Unkown network")
