@@ -383,7 +383,7 @@ class Wallet:
     
     def _to_human_friendly_utxo(self, inputs, private_keys):
         new_inputs = []
-        for ii in inputs:
+        for ii in range(len(inputs)):
             u = inputs[ii]
             for i in range (len(private_keys)):
                 private_key = private_keys[i]
@@ -452,7 +452,7 @@ class Wallet:
         for p in self.encrypted_private_keys:
             try:
                 private_keys.append(decrypt(p, password))
-            except PermissionError as e:
+            except ValueError as e:
                 del(private_keys)
                 raise e
         return private_keys
@@ -509,8 +509,8 @@ class Wallet:
         return create_transaction(inputs, destinations, network=self._network)
 
 
-    def broadcast_transaction(self, transaction: str):
-        broadcast_transaction(transaction.decode(), self._network)
+    def broadcast_transaction(self, transaction):
+        broadcast_transaction(transaction, self._network)
 
     def serialize(self):
         return self.wallet.SerializeToString()

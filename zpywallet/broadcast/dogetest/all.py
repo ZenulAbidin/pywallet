@@ -5,11 +5,11 @@ from .fullnode import *
 
 
 def tx_hash_dogetest(raw_transaction_hex):
-    return binascii.hexlify(hashlib.sha256(hashlib.sha256(raw_transaction_hex).digest()).digest())
+    return binascii.hexlify(hashlib.sha256(hashlib.sha256(raw_transaction_hex.decode()).digest()).digest())
 
-async def broadcast_transaction_dogetest(raw_transaction_hex: bytes, **kwargs):
+async def broadcast_transaction_dogetest(raw_transaction_hex, **kwargs):
     rpc_nodes = kwargs.get('rpc_nodes') or []
-    raw_transaction_hex = raw_transaction_hex.decode()
+
     tasks = []
 
     for node in rpc_nodes:

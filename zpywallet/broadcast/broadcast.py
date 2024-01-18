@@ -11,7 +11,7 @@ from .ltc.all import broadcast_transaction_ltc, tx_hash_ltc
 from .ltctest.all import broadcast_transaction_ltctest, tx_hash_ltctest
 from ..network import *
 
-def broadcast_transaction(transaction: bytes, network, **kwargs):
+def broadcast_transaction(transaction, network, **kwargs):
     if network.COIN == "BTC":
         if not network.TESTNET:
             asyncio.run(broadcast_transaction_btc(transaction, **kwargs))

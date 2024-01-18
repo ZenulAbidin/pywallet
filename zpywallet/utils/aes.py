@@ -71,13 +71,13 @@ def decrypt(enc, passphrase):
     ct = base64.b64decode(enc)
     salted = ct[:8]
     if salted != b'Salted__':
-        raise PermissionError("Decryption failed")
+        raise ValueError("Decryption failed")
     salt = ct[8:16]
     key, iv = __derive_key_and_iv(passphrase, salt)
     cipher = AES.new(key, AES.MODE_CBC, iv)
     d = __pkcs7_trimming(cipher.decrypt(ct[16:]))
     if len(d) == 0:
-        raise PermissionError("Decryption failed")
+        raise ValueError("Decryption failed")
     return d
 
 def __pkcs7_padding(s):
