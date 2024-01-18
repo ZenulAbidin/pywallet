@@ -237,7 +237,7 @@ class Wallet:
 
     @classmethod
     def deserialize(cls, data: bytes, password):
-        wallet = wallet_pb2.Wallet
+        wallet = wallet_pb2.Wallet()
         wallet.ParseFromString(data)
         seed_phrase = decrypt(wallet.encrypted_seed_phrase, password)
 
