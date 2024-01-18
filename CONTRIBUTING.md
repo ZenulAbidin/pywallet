@@ -36,7 +36,7 @@ Please adhere to the existing code style used in the project. If there are speci
 
 ## Testing
 
-If you're contributing code changes, it's important to ensure that the existing tests pass and, if applicable, add new tests for your changes. Running ``tox`` (the project's test suite) locally before submitting a pull request is highly recommended.
+If you're contributing code changes, it's important to ensure that the existing tests pass and, if applicable, add new tests for your changes. Running `tox` (the project's test suite) locally before submitting a pull request is highly recommended.
 
 ## Issue Reporting
 
