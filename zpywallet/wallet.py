@@ -130,10 +130,15 @@ class Wallet:
         esplora_endpoints = kwargs.get('esplora_endpoints')
         blockcypher_tokens = kwargs.get('blockcypher_tokens')
 
-        self.network = network
+        self._network = network
         if not derivation_path:
             derivation_path = network.BIP32_SEGWIT_PATH if network.BIP32_SEGWIT_PATH else network.BIP32_PATH
 
+        if not seed_phrase:
+            seed_phrase = generate_mnemonic()
+
+        # Generate addresses and keys
+        hdwallet = HDWallet.from_mnemonic(mnemonic=seed_phrase, network=network)
         
         if _with_wallet:
             self.wallet = wallet_pb2.Wallet()
@@ -147,15 +152,10 @@ class Wallet:
             else:
                 raise ValueError("Invalid derivation path")
             
-            if not seed_phrase:
-                seed_phrase = generate_mnemonic()
             
             # We do not save the password. Instead, we are going to generate a base64-encrypted
             # serialization of this wallet file using the password.
             self.wallet.encrypted_seed_phrase = encrypt(seed_phrase, password) # AES-256-CBC encryption
-
-            # Generate addresses and keys
-            hdwallet = HDWallet.from_mnemonic(mnemonic=seed_phrase, network=network)
 
             # Set properties
             if network == BitcoinSegwitMainNet:
@@ -291,6 +291,9 @@ class Wallet:
         del(seed_phrase)
         del(password)
 
+    def network(self):
+        return self._network
+
     def get_transaction_history(self, max_cycles=100):
         addresses = [a.address for a in self.wallet.addresses]
 
@@ -319,19 +322,19 @@ class Wallet:
 
         kwargs = {'fullnode_endpoints': fullnode_endpoints, 'esplora_endpoints': esplora_endpoints, 'blockcypher_tokens': blockcypher_tokens}
 
-        if self.network.COIN == "BCY":
+        if self._network.COIN == "BCY":
             address_client = BCYAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
-        elif self.network.COIN == "BTC" and not self.network.TESTNET:
+        elif self._network.COIN == "BTC" and not self._network.TESTNET:
             address_client = BitcoinAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
-        elif self.network.COIN == "BTC" and self.network.TESTNET:
+        elif self._network.COIN == "BTC" and self._network.TESTNET:
             address_client = BitcoinTestAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
-        elif self.network.COIN == "LTC" and not self.network.TESTNET:
+        elif self._network.COIN == "LTC" and not self._network.TESTNET:
             address_client = LitecoinAddress( addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
-        elif self.network.COIN == "DOGE" and not self.network.TESTNET:
+        elif self._network.COIN == "DOGE" and not self._network.TESTNET:
             address_client = DogecoinAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
-        elif self.network.COIN == "DASH" and not self.network.TESTNET:
+        elif self._network.COIN == "DASH" and not self._network.TESTNET:
             address_client = DashAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
-        elif self.network.COIN == "ETH" and not self.network.TESTNET:
+        elif self._network.COIN == "ETH" and not self._network.TESTNET:
             address_client = EthereumAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
         else:
             raise ValueError("No address client for this network")
@@ -342,7 +345,7 @@ class Wallet:
         self.wallet.transactions.extend(transactions)
         tx_array = []
         for t in transactions:
-            tx_array.append(Transaction(t, self.network))
+            tx_array.append(Transaction(t, self._network))
         return tx_array
     
     def get_utxos(self, max_cycles=100, only_confirmed=False):
@@ -388,7 +391,7 @@ class Wallet:
     def get_balance(self, in_standard_units=True, max_cycles=100):
         addresses = [a.address for a in self.wallet.addresses]
         
-        if self.network.SUPPORTS_EVM:
+        if self._network.SUPPORTS_EVM:
             # We must use the Web3 network to get the balance as UTXOs are not available and getting transaction history
             # of an address is impractically slow.
             fullnode_endpoints = []
@@ -493,8 +496,8 @@ class Wallet:
         return create_transaction(inputs, destinations, network=self._network)
 
 
-    def broadcast_transaction(self, transaction: bytes):
-        broadcast_transaction(transaction, self._network)
+    def broadcast_transaction(self, transaction: str):
+        broadcast_transaction(transaction.encode(), self._network)
 
     def serialize(self):
         return self.wallet.SerializeToString()
