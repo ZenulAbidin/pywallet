@@ -211,26 +211,28 @@ class Wallet:
 
             if blockcypher_tokens is not None:
                 self.wallet.blockcypher_tokens.extend(blockcypher_tokens)
-                
-            for i in range(0, receive_gap_limit):
-                privkey = hdwallet.get_child_for_path(f"{derivation_path}0/{i}").private_key
-                pubkey = privkey.public_key
+            
+        self.encrypted_private_keys = []
+        for i in range(0, receive_gap_limit):
+            privkey = hdwallet.get_child_for_path(f"{derivation_path}0/{i}").private_key
+            self.encrypted_private_keys.append(encrypt(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_hex(), password))
+            pubkey = privkey.public_key
 
-                # Add an Address
-                address = self.wallet.addresses.add()
-                address.address = pubkey.address()
-                address.pubkey = pubkey.to_hex()
-                address.privkey = privkey.to_wif()
+            # Add an Address
+            address = self.wallet.addresses.add()
+            address.address = pubkey.address()
+            address.pubkey = pubkey.to_hex()
+            address.privkey = privkey.to_wif()
 
-            # for i in range(0, change_gap_limit):
-            #     privkey = hdwallet.get_child_for_path(f"{derivation_path}1/{i}").private_key
-            #     pubkey = privkey.public_key
-                
-            #     # Add an Address
-            #     address = self.wallet.addresses.add()
-            #     address.address = pubkey.address()
-            #     address.pubkey = pubkey.to_hex()
-            #     address.privkey = privkey.to_wif()
+        # for i in range(0, change_gap_limit):
+        #     privkey = hdwallet.get_child_for_path(f"{derivation_path}1/{i}").private_key
+        #     pubkey = privkey.public_key
+            
+        #     # Add an Address
+        #     address = self.wallet.addresses.add()
+        #     address.address = pubkey.address()
+        #     address.pubkey = pubkey.to_hex()
+        #     address.privkey = privkey.to_wif()
             
 
     @classmethod
@@ -430,7 +432,7 @@ class Wallet:
 
     def try_decrypt_privkeys(self, password):
         private_keys = []
-        for p in self.wallet.encrypted_private_keys:
+        for p in self.encrypted_private_keys:
             try:
                 private_keys.append(decrypt(p, password))
             except PermissionError as e:

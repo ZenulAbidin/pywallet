@@ -326,20 +326,20 @@ def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, **kwar
     for node in fullnodes:
         try:
             w3 = web3.Web3(web3.HTTPProvider(node['url']))
-            nonce = w3.eth.getTransactionCount(sender_address)
+            nonce = w3.eth.getTransactionCount(w3.toChecksumAddress(sender_address))
 
             # Build the transaction dictionary
             transaction = {
                 'nonce': nonce,
-                'to': receiver_address,
-                'value': web3.toWei(amount, 'ether'),  # Sending 1 ether, adjust as needed
+                'to': w3.toChecksumAddress(receiver_address),
+                'value': w3.toWei(amount, 'ether'),  # Sending 1 ether, adjust as needed
                 'gas': kwargs['gas'],#21000,  # Gas limit
                 'gasPrice': w3.toWei(kwargs['gasPrice'], 'gwei'),  # Gas price in Gwei, adjust as needed
                 'chainId': 1,  # Mainnet, change to 3 for Ropsten, 4 for Rinkeby, etc.
             }
 
             # Sign the transaction
-            return w3.eth.account.signTransaction(transaction, private_key)
+            return w3.eth.account.signTransaction(transaction, binascii.unhexlify(private_key[2:].encode()))
         except Exception:
             pass
     raise RuntimeError("Cannot sign web3 transaction (try specifying different nodes)")
