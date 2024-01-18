@@ -136,9 +136,6 @@ class Wallet:
 
         if not seed_phrase:
             seed_phrase = generate_mnemonic()
-
-        # Generate addresses and keys
-        hdwallet = HDWallet.from_mnemonic(mnemonic=seed_phrase, network=network)
         
         if _with_wallet:
             self.wallet = wallet_pb2.Wallet()
@@ -152,6 +149,8 @@ class Wallet:
             else:
                 raise ValueError("Invalid derivation path")
             
+            # Generate addresses and keys
+            hdwallet = HDWallet.from_mnemonic(mnemonic=seed_phrase, network=network)
             
             # We do not save the password. Instead, we are going to generate a base64-encrypted
             # serialization of this wallet file using the password.
@@ -212,27 +211,27 @@ class Wallet:
             if blockcypher_tokens is not None:
                 self.wallet.blockcypher_tokens.extend(blockcypher_tokens)
             
-        self.encrypted_private_keys = []
-        for i in range(0, receive_gap_limit):
-            privkey = hdwallet.get_child_for_path(f"{derivation_path}0/{i}").private_key
-            self.encrypted_private_keys.append(encrypt(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_hex(), password))
-            pubkey = privkey.public_key
+            self.encrypted_private_keys = []
+            for i in range(0, receive_gap_limit):
+                privkey = hdwallet.get_child_for_path(f"{derivation_path}0/{i}").private_key
+                self.encrypted_private_keys.append(encrypt(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_hex(), password))
+                pubkey = privkey.public_key
 
-            # Add an Address
-            address = self.wallet.addresses.add()
-            address.address = pubkey.address()
-            address.pubkey = pubkey.to_hex()
-            address.privkey = privkey.to_wif()
+                # Add an Address
+                address = self.wallet.addresses.add()
+                address.address = pubkey.address()
+                address.pubkey = pubkey.to_hex()
+                address.privkey = privkey.to_wif()
 
-        # for i in range(0, change_gap_limit):
-        #     privkey = hdwallet.get_child_for_path(f"{derivation_path}1/{i}").private_key
-        #     pubkey = privkey.public_key
-            
-        #     # Add an Address
-        #     address = self.wallet.addresses.add()
-        #     address.address = pubkey.address()
-        #     address.pubkey = pubkey.to_hex()
-        #     address.privkey = privkey.to_wif()
+            # for i in range(0, change_gap_limit):
+            #     privkey = hdwallet.get_child_for_path(f"{derivation_path}1/{i}").private_key
+            #     pubkey = privkey.public_key
+                
+            #     # Add an Address
+            #     address = self.wallet.addresses.add()
+            #     address.address = pubkey.address()
+            #     address.pubkey = pubkey.to_hex()
+            #     address.privkey = privkey.to_wif()
             
 
     @classmethod
@@ -288,6 +287,20 @@ class Wallet:
 
         self = cls(network, seed_phrase, password, _with_wallet=False)
         self.wallet = wallet
+        hdwallet = HDWallet.from_mnemonic(mnemonic=seed_phrase, network=network)
+        
+        self.encrypted_private_keys = []
+        for i in range(0, self.wallet.receive_gap_limit):
+            privkey = hdwallet.get_child_for_path(f"{self.derivation_path}0/{i}").private_key
+            self.encrypted_private_keys.append(encrypt(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_hex(), password))
+            pubkey = privkey.public_key
+
+            # Add an Address
+            address = self.wallet.addresses.add()
+            address.address = pubkey.address()
+            address.pubkey = pubkey.to_hex()
+            address.privkey = privkey.to_wif()
+
         del(seed_phrase)
         del(password)
 

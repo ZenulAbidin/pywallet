@@ -76,7 +76,7 @@ def decrypt(enc, passphrase):
     key, iv = __derive_key_and_iv(passphrase, salt)
     cipher = AES.new(key, AES.MODE_CBC, iv)
     d = __pkcs7_trimming(cipher.decrypt(ct[16:]))
-    if not d:
+    if len(d) == 0:
         raise PermissionError("Decryption failed")
     return d
 
