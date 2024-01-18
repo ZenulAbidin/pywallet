@@ -10,27 +10,27 @@ How to Contribute
 
 2. Clone the forked repository to your local machine::
 
-   .. code-block:: bash
+.. code-block:: bash
 
-      git clone https://github.com/your-username/your-project.git
+   git clone https://github.com/your-username/your-project.git
 
 3. Create a new branch for your feature or bug fix::
 
-   .. code-block:: bash
+.. code-block:: bash
 
-      git checkout -b feature/your-feature
+   git checkout -b feature/your-feature
 
 4. Make the necessary changes and commit them::
 
-   .. code-block:: bash
+.. code-block:: bash
 
-      git commit -m "Add your commit message"
+   git commit -m "Add your commit message"
 
 5. Push your changes to your forked repository::
 
-   .. code-block:: bash
+.. code-block:: bash
 
-      git push origin feature/your-feature
+   git push origin feature/your-feature
 
 6. Open a pull request on the original repository. Provide a clear title and description for your pull request, explaining the changes you've made.
 
