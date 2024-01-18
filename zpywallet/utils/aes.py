@@ -28,7 +28,7 @@
 
 import sys
 import base64
-from hashlib import md5
+from hashlib import sha256
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 
@@ -117,7 +117,7 @@ def __derive_key_and_iv(password, salt):
     d = d_i = b''
     enc_pass = password if py2 else password.encode('utf-8')
     while len(d) < KEY_LEN + IV_LEN:
-        d_i = md5(d_i + enc_pass + salt).digest()
+        d_i = sha256(d_i + enc_pass + salt).digest()[:128]
         d += d_i
     return d[:KEY_LEN], d[KEY_LEN:KEY_LEN + IV_LEN]
 
