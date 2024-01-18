@@ -1,10 +1,10 @@
 import hashlib
 import binascii
-import base58
 import scrypt
 
 from .utils.keys import PrivateKey
 from .utils.utils import encrypt, decrypt
+from .utils import base58
 
 class Bip38PrivateKey:
     BLOCK_SIZE = 16
