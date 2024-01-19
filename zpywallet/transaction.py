@@ -105,25 +105,21 @@ class Transaction:
             raise ValueError("Blockchain does not support this property")
         return self._sat_metadata['feeRate'] # always in sats per byte or vbyte
     
-    def sat_inputs(self, in_standard_units=True, include_witness=False):
+    def sat_inputs(self, include_witness=False):
         if self._network.SUPPORTS_EVM:
             raise ValueError("Blockchain does not support this property")
         inputs = []
         for i in self._sat_metadata['inputs']:
-            if in_standard_units:
-                i['amount'] /= 1e8
             if not include_witness:
                 del i['witness']
             inputs.append(i)
         return inputs
         
-    def sat_outputs(self, in_standard_units=True, only_unspent = False):
+    def sat_outputs(self, only_unspent=False):
         if self._network.SUPPORTS_EVM:
             raise ValueError("Blockchain does not support this property")
         outputs = []
         for o in self._sat_metadata['outputs']:
-            if in_standard_units:
-                o['amount'] /= 1e8
             if not only_unspent or not o['spent']:
                 outputs.append(o)
         return outputs

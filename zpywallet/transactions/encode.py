@@ -91,7 +91,7 @@ def create_varint(value):
         return b'\xff' + int_to_hex(value, min_bytes=8)
 
 
-def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4):
+def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network):
     """
     Signs the inputs of a legacy transaction. The parts are contained in bytes 1, 2, 3, 4.
     Bytes 2 contains the inputs broken up so that the signature is isolated. It also has
@@ -120,7 +120,7 @@ def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4):
         partial_transaction += int_to_hex(sighash, 4)
 
         # Sign it
-        p = PrivateKey.from_wif(private_key)
+        p = PrivateKey.from_wif(private_key, network=network)
         pubkey = p.public_key.to_bytes()
         if p.public_key.base58_address(compressed=False) == address:
             pubkey = p.public_key.to_bytes(False)
@@ -143,7 +143,7 @@ def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4):
     
 
 
-def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4):
+def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network):
     """
     Signs the inputs of a segwit transaction. The parts are contained in bytes 1, 2, 3, 4.
     Bytes 2 contains the inputs broken up so that the signature is isolated. It also has
@@ -173,7 +173,7 @@ def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4):
         segwit_payload = hashlib.sha256(hashlib.sha256(b2[7]).digest()).digest()
 
         # Sign it
-        p = PrivateKey.from_wif(private_key)
+        p = PrivateKey.from_wif(private_key, network=network)
         pubkey = p.public_key.to_bytes()
         if script_is_p2pkh(script_pubkey):
             if p.public_key.base58_address(compressed=False) == address:
@@ -313,9 +313,9 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
 
         del(inputs)
         if network.SUPPORTS_SEGWIT and not all_legacy:
-            return create_signatures_segwit(tx_bytes_1, tx_bytes_2_inputs, tx_bytes_3, tx_bytes_4)
+            return create_signatures_segwit(tx_bytes_1, tx_bytes_2_inputs, tx_bytes_3, tx_bytes_4, network)
         else:
-            return create_signatures_legacy(tx_bytes_1, tx_bytes_2_inputs, tx_bytes_3, tx_bytes_4)
+            return create_signatures_legacy(tx_bytes_1, tx_bytes_2_inputs, tx_bytes_3, tx_bytes_4, network)
 
 
 def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, gas, gasPrice):

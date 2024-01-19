@@ -213,7 +213,7 @@ class Wallet:
             self.encrypted_private_keys = []
             for i in range(0, receive_gap_limit):
                 privkey = hdwallet.get_child_for_path(f"{derivation_path}/0/{i}").private_key
-                self.encrypted_private_keys.append(encrypt(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_hex(), password))
+                self.encrypted_private_keys.append(encrypt(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif(), password))
                 pubkey = privkey.public_key
 
                 # Add an Address
@@ -291,7 +291,7 @@ class Wallet:
         self.encrypted_private_keys = []
         for i in range(0, self.wallet.receive_gap_limit):
             privkey = hdwallet.get_child_for_path(f"{self.wallet.derivation_path}/0/{i}").private_key
-            self.encrypted_private_keys.append(encrypt(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_hex(), password))
+            self.encrypted_private_keys.append(encrypt(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif(), password))
             pubkey = privkey.public_key
 
             # Add an Address
@@ -381,7 +381,7 @@ class Wallet:
             u = inputs[ii]
             for i in range (len(private_keys)):
                 private_key = private_keys[i]
-                privkey = PrivateKey.from_hex(private_key.decode(), self._network)
+                privkey = PrivateKey.from_wif(private_key.decode(), self._network)
                 a = [privkey.public_key.base58_address(True),
                      privkey.public_key.base58_address(False),
                      privkey.public_key.bech32_address()]
@@ -422,16 +422,17 @@ class Wallet:
         
         # Not an EVM chain
 
-        utxos = self.get_utxos()
         total_balance = 0
         confirmed_balance = 0
+
+        utxos = self.get_utxos(only_confirmed=True)
         for u in utxos:
-            total_balance = u.amount()
-            if u.confirmed():
-                confirmed_balance = u.amount()
-        if in_standard_units:
-            total_balance /= 1e8
-            confirmed_balance /= 1e8
+            confirmed_balance += u.amount(in_standard_units=in_standard_units)
+
+        utxos = self.get_utxos()
+        for u in utxos:
+            total_balance += u.amount(in_standard_units=in_standard_units)
+
         return total_balance, confirmed_balance
 
     def addresses(self):
@@ -494,7 +495,7 @@ class Wallet:
         # the remaining balance is going to the miner.
         # This is not the real change input, we need to find the size of the transaction first.
         change = Destination(self.random_address(), 0, self._network)
-        destinations_without_change = destinations
+        destinations_without_change = destinations[:]
         destinations_without_change.append(change)
 
         change = self._calculate_change(inputs, destinations_without_change, fee_rate)

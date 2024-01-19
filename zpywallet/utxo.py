@@ -37,7 +37,7 @@ class UTXO:
         if in_standard_units:
             return self._output['amount'] / 1e8
         else:
-            return self._output['amount']
+            return int(self._output['amount'])
     
     def address(self):
         return self._output['address']
