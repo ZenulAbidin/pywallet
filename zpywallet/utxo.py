@@ -22,7 +22,6 @@ class UTXO:
             else:
                 raise ValueError("only_mine is specified and UTXO does not belong to this wallet")
         except IndexError as e:
-            del(private_keys)
             raise IndexError(f"Transaction output {index} does not exist")
         
     def network(self):

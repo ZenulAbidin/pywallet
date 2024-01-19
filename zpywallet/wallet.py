@@ -367,7 +367,7 @@ class Wallet:
         transactions = self.get_transaction_history(max_cycles=max_cycles)
         utxo_set = []
         for t in transactions:
-            for i in range(len(t.outputs())):
+            for i in range(len(t.sat_outputs())):
                 try:
                     utxo_set.append(UTXO(t, i, addresses, only_mine=True))
                 except ValueError:
