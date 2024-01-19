@@ -351,7 +351,6 @@ class Wallet:
         else:
             raise ValueError("No address client for this network")
 
-        import pdb; pdb.set_trace()
         address_client.sync()
         transactions = address_client.get_transaction_history()
         del self.wallet.transactions[:]
