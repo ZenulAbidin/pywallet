@@ -373,12 +373,6 @@ class Wallet:
                 except ValueError:
                     pass
         
-        if only_confirmed:
-            whole_utxo_set = utxo_set
-            utxo_set = []
-            for i in whole_utxo_set:
-                if i.confirmed():
-                    utxo_set.append(i)
         return utxo_set
     
     def _to_human_friendly_utxo(self, inputs, private_keys):
@@ -387,12 +381,12 @@ class Wallet:
             u = inputs[ii]
             for i in range (len(private_keys)):
                 private_key = private_keys[i]
-                privkey = PrivateKey.from_wif(private_key, self._network)
+                privkey = PrivateKey.from_hex(private_key.decode(), self._network)
                 a = [privkey.public_key.base58_address(True),
                      privkey.public_key.base58_address(False),
                      privkey.public_key.bech32_address()]
                 u._output['private_key'] = private_key if u._output['address'] in a else None
-                u._output['script_pubkey'] = PublicKey.script(u._output['address', self._network])
+                u._output['script_pubkey'] = PublicKey.script(u._output['address'], self._network)
                 del(privkey)
                 del(private_key)
                 if u._output['private_key'] == None:
@@ -479,12 +473,12 @@ class Wallet:
         if total_inputs < total_outputs + size*fee_rate:
             raise ValueError("Not enough balance for this transaction")
         change = total_inputs - total_outputs - size*fee_rate
-        return None if change <= 0 else Destination(self._network, self.random_address(), change / 1e8)
+        return None if change <= 0 else Destination(self.random_address(), change / 1e8, self._network)
 
 
     # Fee rate is in the unit used by the network, ie. vbytes, bytes or wei
     def create_transaction(self, password: bytes, destinations: List[Destination], fee_rate, spend_unconfirmed_inputs=False, **kwargs):
-        inputs = self.get_utxos(not spend_unconfirmed_inputs)
+        inputs = self.get_utxos(only_confirmed=not spend_unconfirmed_inputs)
         
         private_keys = self.try_decrypt_privkeys(password)
 
@@ -499,11 +493,11 @@ class Wallet:
         # Depending on the size of the transactions, we may need to add a change output. Otherwise,
         # the remaining balance is going to the miner.
         # This is not the real change input, we need to find the size of the transaction first.
-        change = Destination(self._network, self.random_address(), 0)
-        inputs_without_change = inputs
-        inputs_without_change.append(change)
+        change = Destination(self.random_address(), 0, self._network)
+        destinations_without_change = destinations
+        destinations_without_change.append(change)
 
-        change = self._calculate_change(inputs_without_change, destinations, fee_rate)
+        change = self._calculate_change(inputs, destinations_without_change, fee_rate)
         if change:
             destinations.append(change)
         return create_transaction(inputs, destinations, network=self._network)

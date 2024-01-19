@@ -4,7 +4,7 @@ from .utils.bech32 import bech32_decode
 # Amounts are always described internally in the lowest possible denomination
 # to make them integers.
 class Destination:
-    def __init__(self, network, address, amount):
+    def __init__(self, address, amount, network):
         self._network = network
         self._address = address
         self._amount = amount
