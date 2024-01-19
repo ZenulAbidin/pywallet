@@ -222,7 +222,7 @@ class EsploraAddress:
             if len(data) > 0:
                 last_tx = data[-1]["txid"]
             else:
-                raise NetworkException("Empty data (try again with another provider)")
+                break
             
             while len(data) > 0:
                 url = f"{self.endpoint}/address/{address}/txs/chain/{last_tx}"

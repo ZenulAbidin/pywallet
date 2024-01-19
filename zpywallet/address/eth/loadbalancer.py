@@ -93,5 +93,5 @@ class EthereumAddress:
                     txs = self.provider_list[self.current_index].transactions
                     self.advance_to_next_provider()
                     cycle += 1
-            self.transactions += txs
+            self.transactions.extend(txs)
         return self.transactions

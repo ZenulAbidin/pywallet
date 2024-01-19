@@ -352,6 +352,7 @@ class Wallet:
             raise ValueError("No address client for this network")
 
         address_client.sync()
+        address_client.transactions = []
         transactions = address_client.get_transaction_history()
         del self.wallet.transactions[:]
         self.wallet.transactions.extend(transactions)

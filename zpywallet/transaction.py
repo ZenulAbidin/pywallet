@@ -36,7 +36,7 @@ class Transaction:
                 i_['index'] = i.index
                 i_['amount'] = i.amount
                 i_['witness'] = []
-                for w in i_.witness_data:
+                for w in i.witness_data:
                     i_['witness'].append(w)
                 self._sat_metadata['inputs'].append(i_)
             for o in transaction.btclike_transaction.outputs:
