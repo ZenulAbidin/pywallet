@@ -59,16 +59,12 @@ class BitcoinAddress:
         if provider_bitmask & 1 << wallet_pb2.BTC_MEMPOOLSPACE + 1:
             self.provider_list.append(MempoolSpaceAddress(addresses, transactions=transactions))
 
-    def sync(self):
-        working_provider_list = []
-        for provider in self.provider_list:
+    def sync(self): 
+       for provider in self.provider_list:
             try:
                 provider.sync()
-                working_provider_list.append(provider)
             except NetworkException:
                 pass
-        # self.provider_list = working_provider_list
-        self.get_transaction_history()
 
     def get_balance(self):
         """

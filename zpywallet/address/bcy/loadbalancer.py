@@ -39,16 +39,12 @@ class BCYAddress:
                 self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, api_key=token))
             self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions)) # No token (free) version
 
-    def sync(self):
-        working_provider_list = []
-        for provider in self.provider_list:
+    def sync(self): 
+       for provider in self.provider_list:
             try:
                 provider.sync()
-                working_provider_list.append(provider)
             except NetworkException:
                 pass
-        # self.provider_list = working_provider_list
-        self.get_transaction_history()
 
     def get_balance(self):
         """

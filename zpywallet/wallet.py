@@ -335,27 +335,27 @@ class Wallet:
         kwargs = {'fullnode_endpoints': fullnode_endpoints, 'esplora_endpoints': esplora_endpoints, 'blockcypher_tokens': blockcypher_tokens}
 
         if self._network.COIN == "BCY":
-            address_client = BCYAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
+            address_client = BCYAddress(addresses, max_cycles=max_cycles, **kwargs)
         elif self._network.COIN == "BTC" and not self._network.TESTNET:
-            address_client = BitcoinAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
+            address_client = BitcoinAddress(addresses, max_cycles=max_cycles, **kwargs)
         elif self._network.COIN == "BTC" and self._network.TESTNET:
-            address_client = BitcoinTestAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
+            address_client = BitcoinTestAddress(addresses, max_cycles=max_cycles, **kwargs)
         elif self._network.COIN == "LTC" and not self._network.TESTNET:
-            address_client = LitecoinAddress( addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
+            address_client = LitecoinAddress( addresses, max_cycles=max_cycles, **kwargs)
         elif self._network.COIN == "DOGE" and not self._network.TESTNET:
-            address_client = DogecoinAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
+            address_client = DogecoinAddress(addresses, max_cycles=max_cycles, **kwargs)
         elif self._network.COIN == "DASH" and not self._network.TESTNET:
-            address_client = DashAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
+            address_client = DashAddress(addresses, max_cycles=max_cycles, **kwargs)
         elif self._network.COIN == "ETH" and not self._network.TESTNET:
-            address_client = EthereumAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
+            address_client = EthereumAddress(addresses, max_cycles=max_cycles, **kwargs)
         else:
             raise ValueError("No address client for this network")
 
         address_client.sync()
-        address_client.transactions = []
         transactions = address_client.get_transaction_history()
-        del self.wallet.transactions[:]
-        self.wallet.transactions.extend(transactions)
+        if len(transactions) > len(self.wallet.transactions):
+            del self.wallet.transactions[:]
+            self.wallet.transactions.extend(transactions)
         tx_array = []
         for t in transactions:
             tx_array.append(Transaction(t, self._network))
@@ -367,7 +367,7 @@ class Wallet:
         transactions = self.get_transaction_history(max_cycles=max_cycles)
         utxo_set = []
         for t in transactions:
-            for i in range(len(t.sat_outputs())):
+            for i in range(len(t.sat_outputs(only_unspent=True))):
                 try:
                     utxo_set.append(UTXO(t, i, addresses, only_mine=True))
                 except ValueError:

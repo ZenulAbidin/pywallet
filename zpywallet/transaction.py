@@ -124,7 +124,7 @@ class Transaction:
         for o in self._sat_metadata['outputs']:
             if in_standard_units:
                 o['amount'] /= 1e8
-            if not only_unspent or o['spent']:
+            if not only_unspent or not o['spent']:
                 outputs.append(o)
         return outputs
 

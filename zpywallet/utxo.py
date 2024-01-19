@@ -15,8 +15,8 @@ class UTXO:
         outputs = transaction.sat_outputs(only_unspent=True)
         try:
             output = outputs[index]
+            # Do not change the index superfluously since we only have the unspent UTXO subset
             output['txid'] = transaction.txid()
-            #output['index'] = index # should be the same
             if not only_mine or output['address'] in addresses:
                 self._output = output
             else:

@@ -31,17 +31,8 @@ class EthereumAddress:
                 self.provider_list.append(EthereumWeb3Client(addresses, transactions=transactions, **endpoint))
 
     def sync(self):
-        # Avoid collecting transaction history unless explicitly requested, because on EVM chains this is very slow.
+        # There is nothing to sync on EVM chains
         return
-        # working_provider_list = []
-        # for provider in self.provider_list:
-        #     try:
-        #         provider.sync()
-        #         working_provider_list.append(provider)
-        #     except NetworkException:
-        #         pass
-        # # self.provider_list = working_provider_list
-        # self.get_transaction_history()
 
     def get_balance(self):
         """

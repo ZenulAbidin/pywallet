@@ -39,16 +39,12 @@ class LitecoinAddress:
             for endpoint in fullnode_endpoints:
                 self.provider_list.append(LitecoinRPCClient(addresses, endpoint, transactions=transactions, **endpoint))
 
-    def sync(self):
-        working_provider_list = []
-        for provider in self.provider_list:
+    def sync(self): 
+       for provider in self.provider_list:
             try:
                 provider.sync()
-                working_provider_list.append(provider)
             except NetworkException:
                 pass
-        # self.provider_list = working_provider_list
-        self.get_transaction_history()
 
     def get_balance(self):
         """
