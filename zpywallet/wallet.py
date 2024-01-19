@@ -290,7 +290,7 @@ class Wallet:
         
         self.encrypted_private_keys = []
         for i in range(0, self.wallet.receive_gap_limit):
-            privkey = hdwallet.get_child_for_path(f"{self.wallet.derivation_path}0/{i}").private_key
+            privkey = hdwallet.get_child_for_path(f"{self.wallet.derivation_path}/0/{i}").private_key
             self.encrypted_private_keys.append(encrypt(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_hex(), password))
             pubkey = privkey.public_key
 
