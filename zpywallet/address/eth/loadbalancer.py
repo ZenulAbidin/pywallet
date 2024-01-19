@@ -62,7 +62,7 @@ class EthereumAddress:
                 self.transactions = self.provider_list[self.current_index].transactions
                 self.advance_to_next_provider()
                 cycle += 1
-        raise NetworkException(f"None of the address providers are working after f{self.max_cycles} tries")
+        raise NetworkException(f"None of the address providers are working after {self.max_cycles} tries")
 
         
 
@@ -81,7 +81,7 @@ class EthereumAddress:
             cycle = 1
             while ntransactions != len(self.transactions):
                 if cycle > self.max_cycles:
-                    raise NetworkException(f"None of the address providers are working after f{self.max_cycles} tries")
+                    raise NetworkException(f"None of the address providers are working after {self.max_cycles} tries")
                 self.provider_list[self.current_index].transactions = txs
                 self.provider_list[self.current_index].addresses = [address]
                 try:

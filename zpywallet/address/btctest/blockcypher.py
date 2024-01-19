@@ -206,7 +206,7 @@ class BlockcypherAddress:
             # Set a very high UTXO limit for those rare address that have crazy high input/output counts.
             txlimit = 10000
 
-            url = f"https://api.blockcypher.com/v1/btc/test/addrs/{address}/full?limit={interval}&txlimit={txlimit}"
+            url = f"https://api.blockcypher.com/v1/btc/test3/addrs/{address}/full?limit={interval}&txlimit={txlimit}"
             for attempt in range(3, -1, -1):
                 if attempt == 0:
                     raise NetworkException("Network request failure")

@@ -10,9 +10,9 @@ btctest_nodes = [
 
 btctest_esplora_nodes = [
     {
-        'url': 'https://mempool.ninja'
+        'url': 'https://mempool.ninja/testnet/api'
     },
     {
-        'url': 'https://www.lohkoketju.fi/'
+        'url': 'https://www.lohkoketju.fi/testnet/api'
     },
 ]

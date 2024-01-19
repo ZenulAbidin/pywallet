@@ -1,7 +1,7 @@
 from .generated import wallet_pb2
 
 class Transaction:
-    def __init__(self, network, transaction: wallet_pb2.Transaction):
+    def __init__(self, transaction: wallet_pb2.Transaction, network):
         self._network = network
         self._txid = transaction.txid
         self._timestamp = transaction.timestamp
@@ -9,11 +9,11 @@ class Transaction:
         self._height = transaction.height
         self._total_fee = transaction.total_fee
 
-        if transaction.fee_metric == wallet_pb2.FeeMetric.BYTES:
+        if transaction.fee_metric == wallet_pb2.FeeMetric.Value('BYTE'):
             self._fee_metric = "bytes"
-        elif transaction.fee_metric == wallet_pb2.FeeMetric.VBYTES:
+        elif transaction.fee_metric == wallet_pb2.FeeMetric.Value('VBYTE'):
             self._fee_metric = "vbytes"
-        elif transaction.fee_metric == wallet_pb2.FeeMetric.WEI:
+        elif transaction.fee_metric == wallet_pb2.FeeMetric.Value('WEI'):
             self._fee_metric = "wei"
         else:
             raise ValueError("Unknown fee metric")
