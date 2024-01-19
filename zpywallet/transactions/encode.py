@@ -254,7 +254,7 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
         tx_bytes_2_inputs = []
         for i in inputs:
             input_bytes_1 = input_bytes_2 = input_bytes_3 = input_bytes_4 = b""
-            input_bytes_1 += binascii.unhexlify(i.txid().encode())
+            input_bytes_1 += binascii.unhexlify(i.txid().encode())[::-1]
             input_bytes_1 += int_to_hex(i.index(), 4)
 
             # The transacion cannot be signed until it is fully constructed.
@@ -273,7 +273,7 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
                 # hashPrevouts (32-byte hash)
                 hashPrevouts = b""
                 for j in inputs:
-                    hashPrevouts += binascii.unhexlify(j.txid().encode()) + int_to_hex(j.index())
+                    hashPrevouts += binascii.unhexlify(j.txid().encode())[::-1] + int_to_hex(j.index())
                 segwit_payload += hashlib.sha256(hashlib.sha256(hashPrevouts).digest()).digest()
 
                 # hashSequence (32-byte hash)
@@ -283,7 +283,7 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
                 segwit_payload += hashlib.sha256(hashSequence).digest()
 
                 # outpoint (32-byte hash + 4-byte little endian)
-                segwit_payload += binascii.unhexlify(i.txid().encode()) + int_to_hex(i.index())
+                segwit_payload += binascii.unhexlify(i.txid().encode())[::-1] + int_to_hex(i.index())
 
                 # scriptCode of the input (serialized as scripts inside CTxOuts)
                 segwit_payload += i._script_pubkey()
