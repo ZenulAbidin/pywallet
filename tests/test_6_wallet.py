@@ -22,9 +22,9 @@ class TestWallet(unittest.TestCase):
         """Tear down test fixtures, if any."""
 
     def test_000_create_wallet(self):
-        wallet = Wallet(BitcoinSegwitMainNet, None, "zpywallet")
+        wallet = Wallet(BitcoinSegwitMainNet, None, "zpywallet", receive_gap_limit=1)
         wallet_1 = Wallet(BitcoinSegwitMainNet, "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon cactus",
-                          "zpywallet")
+                          "zpywallet", receive_gap_limit=1)
         exported_wallet = wallet_1.serialize()
         wallet_2 = Wallet.deserialize(exported_wallet, "zpywallet")
         
@@ -32,7 +32,7 @@ class TestWallet(unittest.TestCase):
     def test_001_use_the_wallet(self):
         """Test using the wallet."""
         wallet = Wallet(BitcoinSegwitMainNet, "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon cactus",
-                          "zpywallet")
+                          "zpywallet", receive_gap_limit=1)
         wallet.get_transaction_history()
         wallet.get_utxos(only_confirmed=False)
         wallet.get_utxos(only_confirmed=True)

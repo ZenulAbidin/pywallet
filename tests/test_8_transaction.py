@@ -38,7 +38,6 @@ class TestAddress(unittest.TestCase):
                         Destination(BitcoinMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
         # Therefore, the wallet.create_transaction method should fail with not enough funds.
-        #wallet = Wallet(BitcoinMainNet, None, "", receive_gap_limit=1)
         utxos = []
         for u in saved_utxos:
             _u = UTXO(None, None, _unsafe_internal_testing_only={'amount': u.amount})
@@ -67,7 +66,6 @@ class TestAddress(unittest.TestCase):
                         Destination(BitcoinSegwitMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
         # Therefore, the wallet.create_transaction method should fail with not enough funds.
-        #wallet = Wallet(BitcoinMainNet, None, "", receive_gap_limit=1)
         utxos = []
         for u in saved_utxos:
             _u = UTXO(None, None, _unsafe_internal_testing_only={'amount': u.amount})
@@ -95,8 +93,7 @@ class TestAddress(unittest.TestCase):
         destinations = [Destination(BitcoinSegwitMainNet, "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001),
                         Destination(BitcoinSegwitMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
-        # Therefore, the wallet.create_transaction method should fail with not enough funds.
-        #wallet = Wallet(BitcoinMainNet, None, "", receive_gap_limit=1)
+        # Therefore, the wallet.create_transaction method should fail with not enough funds
         utxos = []
         for u in saved_utxos:
             _u = UTXO(None, None, _unsafe_internal_testing_only={'amount': u.amount})
@@ -125,7 +122,6 @@ class TestAddress(unittest.TestCase):
                         Destination(BitcoinSegwitMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
         # Therefore, the wallet.create_transaction method should fail with not enough funds.
-        #wallet = Wallet(BitcoinMainNet, None, "", receive_gap_limit=1)
         utxos = []
         for u in saved_utxos:
             _u = UTXO(None, None, _unsafe_internal_testing_only={'amount': u.amount})
@@ -154,7 +150,6 @@ class TestAddress(unittest.TestCase):
                         Destination(BitcoinSegwitMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
         # Therefore, the wallet.create_transaction method should fail with not enough funds.
-        #wallet = Wallet(BitcoinMainNet, None, "", receive_gap_limit=1)
         utxos = []
         for u in saved_utxos:
             _u = UTXO(None, None, _unsafe_internal_testing_only={'amount': u.amount})
