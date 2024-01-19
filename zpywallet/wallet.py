@@ -212,7 +212,7 @@ class Wallet:
             
             self.encrypted_private_keys = []
             for i in range(0, receive_gap_limit):
-                privkey = hdwallet.get_child_for_path(f"{derivation_path}0/{i}").private_key
+                privkey = hdwallet.get_child_for_path(f"{derivation_path}/0/{i}").private_key
                 self.encrypted_private_keys.append(encrypt(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_hex(), password))
                 pubkey = privkey.public_key
 
@@ -223,7 +223,7 @@ class Wallet:
                 address.privkey = privkey.to_wif()
 
             # for i in range(0, change_gap_limit):
-            #     privkey = hdwallet.get_child_for_path(f"{derivation_path}1/{i}").private_key
+            #     privkey = hdwallet.get_child_for_path(f"{derivation_path}/1/{i}").private_key
             #     pubkey = privkey.public_key
                 
             #     # Add an Address

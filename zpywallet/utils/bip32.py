@@ -81,7 +81,7 @@ class HDWallet(object):
         if private_key:
             self.private_key = private_key
         elif private_exponent:
-            self.private_key = PrivateKey.from_int(private_exponent)
+            self.private_key = PrivateKey.from_int(private_exponent, network=network)
 
         if public_key:
             self.public_key = public_key
@@ -414,7 +414,7 @@ class HDWallet(object):
         # Public derivation is the same as private derivation plus some offset
         # knowing the child's private key allows us to find this offset just
         # by subtracting the child's private key from the parent I_L data
-        privkey = PrivateKey.from_bytes(ichild_left)
+        privkey = PrivateKey.from_bytes(ichild_left, network=self.network)
         parent_private_key = child_private_key.private_key - privkey
         return self.__class__(
             chain_code=self.chain_code,

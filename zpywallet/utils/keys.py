@@ -254,7 +254,7 @@ class PrivateKey:
 
     def __init__(self, ckey, network=BitcoinSegwitMainNet):
         self._key = ckey
-        self._public_key = PublicKey(coincurve.PublicKey.from_secret(binascii.unhexlify(ckey.to_hex())))
+        self._public_key = PublicKey(coincurve.PublicKey.from_secret(binascii.unhexlify(ckey.to_hex())), network=network)
         self._network = network
 
     @property

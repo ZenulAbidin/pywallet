@@ -21,7 +21,7 @@ class BitcoinCashMainNet(CryptoNetwork):
     # same as Bitcoin
     EXT_PUBLIC_KEY = 0x0488b21E  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x0488ADE4  # Used to serialize private BIP32 addresses
-    BIP32_PATH = "m/44'/145'/0'/"
+    BIP32_PATH = "m/44'/145'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -52,7 +52,7 @@ class DashMainNet(CryptoNetwork):
     SECRET_KEY = 0xCC      # int(0xCC) = 204  # Used for WIF format
     EXT_PUBLIC_KEY = 0x02fe52cc  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x02fe52f8  # Used to serialize private BIP32 addresses
-    BIP32_PATH = "m/44'/5'/0'/"
+    BIP32_PATH = "m/44'/5'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -78,7 +78,7 @@ class DashInvertedMainNet(CryptoNetwork):
     SECRET_KEY = 0xCC      # int(0xCC) = 204  # Used for WIF format
     EXT_PUBLIC_KEY = 0x02fe52f8  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x02fe52cc  # Used to serialize private BIP32 addresses
-    BIP32_PATH = "m/44'/5'/0'/"
+    BIP32_PATH = "m/44'/5'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -103,7 +103,7 @@ class DashBTCMainNet(CryptoNetwork):
     SECRET_KEY = 0xCC      # int(0xCC) = 204  # Used for WIF format
     EXT_PUBLIC_KEY = 0X0488B21E  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0X0488ADE4  # Used to serialize private BIP32 addresses
-    BIP32_PATH = "m/44'/5'/0'/"
+    BIP32_PATH = "m/44'/5'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -125,7 +125,7 @@ class DashTestNet(CryptoNetwork):
     SECRET_KEY = 0xEF      # int(0xEF) = 239  # Used for WIF format
     EXT_PUBLIC_KEY = 0x3a805837  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x3a8061a0  # Used to serialize private BIP32 addresses
-    BIP32_PATH = "m/44'/1'/0'/"
+    BIP32_PATH = "m/44'/1'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -146,7 +146,7 @@ class DashInvertedTestNet(CryptoNetwork):
     SECRET_KEY = 0xEF      # int(0xEF) = 239  # Used for WIF format
     EXT_PUBLIC_KEY = 0x3a8061a0  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x3a805837  # Used to serialize private BIP32 addresses
-    BIP32_PATH = "m/44'/1'/0'/"
+    BIP32_PATH = "m/44'/1'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -171,7 +171,7 @@ class BitcoinMainNet(CryptoNetwork):
 
     EXT_PUBLIC_KEY = 0x0488B21E  # Used to serialize public keys in BIP32 legacy (P2PKH)
     EXT_SECRET_KEY = 0x0488ADE4  # Used to serialize private keys in BIP32 legacy (P2PKH)
-    BIP32_PATH = "m/44'/0'/0'/"
+    BIP32_PATH = "m/44'/0'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -187,7 +187,7 @@ class BitcoinSegwitMainNet(BitcoinMainNet):
     SUPPORTS_SEGWIT = True
     EXT_SEGWIT_PUBLIC_KEY = 0x04b24746 # Used to serialize public keys in BIP32 segwit (P2WPKH)
     EXT_SEGWIT_SECRET_KEY = 0x04b2430c # Used to serialize private keys in BIP32 segwit (P2WPKH)
-    BIP32_SEGWIT_PATH = "m/84'/0'/0'/"
+    BIP32_SEGWIT_PATH = "m/84'/0'/0'"
     BECH32_PREFIX = "bc"
 
 class BitcoinTestNet(CryptoNetwork):
@@ -205,7 +205,7 @@ class BitcoinTestNet(CryptoNetwork):
 
     EXT_PUBLIC_KEY = 0x043587CF # Used to serialize public keys in BIP32 legacy (P2PKH)
     EXT_SECRET_KEY = 0x04358394 # Used to serialize private keys in BIP32 legacy (P2PKH)
-    BIP32_PATH = "m/44'/1'/0'/"
+    BIP32_PATH = "m/44'/1'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -221,7 +221,7 @@ class BitcoinSegwitTestNet(BitcoinTestNet):
     SUPPORTS_SEGWIT = True
     EXT_SEGWIT_PUBLIC_KEY = 0x045f1cf6 # Used to serialize public keys in BIP32 segwit (P2WPKH)
     EXT_SEGWIT_SECRET_KEY = 0x045f18bc # Used to serialize private keys in BIP32 segwit (P2WPKH)
-    BIP32_SEGWIT_PATH = "m/84'/1'/0'/"
+    BIP32_SEGWIT_PATH = "m/84'/1'/0'"
     BECH32_PREFIX = "tb"
 
 class LitecoinMainNet(CryptoNetwork):
@@ -248,7 +248,7 @@ class LitecoinMainNet(CryptoNetwork):
     # [2]: https://github.com/ranaroussi/pywallet/issues/6
     EXT_PUBLIC_KEY = 0x019da462
     EXT_SECRET_KEY = 0x019d9cfe
-    BIP32_PATH = "m/44'/2'/0'/"
+    BIP32_PATH = "m/44'/2'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -265,7 +265,7 @@ class LitecoinSegwitMainNet(LitecoinMainNet):
     SUPPORTS_SEGWIT = True
     EXT_SEGWIT_PUBLIC_KEY = 0x04b24746 # Used to serialize public keys in BIP32 segwit (P2WPKH)
     EXT_SEGWIT_SECRET_KEY = 0x04b2430c # Used to serialize private keys in BIP32 segwit (P2WPKH)
-    BIP32_SEGWIT_PATH = "m/84'/0'/0'/"
+    BIP32_SEGWIT_PATH = "m/84'/0'/0'"
     BECH32_PREFIX = "ltc"
 
 class LitecoinBTCMainNet(CryptoNetwork):
@@ -293,7 +293,7 @@ class LitecoinBTCMainNet(CryptoNetwork):
     # [2]: https://github.com/ranaroussi/pywallet/issues/6
     EXT_PUBLIC_KEY = 0x0488B21E
     EXT_SECRET_KEY = 0x0488ADE4
-    BIP32_PATH = "m/44'/2'/0'/"
+    BIP32_PATH = "m/44'/2'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -309,7 +309,7 @@ class LitecoinBTCSegwitMainNet(LitecoinBTCMainNet):
     SUPPORTS_SEGWIT = True
     EXT_SEGWIT_PUBLIC_KEY = 0x04b24746 # Used to serialize public keys in BIP32 segwit (P2WPKH)
     EXT_SEGWIT_SECRET_KEY = 0x04b2430c # Used to serialize private keys in BIP32 segwit (P2WPKH)
-    BIP32_SEGWIT_PATH = "m/84'/0'/0'/"
+    BIP32_SEGWIT_PATH = "m/84'/0'/0'"
     BECH32_PREFIX = "ltc"
 
 class LitecoinTestNet(CryptoNetwork):
@@ -333,7 +333,7 @@ class LitecoinTestNet(CryptoNetwork):
 
     EXT_PUBLIC_KEY = 0x0436f6e1
     EXT_SECRET_KEY = 0x0436ef7d
-    BIP32_PATH = "m/44'/1'/0'/"
+    BIP32_PATH = "m/44'/1'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -349,7 +349,7 @@ class LitecoinSegwitTestNet(LitecoinTestNet):
     SUPPORTS_SEGWIT = True
     EXT_SEGWIT_PUBLIC_KEY = 0x045f1cf6 # Used to serialize public keys in BIP32 segwit (P2WPKH)
     EXT_SEGWIT_SECRET_KEY = 0x045f18bc # Used to serialize private keys in BIP32 segwit (P2WPKH)
-    BIP32_SEGWIT_PATH = "m/84'/1'/0'/"
+    BIP32_SEGWIT_PATH = "m/84'/1'/0'"
     BECH32_PREFIX = "tltc"
 
 class DogecoinMainNet(CryptoNetwork):
@@ -375,7 +375,7 @@ class DogecoinMainNet(CryptoNetwork):
     # and https://github.com/dogecoin/dogecoin/blob/3a29ba6d497cd1d0a32ecb039da0d35ea43c9c85/src/chainparams.cpp
     EXT_PUBLIC_KEY = 0x02facafd
     EXT_SECRET_KEY = 0x02fac398
-    BIP32_PATH = "m/44'/3'/0'/"
+    BIP32_PATH = "m/44'/3'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -408,7 +408,7 @@ class DogecoinBTCMainNet(CryptoNetwork):
     # and https://github.com/dogecoin/dogecoin/blob/3a29ba6d497cd1d0a32ecb039da0d35ea43c9c85/src/chainparams.cpp
     EXT_PUBLIC_KEY = 0x02facafd
     EXT_SECRET_KEY = 0x02fac398
-    BIP32_PATH = "m/44'/3'/0'/"
+    BIP32_PATH = "m/44'/3'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -442,7 +442,7 @@ class DogecoinTestNet(CryptoNetwork):
     # https://bitcointalk.org/index.php?topic=409731
     EXT_PUBLIC_KEY = 0x0432a9a8
     EXT_SECRET_KEY = 0x0432a243
-    BIP32_PATH = "m/44'/1'/0'/"
+    BIP32_PATH = "m/44'/1'/0'"
 
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
@@ -463,7 +463,7 @@ class BlockcypherTestNet(CryptoNetwork):
     SECRET_KEY = 0x49      # int(0x49) = 73  # Used for WIF format
     EXT_PUBLIC_KEY = 0x2d413ff  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x2d40fc3  # Used to serialize private BIP32 addresses
-    BIP32_PATH = "m/44'/1'/0'/"
+    BIP32_PATH = "m/44'/1'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
