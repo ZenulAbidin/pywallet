@@ -3,7 +3,7 @@ from .transaction import Transaction
 # NOTE: Currently, UTXO can only detect compressed/uncompressed P2PKH (legacy "1")
 # and compressed P2WPKH (bech32 "bc1q") addresses.
 class UTXO:
-    def __init__(self, transaction: Transaction, index: int, addresses=[], only_mine=False, _unsafe_internal_testing_only=None):
+    def __init__(self, transaction: Transaction, index: int, other_transactions=[], addresses=[], only_mine=False, _unsafe_internal_testing_only=None):
         if _unsafe_internal_testing_only:
             self._output = _unsafe_internal_testing_only
             return
@@ -17,6 +17,15 @@ class UTXO:
             output = outputs[index]
             # Do not change the index superfluously since we only have the unspent UTXO subset
             output['txid'] = transaction.txid()
+            output['height'] = transaction.height()
+
+            # Check if the output is spent
+            for ot in other_transactions:
+                for i in ot.sat_inputs():
+                    if i['txid'] == transaction.txid() and i['index'] == index:
+                        # It's not an UNSPENT transaction output
+                        raise ValueError("UTXO has already been spent")
+
             if not only_mine or output['address'] in addresses:
                 self._output = output
             else:
@@ -41,6 +50,9 @@ class UTXO:
     
     def address(self):
         return self._output['address']
+    
+    def height(self):
+        return self._output['height']
 
     # Private methods, do not use in user programs.
     def _private_key(self):

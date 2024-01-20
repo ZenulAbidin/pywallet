@@ -353,23 +353,42 @@ class Wallet:
 
         address_client.sync()
         transactions = address_client.get_transaction_history()
-        if len(transactions) > len(self.wallet.transactions):
-            del self.wallet.transactions[:]
-            self.wallet.transactions.extend(transactions)
+        # Create a set to keep track of unique txid values
+        seen_txids = set()
+
+        # List to store deduplicated transactions
+        deduplicated_transactions = []
+
+        # Iterate through transactions
+        for transaction in transactions:
+            txid = transaction.txid
+
+            # Check if txid is not seen before
+            if txid not in seen_txids:
+                # Add the transaction to the deduplicated list
+                deduplicated_transactions.append(transaction)
+
+                # Mark this txid as seen
+                seen_txids.add(txid)
+
+        # Update the transactions list with deduplicated transactions
+        transactions = deduplicated_transactions
+        del self.wallet.transactions[:]
+        self.wallet.transactions.extend(transactions)
         tx_array = []
         for t in transactions:
             tx_array.append(Transaction(t, self._network))
         return tx_array
     
-    def get_utxos(self, max_cycles=100, only_confirmed=False):
+    def get_utxos(self, max_cycles=100, only_unspent=False):
         addresses = [a.address for a in self.wallet.addresses]
 
         transactions = self.get_transaction_history(max_cycles=max_cycles)
         utxo_set = []
         for t in transactions:
-            for i in range(len(t.sat_outputs(only_unspent=True))):
+            for i in range(len(t.sat_outputs(only_unspent=only_unspent))):
                 try:
-                    utxo_set.append(UTXO(t, i, addresses, only_mine=True))
+                    utxo_set.append(UTXO(t, i, addresses=addresses, other_transactions=transactions, only_mine=True))
                 except ValueError:
                     pass
         
@@ -382,9 +401,13 @@ class Wallet:
             for i in range (len(private_keys)):
                 private_key = private_keys[i]
                 privkey = PrivateKey.from_wif(private_key.decode(), self._network)
-                a = [privkey.public_key.base58_address(True),
-                     privkey.public_key.base58_address(False),
-                     privkey.public_key.bech32_address()]
+                try:
+                    a = [privkey.public_key.base58_address(True),
+                        privkey.public_key.base58_address(False),
+                        privkey.public_key.bech32_address()]
+                except Exception as e:
+                    a = [privkey.public_key.base58_address(True),
+                        privkey.public_key.base58_address(False)]
                 u._output['private_key'] = private_key if u._output['address'] in a else None
                 u._output['script_pubkey'] = PublicKey.script(u._output['address'], self._network)
                 del(privkey)
@@ -425,7 +448,7 @@ class Wallet:
         total_balance = 0
         confirmed_balance = 0
 
-        utxos = self.get_utxos(only_confirmed=True)
+        utxos = self.get_utxos(only_unspent=True)
         for u in utxos:
             confirmed_balance += u.amount(in_standard_units=in_standard_units)
 
@@ -479,7 +502,14 @@ class Wallet:
 
     # Fee rate is in the unit used by the network, ie. vbytes, bytes or wei
     def create_transaction(self, password: bytes, destinations: List[Destination], fee_rate, spend_unconfirmed_inputs=False, **kwargs):
-        inputs = self.get_utxos(only_confirmed=not spend_unconfirmed_inputs)
+        inputs = self.get_utxos(only_unspent=True)
+
+        if not spend_unconfirmed_inputs:
+            confirmed_inputs = []
+            for i in inputs:
+                if i.height():
+                    confirmed_inputs.append(i)
+            inputs = confirmed_inputs
         
         private_keys = self.try_decrypt_privkeys(password)
 

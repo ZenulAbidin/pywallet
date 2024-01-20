@@ -110,7 +110,7 @@ class Transaction:
             raise ValueError("Blockchain does not support this property")
         inputs = []
         for i in self._sat_metadata['inputs']:
-            if not include_witness:
+            if not include_witness and 'witness' in i.keys():
                 del i['witness']
             inputs.append(i)
         return inputs

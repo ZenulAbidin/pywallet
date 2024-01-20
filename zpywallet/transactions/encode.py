@@ -244,10 +244,12 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
         # We process the outputs before the inputs so that we can use it for segwit transactions.
         tx_bytes_3 += create_varint(len(outputs))
         for o in outputs:
-            tx_bytes_3 += int_to_hex(o.amount(in_standard_units=False), 8)
+            tx_bytes_3a = b''
+            tx_bytes_3a += int_to_hex(o.amount(in_standard_units=False), 8)
             script = o.script_pubkey()
-            tx_bytes_3 += create_varint(len(script))
-            tx_bytes_3 += script            
+            tx_bytes_3a += create_varint(len(script))
+            tx_bytes_3a += script            
+            tx_bytes_3 += tx_bytes_3a
 
         # Inputs
         tx_bytes_1 += create_varint(len(inputs))
@@ -260,33 +262,39 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
             # The transacion cannot be signed until it is fully constructed.
             # To avoid a chicken-and-egg, we set the signature scripts to empty.
             # This is the prescribed behavior by the bitcoin protocol.
-            input_bytes_2 = b"\x00"
+            # EDIT I heard it's just the scriptpubkey
+            input_bytes_2 = create_varint(len(i._script_pubkey())) + i._script_pubkey()
 
-            input_bytes_3 = int_to_hex(0x80000000 if rbf else 0xffffffff, 4) # disables timelocks, see https://bitcointalk.org/index.php?topic=5479540.msg63401889#msg63401889
+            input_bytes_3 = int_to_hex(0xfffffffd if rbf else 0xffffffff, 4) # disables timelocks, see https://bitcointalk.org/index.php?topic=5479540.msg63401889#msg63401889
 
             segwit_payload = b""
             # It is easier to prepare the Segwit signing data here.
             if network.SUPPORTS_SEGWIT and not all_legacy:
+                #import pdb; pdb.set_trace()
+                
+
                 # nVersion of the transaction (4-byte little endian)
                 segwit_payload = int_to_hex(1, 4)
                 
                 # hashPrevouts (32-byte hash)
                 hashPrevouts = b""
                 for j in inputs:
-                    hashPrevouts += binascii.unhexlify(j.txid().encode())[::-1] + int_to_hex(j.index())
+                    hashPrevouts += binascii.unhexlify(j.txid().encode())[::-1] + int_to_hex(j.index(), 4)
                 segwit_payload += hashlib.sha256(hashlib.sha256(hashPrevouts).digest()).digest()
 
                 # hashSequence (32-byte hash)
                 hashSequence = b""
                 for j in inputs:
                     hashSequence += input_bytes_3 # The timelock is the same for all inputs.
-                segwit_payload += hashlib.sha256(hashSequence).digest()
+                segwit_payload += hashlib.sha256(hashlib.sha256(hashSequence).digest()).digest()
 
                 # outpoint (32-byte hash + 4-byte little endian)
-                segwit_payload += binascii.unhexlify(i.txid().encode())[::-1] + int_to_hex(i.index())
+                segwit_payload += binascii.unhexlify(i.txid().encode())[::-1] + int_to_hex(i.index(), 4)
 
                 # scriptCode of the input (serialized as scripts inside CTxOuts)
-                segwit_payload += i._script_pubkey()
+                # note: for p2wpkh this is actually the P2PKH script!!!
+                script =  b"\x76\xa9" + i._script_pubkey()[1:] + b"\x88\xac"
+                segwit_payload += script #i._script_pubkey()
 
                 # value of the output spent by this input (8-byte little endian)
                 segwit_payload += int_to_hex(i.amount(in_standard_units=False), 8)
@@ -295,7 +303,7 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
                 segwit_payload += input_bytes_3
 
                 # hashOutputs (32-byte hash)
-                segwit_payload += tx_bytes_3
+                segwit_payload += hashlib.sha256(hashlib.sha256(tx_bytes_3a).digest()).digest()
 
                 # nLocktime of the transaction (4-byte little endian)
                 segwit_payload += int_to_hex(0, 4)
