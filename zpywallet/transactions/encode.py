@@ -110,7 +110,7 @@ def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network)
         for i in range(0, len(bytes_2_inputs)):
             partial_transaction += bytes_2_inputs[i][0]
             if i == b2i:
-                partial_transaction += script_pubkey
+                partial_transaction += create_varint(len(script_pubkey)) + script_pubkey
             else:
                 partial_transaction += bytes_2_inputs[i][1] # The empty scriptsig
             partial_transaction += bytes_2_inputs[i][2]
@@ -118,13 +118,14 @@ def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network)
         partial_transaction += bytes_4
         # And last, the input's sighash must be placed AT THE END of the temporary transaction
         partial_transaction += int_to_hex(sighash, 4)
+        hashed_preimage = hashlib.sha256(partial_transaction).digest()
 
         # Sign it
         p = PrivateKey.from_wif(private_key, network=network)
         pubkey = p.public_key.to_bytes()
         if p.public_key.base58_address(compressed=False) == address:
             pubkey = p.public_key.to_bytes(False)
-        der = p.der_sign(partial_transaction) + bytes([sighash])
+        der = p.der_sign(hashed_preimage) + bytes([sighash])
         # I would like to mention that this only works if the data being pushed is less than 76 bytes.
         # Otherwise we need to use OP_PUSHDATA<1/2/4>
         script = int_to_hex(len(der)) + der + int_to_hex(len(pubkey)) + pubkey
@@ -170,7 +171,7 @@ def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network)
         private_key = b2[4]
         sighash = b2[5]
         address = b2[6]
-        segwit_payload = hashlib.sha256(hashlib.sha256(b2[7]).digest()).digest()
+        segwit_payload = hashlib.sha256(b2[7]).digest()
 
         # Sign it
         p = PrivateKey.from_wif(private_key, network=network)
@@ -179,7 +180,7 @@ def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network)
             if p.public_key.base58_address(compressed=False) == address:
                 pubkey = p.public_key.to_bytes(False)
             # Legacy inputs are signed the old way
-            der = p.der_sign(segwit_payload) + bytes([sighash])
+            der = p.der_sign(hashlib.sha256(segwit_payload).digest()) + bytes([sighash])
             script = int_to_hex(len(der)) + der + int_to_hex(len(pubkey)) + pubkey
             signatures.append(create_varint(len(script)) + script)
             witness_stack.append([])
@@ -243,13 +244,19 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
         
         # We process the outputs before the inputs so that we can use it for segwit transactions.
         tx_bytes_3 += create_varint(len(outputs))
+        tx_bytes_3a = b''
         for o in outputs:
-            tx_bytes_3a = b''
-            tx_bytes_3a += int_to_hex(o.amount(in_standard_units=False), 8)
+            tx_bytes_3b = b''
+            tx_bytes_3b += int_to_hex(o.amount(in_standard_units=False), 8)
+            #if network.SUPPORTS_SEGWIT and o.script_pubkey()[0] == 0:
+            #    script =  b"\x76\xa9" + o.script_pubkey()[1:] + b"\x88\xac"
+            #    tx_bytes_3b += create_varint(len(script)) + script
+            #else:
             script = o.script_pubkey()
-            tx_bytes_3a += create_varint(len(script))
-            tx_bytes_3a += script            
-            tx_bytes_3 += tx_bytes_3a
+            tx_bytes_3b += create_varint(len(script))
+            tx_bytes_3b += script            
+            tx_bytes_3a += tx_bytes_3b
+        tx_bytes_3 += tx_bytes_3a
 
         # Inputs
         tx_bytes_1 += create_varint(len(inputs))
@@ -263,7 +270,7 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
             # To avoid a chicken-and-egg, we set the signature scripts to empty.
             # This is the prescribed behavior by the bitcoin protocol.
             # EDIT I heard it's just the scriptpubkey
-            input_bytes_2 = create_varint(len(i._script_pubkey())) + i._script_pubkey()
+            input_bytes_2 = b"\x00" #create_varint(len(i._script_pubkey())) + i._script_pubkey()
 
             input_bytes_3 = int_to_hex(0xfffffffd if rbf else 0xffffffff, 4) # disables timelocks, see https://bitcointalk.org/index.php?topic=5479540.msg63401889#msg63401889
 
@@ -279,7 +286,7 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
                 # hashPrevouts (32-byte hash)
                 hashPrevouts = b""
                 for j in inputs:
-                    hashPrevouts += binascii.unhexlify(j.txid().encode())[::-1] + int_to_hex(j.index(), 4)
+                    hashPrevouts += binascii.unhexlify(j.txid().encode()) + int_to_hex(j.index(), 4)
                 segwit_payload += hashlib.sha256(hashlib.sha256(hashPrevouts).digest()).digest()
 
                 # hashSequence (32-byte hash)
@@ -289,12 +296,13 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
                 segwit_payload += hashlib.sha256(hashlib.sha256(hashSequence).digest()).digest()
 
                 # outpoint (32-byte hash + 4-byte little endian)
-                segwit_payload += binascii.unhexlify(i.txid().encode())[::-1] + int_to_hex(i.index(), 4)
+                segwit_payload += binascii.unhexlify(i.txid().encode()) + int_to_hex(i.index(), 4)
 
                 # scriptCode of the input (serialized as scripts inside CTxOuts)
                 # note: for p2wpkh this is actually the P2PKH script!!!
                 script =  b"\x76\xa9" + i._script_pubkey()[1:] + b"\x88\xac"
-                segwit_payload += script #i._script_pubkey()
+                segwit_payload += create_varint(len(script)) + script
+                #segwit_payload += create_varint(len(i._script_pubkey())) + i._script_pubkey()
 
                 # value of the output spent by this input (8-byte little endian)
                 segwit_payload += int_to_hex(i.amount(in_standard_units=False), 8)
