@@ -123,7 +123,7 @@ ZPyWallet has built-in support for fetching transaction history of addresses:
     # Change output is automatically calculated by the wallet
     address1 = "..."
     address2 = "..."
-    destinations = [Destination(BitcoinSegwitMainNet, address1, 0.1), Destination(BitcoinSegwitMainNet, address2, 0.2)] # Amounts are in BTC
+    destinations = [Destination(address1, 0.1, BitcoinSegWitMainNet), Destination(address2, 0.2, BitcoinSegWitMainNet)] # Amounts are in BTC
 
     # If you want to spend unconfirmed inputs, pass spend_unconfirmed_inputs=True
     fee_rate = 1 # sat/vbyte for Segwit network (for legacy networks it is in sat/byte)

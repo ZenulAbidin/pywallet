@@ -34,8 +34,8 @@ class TestAddress(unittest.TestCase):
         b = BitcoinAddress(['16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM'])
         b.sync()
         saved_utxos = b.get_utxos()
-        destinations = [Destination(BitcoinMainNet, "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001),
-                        Destination(BitcoinMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
+        destinations = [Destination("16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinMainNet),
+                        Destination("1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002, BitcoinMainNet)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
         # Therefore, the wallet.create_transaction method should fail with not enough funds.
         utxos = []
@@ -62,8 +62,8 @@ class TestAddress(unittest.TestCase):
         b = BitcoinAddress(['16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM'])
         b.sync()
         saved_utxos = b.get_utxos()
-        destinations = [Destination(BitcoinSegwitMainNet, "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001),
-                        Destination(BitcoinSegwitMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
+        destinations = [Destination("16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinSegwitMainNet),
+                        Destination("1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002, BitcoinSegwitMainNet)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
         # Therefore, the wallet.create_transaction method should fail with not enough funds.
         utxos = []
@@ -90,8 +90,8 @@ class TestAddress(unittest.TestCase):
         bc = BitcoinAddress(['bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c'])
         bc.sync()
         saved_utxos = bc.get_utxos()
-        destinations = [Destination(BitcoinSegwitMainNet, "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001),
-                        Destination(BitcoinSegwitMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
+        destinations = [Destination("16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinSegwitMainNet),
+                        Destination("1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002, BitcoinSegwitMainNet)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
         # Therefore, the wallet.create_transaction method should fail with not enough funds
         utxos = []
@@ -118,8 +118,8 @@ class TestAddress(unittest.TestCase):
         bc2 = BitcoinAddress(['16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM', 'bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c'])
         bc2.sync()
         saved_utxos = bc2.get_utxos()
-        destinations = [Destination(BitcoinSegwitMainNet, "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001),
-                        Destination(BitcoinSegwitMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
+        destinations = [Destination("16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinSegwitMainNet),
+                        Destination("1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002, BitcoinSegwitMainNet)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
         # Therefore, the wallet.create_transaction method should fail with not enough funds.
         utxos = []
@@ -146,8 +146,8 @@ class TestAddress(unittest.TestCase):
         bc2 = BitcoinAddress(['16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM', 'bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c'])
         bc2.sync()
         saved_utxos = bc2.get_utxos()
-        destinations = [Destination(BitcoinSegwitMainNet, "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001),
-                        Destination(BitcoinSegwitMainNet, "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002)]
+        destinations = [Destination("16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinSegwitMainNet),
+                        Destination("1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002, BitcoinSegwitMainNet)]
         # The (1) private key has a sweeper attached to it so its balanace should always be zero.
         # Therefore, the wallet.create_transaction method should fail with not enough funds.
         utxos = []
@@ -172,7 +172,7 @@ class TestAddress(unittest.TestCase):
                 raise ValueError("Not enough balance for this transaction")
             change_value = total_inputs - total_outputs - size*fee_rate
             if change_value > 0:
-                change = Destination(BitcoinSegwitMainNet, '16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM', change_value / 1e8)
+                change = Destination('16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM', change_value / 1e8, BitcoinSegwitMainNet)
                 destinations.append(change)
                 create_transaction(utxos, destinations, network=BitcoinSegwitMainNet, full_nodes=btc_nodes)
 
@@ -180,7 +180,7 @@ class TestAddress(unittest.TestCase):
         """Test creating EVM Ethereum transactions"""
         b = EthereumAddress(['0xd73e8e2ac0099169e7404f23c6caa94cf1884384'])
         b.sync()
-        destinations = [Destination(EthereumMainNet, "0xea83c649dd49a6ec44c9e2943eb673a8fbb7bab6", 0.00000002)]
+        destinations = [Destination("0xea83c649dd49a6ec44c9e2943eb673a8fbb7bab6", 0.00000002, EthereumMainNet)]
 
         utxos = []
         _u = UTXO(None, None, _unsafe_internal_testing_only={'amount': b.get_balance()[0]})
