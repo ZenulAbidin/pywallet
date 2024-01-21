@@ -34,8 +34,8 @@ class TestWallet(unittest.TestCase):
         wallet = Wallet(BitcoinSegwitMainNet, "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon cactus",
                           "zpywallet", receive_gap_limit=1)
         wallet.get_transaction_history()
-        wallet.get_utxos(only_confirmed=False)
-        wallet.get_utxos(only_confirmed=True)
+        wallet.get_utxos(only_unspent=False)
+        wallet.get_utxos(only_unspent=True)
         wallet.get_balance()
         wallet.addresses()
         wallet.random_address()
