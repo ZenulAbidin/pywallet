@@ -198,7 +198,7 @@ Output looks like this:
     $ python create_child_wallet.py
 
     User Address: bc1qdwfh4duva4hvzva9cdyguh9c9k2hez3r7taerg
------
+
 
 CONTRIBUTING
 ============
