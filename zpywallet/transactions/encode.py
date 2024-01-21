@@ -277,9 +277,6 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
             segwit_payload = b""
             # It is easier to prepare the Segwit signing data here.
             if network.SUPPORTS_SEGWIT and not all_legacy:
-                #import pdb; pdb.set_trace()
-                
-
                 # nVersion of the transaction (4-byte little endian)
                 segwit_payload = int_to_hex(1, 4)
                 
