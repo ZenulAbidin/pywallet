@@ -465,7 +465,7 @@ class Wallet:
         addresses = self.addresses()
         return addresses[randrange(0, len(addresses))]
 
-    def try_decrypt_privkeys(self, password):
+    def private_keys(self, password):
         private_keys = []
         for p in self.encrypted_private_keys:
             try:
@@ -511,7 +511,7 @@ class Wallet:
                     confirmed_inputs.append(i)
             inputs = confirmed_inputs
         
-        private_keys = self.try_decrypt_privkeys(password)
+        private_keys = self.private_keys(password)
 
         inputs = self._to_human_friendly_utxo(inputs, private_keys)
 
