@@ -28,6 +28,10 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install -r requirements-dev.txt
     
+
+    - name: Copy requirements.txt
+      run: cp requirements.txt $GITHUB_WORKSPACE
+
     - name: Test with tox
       run: tox
     
