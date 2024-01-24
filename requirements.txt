@@ -5,4 +5,5 @@ requests==2.31.0
 protobuf==4.25.1
 pycryptodomex==3.19.1
 web3==6.14.0
+aiohttp<4.0 # Latest stable version is 3.x, aiohttp is used by requests which by default pulls in a beta (and broken) version.
 websocket-client
