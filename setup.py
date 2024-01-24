@@ -53,6 +53,6 @@ setup(
     platforms = ['any'],
     keywords='bitcoin, wallet, litecoin, hd-wallet, dogecoin, dashcoin, ethereum, address, crypto, python',
     packages = find_packages(exclude=['contrib', 'docs', 'tests', 'demo', 'demos', 'examples']),
-    package_data={'': ['AUTHORS', 'LICENSE']},
+    include_package_data=True,
     install_requires=install_requires
 )
