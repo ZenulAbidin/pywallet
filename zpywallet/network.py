@@ -485,9 +485,10 @@ class EthereumMainNet(CryptoNetwork):
     PUBKEY_ADDRESS = None
     SECRET_KEY = None
 
-    EXT_PUBLIC_KEY = None  # Ethereum does not use BIP32
-    EXT_SECRET_KEY = None  # Ethereum does not use BIP32
-    BIP32_PATH = None  # Ethereum does not use BIP32
+    # I believe ETH uses BIP32
+    EXT_PUBLIC_KEY = 0x0488B21E
+    EXT_SECRET_KEY = 0x0488ADE4
+    BIP32_PATH = "m/44'/60'/0'"
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = True

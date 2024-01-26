@@ -220,7 +220,7 @@ class Wallet:
                 address = self.wallet.addresses.add()
                 address.address = pubkey.address()
                 address.pubkey = pubkey.to_hex()
-                address.privkey = privkey.to_wif()
+                address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
 
             # for i in range(0, change_gap_limit):
             #     privkey = hdwallet.get_child_for_path(f"{derivation_path}/1/{i}").private_key
@@ -230,7 +230,7 @@ class Wallet:
             #     address = self.wallet.addresses.add()
             #     address.address = pubkey.address()
             #     address.pubkey = pubkey.to_hex()
-            #     address.privkey = privkey.to_wif()
+            #     address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
             
 
     @classmethod
@@ -298,7 +298,7 @@ class Wallet:
             address = self.wallet.addresses.add()
             address.address = pubkey.address()
             address.pubkey = pubkey.to_hex()
-            address.privkey = privkey.to_wif()
+            address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
 
         del(seed_phrase)
         del(password)
