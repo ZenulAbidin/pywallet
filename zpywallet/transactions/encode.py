@@ -225,7 +225,7 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
     if network.SUPPORTS_EVM:
         try:
             return create_web3_transaction(inputs[0].address(), outputs[0].address(), outputs[0].amount(in_standard_units=False),
-                                           inputs[0]._private_key(), full_nodes, kwargs['gas'])
+                                           inputs[0]._private_key(), full_nodes, kwargs.get('gas'), network.CHAIN_ID)
         finally:
             del(inputs)
     else:
@@ -332,7 +332,7 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
             return create_signatures_legacy(tx_bytes_1, tx_bytes_2_inputs, tx_bytes_3, tx_bytes_4, network)
 
 
-def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, gas):
+def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, gas, chainId):
     sender_address = a_from
     receiver_address = a_to
     # All amounts are in WEI not Ether
@@ -358,7 +358,7 @@ def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, gas):
                 # Since the London hard work (EIP-1559), nobody uses gasPrice anymore. They use max<Priority>FeePerGas
                 # Which is automatically specified (somehow) in Web3.
                 #'gasPrice': w3.toWei(gasPrice, 'gwei'),  # Gas price in Gwei, adjust as needed
-                'chainId': 1,  # Mainnet, change to 3 for Ropsten, 4 for Rinkeby, etc.
+                'chainId': chainId,  # 1 for Mainnet, change to 3 for Ropsten, 4 for Rinkeby, etc.
             }
 
             # OK now calculate the gas

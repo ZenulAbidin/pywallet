@@ -25,6 +25,7 @@ class BitcoinCashMainNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -56,6 +57,7 @@ class DashMainNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -82,6 +84,7 @@ class DashInvertedMainNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -107,6 +110,7 @@ class DashBTCMainNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -129,6 +133,7 @@ class DashTestNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -150,6 +155,7 @@ class DashInvertedTestNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -175,6 +181,7 @@ class BitcoinMainNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None
@@ -209,6 +216,7 @@ class BitcoinTestNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None
@@ -252,6 +260,7 @@ class LitecoinMainNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None
@@ -297,6 +306,7 @@ class LitecoinBTCMainNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None
@@ -337,6 +347,7 @@ class LitecoinTestNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None
@@ -379,6 +390,7 @@ class DogecoinMainNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -412,6 +424,7 @@ class DogecoinBTCMainNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -438,6 +451,7 @@ class DogecoinTestNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     # Unofficial extended version bytes taken from
     # https://bitcointalk.org/index.php?topic=409731
     EXT_PUBLIC_KEY = 0x0432a9a8
@@ -467,6 +481,7 @@ class BlockcypherTestNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
+    CHAIN_ID = None
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
@@ -492,9 +507,11 @@ class EthereumMainNet(CryptoNetwork):
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = True
+    CHAIN_ID = 1 # Ethereum Mainnet
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
+
 
 #TODO support Monero, ZCash
