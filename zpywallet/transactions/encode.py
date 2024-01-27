@@ -1,6 +1,7 @@
 import binascii
 import hashlib
 import web3
+from web3.gas_strategies.time_based import fast_gas_price_strategy
 from ..network import BitcoinSegwitMainNet
 from ..utils.keys import PrivateKey
 
@@ -224,7 +225,7 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
     if network.SUPPORTS_EVM:
         try:
             return create_web3_transaction(inputs[0].address(), outputs[0].address(), outputs[0].amount(in_standard_units=False),
-                                           inputs[0]._private_key(), full_nodes, kwargs['gas'], kwargs['gasPrice'])
+                                           inputs[0]._private_key(), full_nodes, kwargs['gas'])
         finally:
             del(inputs)
     else:
@@ -331,7 +332,7 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
             return create_signatures_legacy(tx_bytes_1, tx_bytes_2_inputs, tx_bytes_3, tx_bytes_4, network)
 
 
-def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, gas, gasPrice):
+def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, gas):
     sender_address = a_from
     receiver_address = a_to
     # All amounts are in WEI not Ether
@@ -340,6 +341,12 @@ def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, gas, g
     for node in fullnodes:
         try:
             w3 = web3.Web3(web3.HTTPProvider(node['url']))
+            # This makes it fetch max<priority>feepergas info faster
+            w3.eth.set_gas_price_strategy(fast_gas_price_strategy)
+            w3.middleware_onion.add(web3.middleware.time_based_cache_middleware)
+            w3.middleware_onion.add(web3.middleware.latest_block_based_cache_middleware)
+            w3.middleware_onion.add(web3.middleware.simple_cache_middleware)
+
             nonce = w3.eth.getTransactionCount(to_checksum_address(sender_address))
 
             # Build the transaction dictionary
@@ -347,10 +354,17 @@ def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, gas, g
                 'nonce': nonce,
                 'to': to_checksum_address(receiver_address),
                 'value': w3.toWei(amount, 'ether'),  # Sending 1 ether, adjust as needed
-                'gas': gas,#21000,  # Gas limit
-                'gasPrice': w3.toWei(gasPrice, 'gwei'),  # Gas price in Gwei, adjust as needed
+                #'gas': gas,#21000,  # Gas limit
+                # Since the London hard work (EIP-1559), nobody uses gasPrice anymore. They use max<Priority>FeePerGas
+                # Which is automatically specified (somehow) in Web3.
+                #'gasPrice': w3.toWei(gasPrice, 'gwei'),  # Gas price in Gwei, adjust as needed
                 'chainId': 1,  # Mainnet, change to 3 for Ropsten, 4 for Rinkeby, etc.
             }
+
+            # OK now calculate the gas
+            if not gas:
+                gas = w3.eth.estimate_gas(transaction)
+            transaction['gas'] = gas
 
             # Sign the transaction
             return w3.eth.account.signTransaction(transaction, binascii.unhexlify(private_key[2:].encode()))

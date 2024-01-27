@@ -35,7 +35,7 @@ class EsploraFeeEstimator:
 
     def get_fee_rate(self):
         # Define the default API URL within the method:
-        api_url = f"{self.endpoint}/fees/recommended"
+        api_url = f"{self.endpoint}/fee-estimates"
 
         # Get the current fee rate from the specified API:
         for attempt in range(3, -1, -1):
@@ -51,7 +51,7 @@ class EsploraFeeEstimator:
 
         if response.status_code == 200:
             data = response.json()
-            fee_rate = data["fastestFee"]
+            fee_rate = data["1"]
             return fee_rate
         else:
             raise NetworkException("Failed to retrieve current fee rate")

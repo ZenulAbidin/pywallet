@@ -57,7 +57,7 @@ class BlockcypherFeeEstimator:
         if response.status_code == 200:
             data = response.json()
             fee_rate_kb = data["high_fee_per_kb"]
-            fee_rate_vbyte = fee_rate_kb / 1000  # Convert to sats/vByte
+            fee_rate_vbyte = fee_rate_kb / 100000000 # Convert to sats/vByte
             return fee_rate_vbyte
         else:
             raise NetworkException("Failed to retrieve current fee rate from Blockcypher for Dogecoin")

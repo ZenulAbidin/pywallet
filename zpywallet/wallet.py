@@ -501,7 +501,7 @@ class Wallet:
 
 
     # Fee rate is in the unit used by the network, ie. vbytes, bytes or wei
-    def create_transaction(self, password: bytes, destinations: List[Destination], fee_rate, spend_unconfirmed_inputs=False, **kwargs):
+    def create_transaction(self, password: bytes, destinations: List[Destination], fee_rate=None, spend_unconfirmed_inputs=False, **kwargs):
         inputs = self.get_utxos(only_unspent=True)
 
         if not spend_unconfirmed_inputs:
@@ -518,7 +518,7 @@ class Wallet:
         fullnode_endpoints = self._add_stock_nodes()
 
         if self._network.SUPPORTS_EVM:
-            kwargs['gas'] = fee_rate
+           #Note: On EVM chains we do NOT need to estimate the fee. Web3.py does all the heavy lifting for us.
             create_transaction(inputs, destinations, network=self._network, full_nodes=fullnode_endpoints, **kwargs)
         
         # Depending on the size of the transactions, we may need to add a change output. Otherwise,

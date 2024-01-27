@@ -16,9 +16,9 @@ btc_nodes = [
 
 btc_esplora_nodes = [
     {
-        'url': 'https://mempool.ninja'
+        'url': 'https://mempool.ninja/api/v1'
     },
     {
-        'url': 'https://www.lohkoketju.fi/'
+        'url': 'https://www.lohkoketju.fi/api'
     },
 ]
