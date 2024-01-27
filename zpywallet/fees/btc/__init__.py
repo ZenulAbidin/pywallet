@@ -1,12 +1,15 @@
 __all__ = [
+    'bitstamp',
     'blockchain_info',
+    'blockchair',
     'blockcypher',
     'blockstream',
     'btcdotcom',
+    'earndotcom',
     'esplora',
     'fullnode',
     'loadbalancer'
     'mempoolspace',
 ]
 
-from .loadbalancer import BitcoinAddress
+from .loadbalancer import BitcoinFeeEstimator

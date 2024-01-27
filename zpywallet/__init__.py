@@ -18,6 +18,7 @@ __all__ = [
     'mnemonic',
     'network',
     'wallet',
+    'fees',
     'utils',
     'generated',
     'broadcast',
