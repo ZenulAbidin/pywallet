@@ -43,10 +43,10 @@ class EthereumWeb3Client:
     def __init__(self, addresses, transactions=None, **kwargs):
         self.web3 = Web3(Web3.HTTPProvider(kwargs.get('url')))
         # This makes it fetch max<priority>feepergas info faster
-        self.w3.eth.set_gas_price_strategy(fast_gas_price_strategy)
-        self.w3.middleware_onion.add(middleware.time_based_cache_middleware)
-        self.w3.middleware_onion.add(middleware.latest_block_based_cache_middleware)
-        self.w3.middleware_onion.add(middleware.simple_cache_middleware)
+        self.web3.eth.set_gas_price_strategy(fast_gas_price_strategy)
+        self.web3.middleware_onion.add(middleware.time_based_cache_middleware)
+        self.web3.middleware_onion.add(middleware.latest_block_based_cache_middleware)
+        self.web3.middleware_onion.add(middleware.simple_cache_middleware)
 
         self.transactions = []
         self.addresses = [to_checksum_address(a) for a in addresses]

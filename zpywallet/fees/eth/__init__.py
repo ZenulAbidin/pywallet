@@ -1,3 +1,4 @@
+# Do we even need this class?
 __all__ = [
     'fullnode',
     'loadbalancer',
