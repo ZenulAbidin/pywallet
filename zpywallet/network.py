@@ -513,5 +513,10 @@ class EthereumMainNet(CryptoNetwork):
     BIP32_SEGWIT_PATH = None # P2WPKH not supported
     BECH32_PREFIX = None # Bech32 not supported
 
+class EthereumSepoliaTestNet(EthereumMainNet):
+    """Ethereum Sepolia TestNet version bytes."""
+    # TESTNET flag is exclusively used for Bitcoin-like networks.
+    # Instead we just hcange the CHAIN_ID
+    CHAIN_ID = 11155111
 
 #TODO support Monero, ZCash

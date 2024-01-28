@@ -5,5 +5,6 @@ __all__ = {
     'doge',
     'dogetest',
     'eth',
+    'ethsepolia', # ETH Testnet network
     'ltc'
 }
