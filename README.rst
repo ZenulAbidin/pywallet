@@ -40,6 +40,7 @@ Features
 - Create and broadcast RBF-aware transactions to pre-defined or custom nodes
 - Decode existing transactions
 - Monitor for incoming transactions
+- Get the latest fee rates for mainnet networks
 - Derive multiple accounts or addresses from the generated wallet.
 - Support for popular cryptocurrencies such as Bitcoin, Ethereum, and more.
 - BIP32 and BIP39 compliant.
@@ -91,7 +92,7 @@ Or build directly:
 
 
 
-Example code:
+Example code (probably out-of-date):
 =============
 
 Create HD Wallet

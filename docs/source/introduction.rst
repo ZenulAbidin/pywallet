@@ -33,7 +33,7 @@ to fine-tune the decryption process, resisting brute-force attacks.
 **Convenient APIs and Utilities:**
 ZPyWallet offers a user-friendly and intuitive API for interacting with the wallet backend. It provides easy-to-use functions for
 wallet creation, key derivation, address generation, transaction signing, and more. Additionally, ZPyWallet includes utilities for
-mnemonic phrase generation, HD path handling, and other common wallet-related tasks.
+mnemonic phrase generation, message signing and verification, fee estimation, and other common wallet-related tasks.
 
 Indices and Tables
 ==================
