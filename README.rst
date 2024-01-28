@@ -92,8 +92,10 @@ Or build directly:
 
 
 
-Example code (probably out-of-date):
+Example code:
 =============
+
+Note that this code is probably out-of-date.
 
 Create HD Wallet
 ----------------
