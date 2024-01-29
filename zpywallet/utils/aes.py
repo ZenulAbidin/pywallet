@@ -26,9 +26,9 @@
 # SOFTWARE.
 
 
+import hashlib
 import sys
 import base64
-from hashlib import sha256
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 
@@ -44,6 +44,11 @@ py2 = sys.version_info[0] == 2
 BLOCK_SIZE = 16
 KEY_LEN = 32
 IV_LEN = 16
+
+def hash_password_pbkdf2(password, iterations=600000, key_length=128):
+    # Hash the password using PBKDF2
+    return hashlib.pbkdf2_hmac('sha256', password, b'Salted__', iterations, key_length)
+    
 
 def encrypt(raw, passphrase):
     """
@@ -117,7 +122,7 @@ def __derive_key_and_iv(password, salt):
     d = d_i = b''
     enc_pass = password if py2 else password.encode('utf-8')
     while len(d) < KEY_LEN + IV_LEN:
-        d_i = sha256(d_i + enc_pass + salt).digest()[:128]
+        d_i = hash_password_pbkdf2(d_i + enc_pass + salt)
         d += d_i
     return d[:KEY_LEN], d[KEY_LEN:KEY_LEN + IV_LEN]
 
