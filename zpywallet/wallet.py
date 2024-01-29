@@ -3,13 +3,14 @@
 This module contains the methods for creating a crypto wallet.
 """
 
+import math
 from os import urandom
 from random import randrange
 from typing import List
 
 from zpywallet.utxo import UTXO
 
-from .destination import Destination
+from .destination import Destination, FeePolicy
 
 from .mnemonic import Mnemonic
 from .utils.bip32 import (
@@ -494,8 +495,27 @@ class Wallet:
         size = transaction_size_simple(temp_transaction)
         total_inputs = sum([i.amount(in_standard_units=False) for i in inputs])
         total_outputs = sum([o.amount(in_standard_units=False) for o in destinations])
+        fee_proportional_outputs = [o for o in destinations if o.fee_policy() == FeePolicy.PROPORTIONAL]
+
         if total_inputs < total_outputs + size*fee_rate:
-            raise ValueError("Not enough balance for this transaction")
+            if fee_proportional_outputs:
+                proportional_fee = int(math.ceil((size*fee_rate) / len(fee_proportional_outputs)))
+                old_destinations = destinations
+                destinations = []
+                for o in old_destinations:
+                    if o.fee_policy() == FeePolicy.PROPORTIONAL:
+                        o._amount -= proportional_fee
+                    destinations.append(o)
+            else:
+                raise ValueError("Not enough balance for this transaction")
+        
+        # If after applying proportional fee scaling we STILL don't have enough balance,
+        # then that means the outputs are greater than the inputs (possibly a dust input set)
+        # In this case, the total_outputs is most likely negative.
+        total_outputs = sum([o.amount(in_standard_units=False) for o in destinations])
+        if total_inputs < total_outputs + size*fee_rate:
+            raise ValueError("Not enough balance for this transaction (are you trying to send dust amounts?)")
+
         change = total_inputs - total_outputs - size*fee_rate
         return None if change <= 0 else Destination(self.random_address(), change / 1e8, self._network)
 

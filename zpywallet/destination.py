@@ -1,14 +1,19 @@
+from enum import Enum
 from .utils.keys import PublicKey
-from .utils.base58 import b58decode_check
-from .utils.bech32 import bech32_decode
+
+
+class FeePolicy(Enum):
+    NONE = 0
+    PROPORTIONAL = 1
+
 # Amounts are always described internally in the lowest possible denomination
 # to make them integers.
 class Destination:
-    def __init__(self, address, amount, network):
+    def __init__(self, address, amount, network, fee_policy=FeePolicy.NONE):
         self._network = network
         self._address = address
         self._amount = amount
-        
+        self._fee_policy = fee_policy
         self._script_pubkey = PublicKey.script(address, network)
                 
 
@@ -26,5 +31,3 @@ class Destination:
     
     def script_pubkey(self):
         return self._script_pubkey
-
-# destination has no attribute script_pubkey.... line 228, encode.py
