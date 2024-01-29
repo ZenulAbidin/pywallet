@@ -1,9 +1,25 @@
-coincurve==19.0.0
-cryptography==41.0.6
-scrypt==0.8.20
-requests==2.31.0
-protobuf==4.25.1
-pycryptodomex==3.19.1
-web3==6.14.0
-aiohttp<4.0 # Latest stable version is 3.x, aiohttp is used by requests which by default pulls in a beta (and broken) version.
-websocket-client
+# There is a security vulnerability in the included libsecp256k1 in version 18.0, which has been patched in 19.0.0
+# but that version has been yanked from PyPI because it doesn't work on Windows (yet).
+coincurve>=18.0.0
+
+# Cryptography 29.0.1 fixes a critical security issue affecting ciphers.
+cryptography>=39.0.1
+
+# scrypt <0.8.20 fails to build on Windows.
+scrypt>=0.8.20
+
+# Requests 2.20.1 fixes Auth stripping and <2.20.0 fails in certain Windows environments
+requests>=2.20.1
+
+# Protobuf <4.23.0 has a bug with Python repeated fields. And 4.24.0 has a segfaul in CopyFrom()
+protobuf>=4.23.0, !=4.24.0
+
+# Earliest release to include Python 3.8 wheels for all platforms.
+pycryptodomex>=3.9.2
+
+# Latest stable version is 3.x, aiohttp is used by requests which by default pulls in a beta (and broken) version.
+aiohttp<4.0
+
+# Web3 6.14.0 fixes a bug that would make ZPyWallet unit tests fail to setup the testing environment.
+web3>=6.14.0
+websocket-client # automatically pulled by web3, but we also use this package directly.
