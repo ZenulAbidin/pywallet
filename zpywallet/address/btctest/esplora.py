@@ -91,6 +91,7 @@ class EsploraAddress:
         # the default limit will be the same as for mempool.space - 3 requests per second.
         self.requests, self.interval_sec = request_interval
         self.min_height = kwargs.get('min_height') or 0
+        self.fast_mode = kwargs.get('fast_mode') or False
         self.addresses = addresses
         self.endpoint = kwargs.get('url')
         if transactions is not None and isinstance(transactions, list):

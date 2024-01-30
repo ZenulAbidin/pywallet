@@ -21,7 +21,7 @@ class TestAddress(unittest.TestCase):
 
     def test_000_btc_address(self):
         """Test fetching Bitcoin addresses."""
-        b = BitcoinAddress(['3KzZceAGsA7HRxFzgbZxVJMAV9TJa8o97V', 'bc1plytzh6jqwltfq6l0ujt5ucz9csrlff4rfnxwmy3tkepkeyj3y2gskcf48c'])
+        b = BitcoinAddress(['3KzZceAGsA7HRxFzgbZxVJMAV9TJa8o97V', 'bc1plytzh6jqwltfq6l0ujt5ucz9csrlff4rfnxwmy3tkepkeyj3y2gskcf48c'], fast_mode=True)
         try:
             b.sync()
             b.get_transaction_history()
@@ -32,7 +32,7 @@ class TestAddress(unittest.TestCase):
 
     def test_001_btctest_address(self):
         """Test fetching Bitcoin testnet addressses"""
-        b = BitcoinTestAddress(['2NDNwoqdNvJ2jkBD8B6VVxNntpuKR4tkTSz', 'tb1qtnl457a54cz5gq0zgyf4n2xt7n9uuqxzs8jwrp'])
+        b = BitcoinTestAddress(['2NDNwoqdNvJ2jkBD8B6VVxNntpuKR4tkTSz', 'tb1qtnl457a54cz5gq0zgyf4n2xt7n9uuqxzs8jwrp'], fast_mode=True)
         try:
             b.sync()
             b.get_transaction_history()
@@ -43,7 +43,7 @@ class TestAddress(unittest.TestCase):
 
     def test_002_dash_address(self):
         """Test fetching Dash addressses"""
-        b = DashAddress(['XbzLCqAv8rkYmky6uEsxibHRUbHZU2XCKg'])
+        b = DashAddress(['XbzLCqAv8rkYmky6uEsxibHRUbHZU2XCKg'], fast_mode=True)
         try:
             b.sync()
             b.get_transaction_history()
@@ -54,7 +54,7 @@ class TestAddress(unittest.TestCase):
 
     def test_003_doge_address(self):
         """Test fetching Dogecoin addressses"""
-        b = DogecoinAddress(['D8xCRT245ax9TJVDfYZ1ErLTMtG186S9rx'])
+        b = DogecoinAddress(['D8xCRT245ax9TJVDfYZ1ErLTMtG186S9rx'], fast_mode=True)
         try:
             b.sync()
             b.get_transaction_history()
@@ -65,7 +65,7 @@ class TestAddress(unittest.TestCase):
 
     def test_004_eth_address(self):
         """Test fetching Ethereum addressses"""
-        b = EthereumAddress(['0x383d4669f177182f2c8c90cecd291190ea04edad'])
+        b = EthereumAddress(['0x383d4669f177182f2c8c90cecd291190ea04edad'], fast_mode=True)
         try:
             b.sync()
             # b.get_transaction_history()  # On EVM chains, this scans all blocks and takes forever.
@@ -75,7 +75,7 @@ class TestAddress(unittest.TestCase):
     
     def test_003_ltc_address(self):
         """Test fetching Litecoin addressses"""
-        b = LitecoinAddress(['ltc1q9pw48v23gq9d2lqcss8yaqeh7fqzu4wrt6m6nr'])
+        b = LitecoinAddress(['ltc1q9pw48v23gq9d2lqcss8yaqeh7fqzu4wrt6m6nr'], fast_mode=True)
         try:
             b.sync()
             b.get_transaction_history()

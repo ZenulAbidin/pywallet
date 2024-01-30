@@ -73,6 +73,7 @@ class BTCDotComAddress:
         """
         self.requests, self.interval_sec = request_interval
         self.min_height = kwargs.get('min_height') or 0
+        self.fast_mode = kwargs.get('fast_mode') or False
         self.addresses = addresses
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions

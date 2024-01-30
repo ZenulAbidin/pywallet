@@ -17,6 +17,7 @@ class BCYAddress:
         self.addresses = addresses
         self.max_cycles = max_cycles
         self.min_height = kwargs.get('min_height') or 0
+        self.fast_mode = kwargs.get('fast_mode') or False
         blockcypher_tokens = kwargs.get('blockcypher_tokens')
 
         # Set everything to an empty list so that providers do not immediately start fetching
@@ -37,8 +38,8 @@ class BCYAddress:
             if not tokens:
                 tokens = []
             for token in tokens:
-                self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, min_height=self.min_height, api_key=token))
-            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, min_height=self.min_height)) # No token (free) version
+                self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, min_height=self.min_height, fast_mode=self.fast_mode, api_key=token))
+            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, min_height=self.min_height, fast_mode=self.fast_mode)) # No token (free) version
 
     def sync(self): 
        for provider in self.provider_list:

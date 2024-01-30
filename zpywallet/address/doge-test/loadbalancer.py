@@ -15,6 +15,7 @@ class DogecoinAddress:
         self.addresses = addresses
         self.max_cycles = max_cycles
         self.min_height = kwargs.get('min_height') or 0
+        self.fast_mode = kwargs.get('fast_mode') or False
         fullnode_endpoints = kwargs.get('fullnode_endpoints')
 
         # Set everything to an empty list so that providers do not immediately start fetching
@@ -28,7 +29,7 @@ class DogecoinAddress:
 
         if provider_bitmask & 1 << wallet_pb2.DOGE_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
-                self.provider_list.append(DogecoinRPCClient(addresses, transactions=transactions, min_height=self.min_height, **endpoint))
+                self.provider_list.append(DogecoinRPCClient(addresses, transactions=transactions, min_height=self.min_height, fast_mode=self.fast_mode, **endpoint))
 
     def sync(self): 
        for provider in self.provider_list:
