@@ -1,38 +1,14 @@
 import random
-from datetime import datetime
 import requests
 
 from ...errors import NetworkException
-from ...utils.descriptors import descsum_create_only
 from ...transactions.decode import parse_transaction_simple
 from ...generated import wallet_pb2
 
-def to_descriptor(address):
-    ad = f"addr({address})"
-    return f"{ad}#{descsum_create_only(ad)}"
-
-def to_extpub_descriptor(expub, path):
-    """
-    Creates a descriptor out of the extended public key `expub`,
-    and a path `path`.
-
-    Parameters:
-        expub (str): an extended public key. Can have any valid prefix, e.g. xpub, ypub, zpub, etc.
-        path (str): a path string in the form of (for example) "m/0/0'/1". A non-hardened number
-            can be replaced with '*' to fill in a range for a later RPC call. This can only be specified once.
-             The path must start with 'm/'.
-    
-    Returns:
-        str: A descriptor string.
-    """
-    if path[:2] != "m/":
-        raise NetworkException("Path must start with 'm/")
-    desc = expub + path[1:]
-    return f"{desc}#{descsum_create_only(desc)}"
 
 class BitcoinRPCClient:
     """Address querying class for Bitcoin full nodes utilizing descriptors.
-       Requires node version v0.17.0 or later running with -txindex.
+       Requires a node running with -txindex.
     """
     
     # Not static because we need to make calls to fetch input transactions.
@@ -80,7 +56,6 @@ class BitcoinRPCClient:
         new_element.fee_metric = wallet_pb2.VBYTE
         return new_element
 
-
     def __init__(self, addresses, last_update=0, transactions=None, **kwargs):
         self.rpc_url = kwargs.get('url')
         self.rpc_user = kwargs.get('user')
@@ -89,6 +64,7 @@ class BitcoinRPCClient:
         self.user_id = kwargs.get('user_id') or 0
         self.max_tx_at_once = kwargs.get('max_tx_at_once') or 1000
         
+        self.min_height = kwargs.get('min_height') or 0
         self.transactions = []
         self.addresses = addresses
         self.last_update = last_update
@@ -109,10 +85,8 @@ class BitcoinRPCClient:
             'jsonrpc': '2.0',
             'id': random.randint(1, 999999)
         }
-        # Full nodes wallet RPC requests are notoriously slow if there are many transactions in the node.
         try:
-            response = requests.post(f"{self.rpc_url}/wallet/zpywallet_{self.client_number}_{self.user_id}" if as_wallet \
-                                     else self.rpc_url, auth=(self.rpc_user, self.rpc_password) if self.rpc_user and \
+            response = requests.post(self.rpc_url, auth=(self.rpc_user, self.rpc_password) if self.rpc_user and \
                                         self.rpc_password else None, json=payload, timeout=86400)
             j = response.json()
             if 'result' not in j.keys():
@@ -127,29 +101,6 @@ class BitcoinRPCClient:
         except Exception as e:
             raise NetworkException(f"Failed to make RPC Call: {str(e)}")
 
-    def _load_addresses(self):
-        # Create a new temporary wallet
-        self._send_rpc_request('createwallet', params=[f"zpywallet_{self.client_number}_{self.user_id}", True])
-        
-        block_height = self.height
-        block_height = min(block_height, self.get_block_height())
-
-
-        params = [*map(lambda at: {"desc": to_descriptor(at), "timestamp": self.last_update}, self.addresses)]
-
-        try:
-            # Load the temporary wallet
-            self._send_rpc_request('loadwallet', params=[f"zpywallet_{self.client_number}_{self.user_id}"])
-
-            self.last_update = datetime.now().timestamp()
-            
-            # Import the address into the wallet
-            self._send_rpc_request('importdescriptors', params=[params], as_wallet=True)
-        
-        finally:
-            # Unload the temporary wallet
-            self._send_rpc_request('unloadwallet', params=[f"zpywallet_{self.client_number}_{self.user_id}"])
-    
     def get_balance(self):
         """
         Retrieves the balance of the Bitcoin address.
@@ -216,41 +167,27 @@ class BitcoinRPCClient:
                 
     def _get_transaction_history(self, txhash=None):
         try:
-            # Load the temporary wallet
-            self._send_rpc_request('loadwallet', params=[f"zpywallet_{self.client_number}_{self.user_id}"])
-            
-             # Get the number of transactions
-            total_transactions = self._send_rpc_request('getwalletinfo', as_wallet=True)['result']['txcount']
+            # Get the blockchain info to determine the best block height
+            blockchain_info = self._send_rpc_request('getblockchaininfo')
+            best_block_height = blockchain_info['result']['blocks']
 
-            skip_later_txs = 0
-            while skip_later_txs < total_transactions:
+            # Iterate through blocks to fetch transactions
+            for block_height in range(best_block_height , self.height-1, -1):
+                block_hash = self._send_rpc_request('getblockhash', params=[block_height])['result']
+                block = self._send_rpc_request('getblock', params=[block_hash, 2])['result']
 
-                # listtransactions by default return only 10 most recent transactions)
-                result = self._send_rpc_request('listtransactions', params=["*", self.max_tx_at_once, skip_later_txs, True], as_wallet=True)
-                transactions = result['result']
-                
-                # Extract the transaction IDs so we can query them verbosely
-                # because the tx doesn't include info on other addresses
-                for tx in transactions:
-                    txid = tx['txid']
-                    if txid == txhash:
+                # Iterate through transactions in the block
+                for tx in block['tx']:
+                    if tx['txid'] == txhash:
+                        return  # Stop if we reach the specified transaction hash
+
+                    raw_transaction = block['tx'] # Verbosity=2 in bitcoin gives us the getrawtransaction output
+                    parsed_transaction = self._clean_tx(raw_transaction)
+                    if not parsed_transaction.confirmed or parsed_transaction.height >= self.min_height:
+                        yield parsed_transaction
+                    else:
                         return
-                    result = self._send_rpc_request('gettransaction', params=[txid, True, True], as_wallet=True)
-                    result_tx = result['result']
-                    yield self._clean_tx(result_tx)
-            
 
-                # Get the number of transactions in case new, incoming txs arrived.
-                # We will just skip those txs and they can be received in the next method invocation.
-                total_transactions_new = self._send_rpc_request('getwalletinfo', as_wallet=True)['result']['txcount']
-                if total_transactions_new > total_transactions:
-                    skip_later_txs += total_transactions_new - total_transactions
-                    total_transactions = total_transactions_new
-
-                # And finally prepare to process next most recent batch of transactions
-                skip_later_txs += self.max_tx_at_once
-        
-        finally:
-            # Unload and delete the temporary wallet
-            self._send_rpc_request('unloadwallet', params=[f"zpywallet_{self.client_number}_{self.user_id}"])
+        except Exception as e:
+            raise NetworkException(f"Failed to get transaction history: {str(e)}")
 

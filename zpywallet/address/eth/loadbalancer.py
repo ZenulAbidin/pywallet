@@ -8,13 +8,16 @@ class EthereumAddress:
         using the round robin scheduling algorithm.
     """
 
-    def __init__(self, addresses, providers: bytes = b'\xff\xff', max_cycles=100,
+    def __init__(self, addresses, providers: bytes = b'\xff\xff', max_cycles=100, height=0,
                  transactions=None, **kwargs):
         provider_bitmask = int.from_bytes(providers, 'big')
         self.provider_list = []
         self.current_index = 0
         self.addresses = addresses
         self.max_cycles = max_cycles
+        self.height = height
+        self.min_height = kwargs.get('min_height') or 0
+        self.chain_id = kwargs.get('chain_id') or 1
         fullnode_endpoints = kwargs.get('fullnode_endpoints')
 
         # Set everything to an empty list so that providers do not immediately start fetching
@@ -28,7 +31,7 @@ class EthereumAddress:
 
         if provider_bitmask & 1 << wallet_pb2.ETH_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
-                self.provider_list.append(EthereumWeb3Client(addresses, transactions=transactions, **endpoint))
+                self.provider_list.append(EthereumWeb3Client(addresses, transactions=transactions, min_height=self.min_height, **endpoint))
 
     def sync(self):
         # There is nothing to sync on EVM chains

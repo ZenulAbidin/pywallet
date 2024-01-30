@@ -16,6 +16,7 @@ class DashAddress:
         self.current_index = 0
         self.addresses = addresses
         self.max_cycles = max_cycles
+        self.min_height = kwargs.get('min_height') or 0
         fullnode_endpoints = kwargs.get('fullnode_endpoints')
         blockcypher_tokens = kwargs.get('blockcypher_tokens')
 
@@ -33,11 +34,11 @@ class DashAddress:
             if not tokens:
                 tokens = []
             for token in tokens:
-                self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, api_key=token))
-            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions)) # No token (free) version
+                self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, min_height=self.min_height, api_key=token))
+            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, min_height=self.min_height)) # No token (free) version
         if provider_bitmask & 1 << wallet_pb2.DASH_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
-                self.provider_list.append(DashRPCClient(addresses, transactions=transactions, **endpoint))
+                self.provider_list.append(DashRPCClient(addresses, transactions=transactions, min_height=self.min_height, **endpoint))
 
     def sync(self): 
        for provider in self.provider_list:

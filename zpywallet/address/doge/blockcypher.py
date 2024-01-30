@@ -40,7 +40,7 @@ class BlockcypherAddress:
             new_element.confirmed = False
         elif element['block_height'] == -1:
             new_element.confirmed = False
-        elif element['block_index'] == 0:
+        elif element['block_index'] == 0: #coinbase transaction
             new_element.confirmed = True
             new_element.height = 0
         else:
@@ -78,7 +78,7 @@ class BlockcypherAddress:
         
         return new_element
 
-    def __init__(self, addresses, request_interval=(3,1), transactions=None, api_key=None):
+    def __init__(self, addresses, request_interval=(3,1), transactions=None, api_key=None, **kwargs):
         """
         Initializes an instance of the BlockcypherAddress class.
 
@@ -91,6 +91,7 @@ class BlockcypherAddress:
         self.addresses = addresses
         self.api_key = api_key
         self.requests, self.interval_sec = request_interval
+        self.min_height = kwargs.get('min_height') or 0
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
@@ -226,7 +227,11 @@ class BlockcypherAddress:
                 time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
                 if txhash and tx["hash"] == txhash:
                     return
-                yield self._clean_tx(tx)
+                ctx = self._clean_tx(tx)
+                if not ctx.confirmed or ctx.height >= self.min_height:
+                    yield ctx
+                else:
+                    return
             if 'hasMore' not in data.keys():
                 return
             else:
@@ -249,7 +254,11 @@ class BlockcypherAddress:
                         time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
                         if txhash and tx["hash"] == txhash:
                             return
-                        yield self._clean_tx(tx)
+                        ctx = self._clean_tx(tx)
+                        if not ctx.confirmed or ctx.height >= self.min_height:
+                            yield ctx
+                        else:
+                            return
                     if 'hasMore' not in data.keys():
                         return
                     else:

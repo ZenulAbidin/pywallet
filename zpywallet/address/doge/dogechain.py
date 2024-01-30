@@ -97,7 +97,7 @@ class DogeChainAddress:
         
         return new_element
 
-    def __init__(self, addresses, request_interval=(3,1), transactions=None):
+    def __init__(self, addresses, request_interval=(3,1), transactions=None, **kwargs):
         """
         Initializes an instance of the DogeChainAddress class.
 
@@ -108,6 +108,7 @@ class DogeChainAddress:
         """
         self.addresses = addresses
         self.requests, self.interval_sec = request_interval
+        self.min_height = kwargs.get('min_height') or 0
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
@@ -233,7 +234,7 @@ class DogeChainAddress:
                         data = response.json()
                         break
                     else:
-                                                raise NetworkException("Failed to retrieve transaction history")
+                        raise NetworkException("Failed to retrieve transaction history")
                 except requests.RequestException:
                     pass
 
@@ -241,7 +242,11 @@ class DogeChainAddress:
                 time.sleep(self.interval_sec/(self.requests*len(data["transactions"])))
                 if txhash and tx["hash"] == txhash:
                     return
-                yield self._clean_tx(tx)
+                ctx = self._clean_tx(tx)
+                if not ctx.confirmed or ctx.height >= self.min_height:
+                    yield ctx
+                else:
+                    return
             if not data["transactions"]:
                 return
             
@@ -250,7 +255,7 @@ class DogeChainAddress:
                 url = f"https://dogechain.info/api/v1/address/transactions/{address}/{i}"
                 for attempt in range(3, -1, -1):
                     if attempt == 0:
-                                                raise NetworkException("Network request failure")
+                        raise NetworkException("Network request failure")
                     try:
                         response = requests.get(url, timeout=60)
                         break
@@ -263,8 +268,12 @@ class DogeChainAddress:
                         time.sleep(self.interval_sec/(self.requests*len(data["transactions"])))
                         if txhash and tx["hash"] == txhash:
                             return
-                        yield self._clean_tx(tx)
+                        ctx = self._clean_tx(tx)
+                        if not ctx.confirmed or ctx.height >= self.min_height:
+                            yield ctx
+                        else:
+                            return
                     if not data["transactions"]:
                         return
                 else:
-                                        raise NetworkException("Failed to retrieve transaction history")
+                    raise NetworkException("Failed to retrieve transaction history")

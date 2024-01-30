@@ -1,4 +1,3 @@
-from .blockchain_info import BlockchainInfoAddress
 from .blockcypher import BlockcypherAddress
 from .blockstream import BlockstreamAddress
 from .btcdotcom import BTCDotComAddress
@@ -21,6 +20,7 @@ class BitcoinAddress:
         self.current_index = 0
         self.addresses = addresses
         self.max_cycles = max_cycles
+        self.min_height = kwargs.get('min_height') or 0
         fullnode_endpoints = kwargs.get('fullnode_endpoints')
         esplora_endpoints = kwargs.get('esplora_endpoints')
         blockcypher_tokens = kwargs.get('blockcypher_tokens')
@@ -38,26 +38,26 @@ class BitcoinAddress:
         self.transactions = transactions
 
         #if provider_bitmask & 1 << wallet_pb2.BTC_BLOCKCHAIN_INFO + 1:
-        #    self.provider_list.append(BlockchainInfoAddress(addresses, transactions=transactions))
+        #    self.provider_list.append(BlockchainInfoAddress(addresses, transactions=transactions, min_height=self.min_height))
         if provider_bitmask & 1 << wallet_pb2.BTC_BLOCKCYPHER + 1:
             tokens = blockcypher_tokens
             if not tokens:
                 tokens = []
             for token in tokens:
-                self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, api_key=token))
-            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions)) # No token (free) version
+                self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, min_height=self.min_height, api_key=token))
+            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, min_height=self.min_height)) # No token (free) version
         if provider_bitmask & 1 << wallet_pb2.BTC_BLOCKSTREAM + 1:
-            self.provider_list.append(BlockstreamAddress(addresses, transactions=transactions))
+            self.provider_list.append(BlockstreamAddress(addresses, transactions=transactions, min_height=self.min_height))
         if provider_bitmask & 1 << wallet_pb2.BTC_BTCDOTCOM + 1:
-            self.provider_list.append(BTCDotComAddress(addresses, transactions=transactions))
+            self.provider_list.append(BTCDotComAddress(addresses, transactions=transactions, min_height=self.min_height))
         if provider_bitmask & 1 << wallet_pb2.BTC_ESPLORA + 1:
             for endpoint in esplora_endpoints:
-                self.provider_list.append(EsploraAddress(addresses, transactions=transactions, **endpoint))
+                self.provider_list.append(EsploraAddress(addresses, transactions=transactions, min_height=self.min_height, **endpoint))
         if provider_bitmask & 1 << wallet_pb2.BTC_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
-                self.provider_list.append(BitcoinRPCClient(addresses, transactions=transactions, **endpoint))
+                self.provider_list.append(BitcoinRPCClient(addresses, transactions=transactions, min_height=self.min_height, **endpoint))
         if provider_bitmask & 1 << wallet_pb2.BTC_MEMPOOLSPACE + 1:
-            self.provider_list.append(MempoolSpaceAddress(addresses, transactions=transactions))
+            self.provider_list.append(MempoolSpaceAddress(addresses, transactions=transactions, min_height=self.min_height))
 
     def sync(self): 
        for provider in self.provider_list:

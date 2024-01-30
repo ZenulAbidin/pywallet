@@ -62,7 +62,7 @@ class BTCDotComAddress:
         return new_element
 
     # BTC.com's rate limits are unknown.
-    def __init__(self, addresses, request_interval=(1000,1), transactions=None):
+    def __init__(self, addresses, request_interval=(1000,1), transactions=None, **kwargs):
         """
         Initializes an instance of the BTCDotComAddress class.
 
@@ -72,6 +72,7 @@ class BTCDotComAddress:
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
         self.requests, self.interval_sec = request_interval
+        self.min_height = kwargs.get('min_height') or 0
         self.addresses = addresses
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
@@ -201,7 +202,11 @@ class BTCDotComAddress:
                     time.sleep(self.interval_sec/(self.requests*len(data["data"]["list"])))
                     if txhash and tx["hash"] == txhash:
                         return
-                    yield self._clean_tx(tx)
+                    ctx = self._clean_tx(tx)
+                    if not ctx.confirmed or ctx.height >= self.min_height:
+                        yield ctx
+                    else:
+                        return
                 page += 1
             else:
                 raise NetworkException("Failed to retrieve transaction history")
@@ -226,7 +231,11 @@ class BTCDotComAddress:
                         time.sleep(self.interval_sec/(self.requests*len(data["data"]["list"])))
                         if txhash and tx["hash"] == txhash:
                             return
-                        yield self._clean_tx(tx)
+                        ctx = self._clean_tx(tx)
+                        if not ctx.confirmed or ctx.height >= self.min_height:
+                            yield ctx
+                        else:
+                            return
                     page += 1
                 else:
                     raise NetworkException("Failed to retrieve transaction history")

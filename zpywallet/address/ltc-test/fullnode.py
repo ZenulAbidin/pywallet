@@ -1,5 +1,4 @@
 import random
-from datetime import datetime
 import requests
 
 from ...errors import NetworkException
@@ -7,8 +6,8 @@ from ...transactions.decode import parse_transaction_simple
 from ...generated import wallet_pb2
 
 
-class LitecoinRPCClient:
-    """Address querying class for Litecoin full nodes utilizing descriptors.
+class DashRPCClient:
+    """Address querying class for Dash full nodes utilizing descriptors.
        Requires node with multi-wallet support and -txindex.
     """
     
@@ -101,7 +100,7 @@ class LitecoinRPCClient:
             return response['result']['blocks']
         except Exception as e:
             raise NetworkException(f"Failed to make RPC Call: {str(e)}")
-
+    
     def get_balance(self):
         """
         Retrieves the balance of the Bitcoin address.
@@ -148,7 +147,7 @@ class LitecoinRPCClient:
     
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Litecoin address from cached data augmented with network data.
+        Retrieves the transaction history of the Dash address from cached data augmented with network data.
         Does not include Genesis blocks.
 
         Returns:

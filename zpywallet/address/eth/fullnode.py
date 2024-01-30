@@ -1,7 +1,6 @@
 from web3 import Web3, middleware
 from web3.gas_strategies.time_based import fast_gas_price_strategy
 
-from ...utils.utils import eth_transaction_hash
 from ...generated import wallet_pb2
 from ...utils.keccak import to_checksum_address
 
@@ -48,6 +47,7 @@ class EthereumWeb3Client:
         self.web3.middleware_onion.add(middleware.latest_block_based_cache_middleware)
         self.web3.middleware_onion.add(middleware.simple_cache_middleware)
 
+        self.min_height = kwargs.get('min_height') or 0
         self.transactions = []
         self.addresses = [to_checksum_address(a) for a in addresses]
         if transactions is not None and isinstance(transactions, list):
@@ -83,11 +83,11 @@ class EthereumWeb3Client:
         return (balance, balance)
                 
     # In Ethereum, only one transaction per account can be included in a block at a time.
-    def _get_transaction_history(self, block_height=None):
+    def _get_transaction_history(self):
 
         addresses = [a.lower() for a in self.addresses]
 
-        for block_number in range(block_height, self.get_block_height() + 1):
+        for block_number in range(self.block_height, self.get_block_height() + 1):
             # Retrieve block information
             block = self.web3.eth.getBlock(block_number, full_transactions=True)
 

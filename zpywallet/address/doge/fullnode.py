@@ -1,5 +1,4 @@
 import random
-from datetime import datetime
 import requests
 
 from ...errors import NetworkException
@@ -7,9 +6,9 @@ from ...transactions.decode import parse_transaction_simple
 from ...generated import wallet_pb2
 
 
-class LitecoinRPCClient:
-    """Address querying class for Litecoin full nodes utilizing descriptors.
-       Requires node with multi-wallet support and -txindex.
+class DogecoinRPCClient:
+    """Address querying class for Dogecoin full nodes utilizing descriptors.
+       Requires a node running with -txindex.
     """
     
     # Not static because we need to make calls to fetch input transactions.
@@ -148,7 +147,7 @@ class LitecoinRPCClient:
     
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Litecoin address from cached data augmented with network data.
+        Retrieves the transaction history of the Dogecoin address from cached data augmented with network data.
         Does not include Genesis blocks.
 
         Returns:

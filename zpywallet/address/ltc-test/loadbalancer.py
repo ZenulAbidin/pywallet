@@ -1,14 +1,9 @@
-from .blockcypher import BlockcypherAddress
-from .blockstream import BlockstreamAddress
-from .esplora import EsploraAddress
-from .fullnode import BitcoinRPCClient
-from .mempoolspace import MempoolSpaceAddress
+from .fullnode import LitecoinRPCClient
 from ...generated import wallet_pb2
 from ...errors import NetworkException
-from ...nodes.btctest import btctest_nodes, btctest_esplora_nodes
 
-class BitcoinTestAddress:
-    """ Load balancer for all BTC address providers provided to an instance of this class,
+class LitecoinAddress:
+    """ Load balancer for all LTC address providers provided to an instance of this class,
         using the round robin scheduling algorithm.
     """
 
@@ -21,52 +16,33 @@ class BitcoinTestAddress:
         self.max_cycles = max_cycles
         self.min_height = kwargs.get('min_height') or 0
         fullnode_endpoints = kwargs.get('fullnode_endpoints')
-        esplora_endpoints = kwargs.get('esplora_endpoints')
-        blockcypher_tokens = kwargs.get('blockcypher_tokens')
 
         # Set everything to an empty list so that providers do not immediately start fetching
         # transactions and to avoid exceptions in loops later in this method.
         if not transactions:
             transactions = []
-        if not esplora_endpoints:
-            esplora_endpoints = [] + btctest_esplora_nodes
         if not fullnode_endpoints:
-            fullnode_endpoints = [] + btctest_nodes
+            fullnode_endpoints = []
 
         self.transactions = transactions
 
-        if provider_bitmask & 1 << wallet_pb2.BTCTEST_BLOCKCYPHER + 1:
-            tokens = blockcypher_tokens
-            if not tokens:
-                tokens = []
-            for token in tokens:
-                self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, min_height=self.min_height, api_key=token))
-            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, min_height=self.min_height)) # No token (free) version
-        if provider_bitmask & 1 << wallet_pb2.BTCTEST_BLOCKSTREAM + 1:
-            self.provider_list.append(BlockstreamAddress(addresses, transactions=transactions, min_height=self.min_height))
-        if provider_bitmask & 1 << wallet_pb2.BTCTEST_ESPLORA + 1:
-            for endpoint in esplora_endpoints:
-                self.provider_list.append(EsploraAddress(addresses, transactions=transactions, min_height=self.min_height, **endpoint))
-        if provider_bitmask & 1 << wallet_pb2.BTCTEST_FULLNODE + 1:
+        if provider_bitmask & 1 << wallet_pb2.LTC_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
-                self.provider_list.append(BitcoinRPCClient(addresses, transactions=transactions, min_height=self.min_height, **endpoint))
-        if provider_bitmask & 1 << wallet_pb2.BTCTEST_MEMPOOLSPACE + 1:
-            self.provider_list.append(MempoolSpaceAddress(addresses, transactions=transactions, min_height=self.min_height))
+                self.provider_list.append(LitecoinRPCClient(addresses, transactions=transactions, min_height=self.min_height, **endpoint))
 
-    def sync(self):
-        for provider in self.provider_list:
+    def sync(self): 
+       for provider in self.provider_list:
             try:
                 provider.sync()
             except NetworkException:
                 pass
 
-
     def get_balance(self):
         """
-        Retrieves the balance of the Bitcoin address.
+        Retrieves the balance of the Litecoin address.
 
         Returns:
-            float: The balance of the Bitcoin address in BTC.
+            float: The balance of the Litecoin address in LTC.
 
         Raises:
             Exception: If the API request fails or the address balance cannot be retrieved.

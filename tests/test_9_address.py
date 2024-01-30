@@ -54,7 +54,7 @@ class TestAddress(unittest.TestCase):
 
     def test_003_doge_address(self):
         """Test fetching Dogecoin addressses"""
-        b = DogecoinAddress(['DEhEbNiKjyQXSDCZGVh3iZSEBdLT6seLKA'])
+        b = DogecoinAddress(['D8xCRT245ax9TJVDfYZ1ErLTMtG186S9rx'])
         try:
             b.sync()
             b.get_transaction_history()
