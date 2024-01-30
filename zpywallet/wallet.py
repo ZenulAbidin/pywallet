@@ -3,6 +3,7 @@
 This module contains the methods for creating a crypto wallet.
 """
 
+import json
 import math
 from os import urandom
 from random import randrange
@@ -214,14 +215,15 @@ class Wallet:
             self.encrypted_private_keys = []
             for i in range(0, receive_gap_limit):
                 privkey = hdwallet.get_child_for_path(f"{derivation_path}/0/{i}").private_key
-                self.encrypted_private_keys.append(encrypt(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif(), password))
                 pubkey = privkey.public_key
 
                 # Add an Address
                 address = self.wallet.addresses.add()
                 address.address = pubkey.address()
                 address.pubkey = pubkey.to_hex()
-                address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
+                #address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif() # Security risk
+                self.encrypted_private_keys.append(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif())
+            self.encrypted_private_keys = encrypt(json.dumps(self.encrypted_private_keys), password)
 
             # for i in range(0, change_gap_limit):
             #     privkey = hdwallet.get_child_for_path(f"{derivation_path}/1/{i}").private_key
@@ -231,7 +233,8 @@ class Wallet:
             #     address = self.wallet.addresses.add()
             #     address.address = pubkey.address()
             #     address.pubkey = pubkey.to_hex()
-            #     address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
+            #     #address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
+            #   self.encrypted_private_keys.append(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif())
             
 
     @classmethod
@@ -292,14 +295,15 @@ class Wallet:
         self.encrypted_private_keys = []
         for i in range(0, self.wallet.receive_gap_limit):
             privkey = hdwallet.get_child_for_path(f"{self.wallet.derivation_path}/0/{i}").private_key
-            self.encrypted_private_keys.append(encrypt(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif(), password))
+            self.encrypted_private_keys.append(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif())
             pubkey = privkey.public_key
 
             # Add an Address
             address = self.wallet.addresses.add()
             address.address = pubkey.address()
             address.pubkey = pubkey.to_hex()
-            address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
+            # address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
+        self.encrypted_private_keys = encrypt(json.dumps(self.encrypted_private_keys), password)
 
         del(seed_phrase)
         del(password)
@@ -468,12 +472,11 @@ class Wallet:
 
     def private_keys(self, password):
         private_keys = []
-        for p in self.encrypted_private_keys:
-            try:
-                private_keys.append(decrypt(p, password))
-            except ValueError as e:
-                del(private_keys)
-                raise e
+        try:
+            private_keys = json.loads(decrypt(self.encrypted_private_keys, password))
+        except ValueError as e:
+            del(private_keys)
+            raise e
         return private_keys
 
 

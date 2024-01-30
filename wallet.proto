@@ -91,7 +91,7 @@ message Address {
   // We only generate compressed addresses.
   string address = 1;
   string pubkey = 2;
-  string privkey = 3; // TODO maybe encrypt
+  string privkey = 3; // Disabled. Not encrypted.
 }
 
 enum FeeMetric {
