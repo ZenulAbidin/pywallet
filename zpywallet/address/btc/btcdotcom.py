@@ -72,13 +72,21 @@ class BTCDotComAddress:
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
         self.requests, self.interval_sec = request_interval
-        self.min_height = kwargs.get('min_height') or 0
         self.fast_mode = kwargs.get('fast_mode') or False
         self.addresses = addresses
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
             self.transactions = []
+
+        if kwargs.get('min_height') is not None:
+            self.min_height = kwargs.get('min_height')
+        else:
+            try:
+                self.min_height = self.get_block_height()
+            except NetworkException:
+                self.min_height = 0
+
 
     def sync(self):
         self.transactions = [*self._get_transaction_history()]
@@ -144,6 +152,8 @@ class BTCDotComAddress:
                 raise NetworkException("Failed to retrieve current blockchain height") from exc
 
         
+
+
     def get_transaction_history(self):
         """
         Retrieves the transaction history of the Bitcoin address from cached data augmented with network data.

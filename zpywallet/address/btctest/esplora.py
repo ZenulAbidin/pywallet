@@ -90,7 +90,6 @@ class EsploraAddress:
         # Ostensibly there are no limits for that site, but I got 429 errors when testing with (1000,1), so
         # the default limit will be the same as for mempool.space - 3 requests per second.
         self.requests, self.interval_sec = request_interval
-        self.min_height = kwargs.get('min_height') or 0
         self.fast_mode = kwargs.get('fast_mode') or False
         self.addresses = addresses
         self.endpoint = kwargs.get('url')
@@ -98,6 +97,15 @@ class EsploraAddress:
             self.transactions = transactions
         else:
             self.transactions = []
+
+        if kwargs.get('min_height') is not None:
+            self.min_height = kwargs.get('min_height')
+        else:
+            try:
+                self.min_height = self.get_block_height()
+            except NetworkException:
+                self.min_height = 0
+
 
     def sync(self):
         self.transactions = [*self._get_transaction_history()]
@@ -164,6 +172,8 @@ class EsploraAddress:
                 raise NetworkException("Failed to retrieve current blockchain height") from exc
 
         
+
+
     def get_transaction_history(self):
         """
         Retrieves the transaction history of the Bitcoin address from cached data augmented with network data.

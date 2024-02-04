@@ -108,12 +108,20 @@ class DogeChainAddress:
         """
         self.addresses = addresses
         self.requests, self.interval_sec = request_interval
-        self.min_height = kwargs.get('min_height') or 0
         self.fast_mode = kwargs.get('fast_mode') or False
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
             self.transactions = []
+
+        if kwargs.get('min_height') is not None:
+            self.min_height = kwargs.get('min_height')
+        else:
+            try:
+                self.min_height = self.get_block_height()
+            except NetworkException:
+                self.min_height = 0
+
 
     def sync(self):
         self.transactions = deduplicate([*self._get_transaction_history()])
@@ -186,6 +194,8 @@ class DogeChainAddress:
         self.height = response['x']['height']
         return self.height
         
+
+
 
     def get_transaction_history(self):
         """

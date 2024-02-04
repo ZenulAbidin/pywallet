@@ -19,7 +19,6 @@ class BitcoinTestAddress:
         self.current_index = 0
         self.addresses = addresses
         self.max_cycles = max_cycles
-        self.min_height = kwargs.get('min_height') or 0
         self.fast_mode = kwargs.get('fast_mode') or False
         fullnode_endpoints = kwargs.get('fullnode_endpoints')
         esplora_endpoints = kwargs.get('esplora_endpoints')
@@ -41,18 +40,27 @@ class BitcoinTestAddress:
             if not tokens:
                 tokens = []
             for token in tokens:
-                self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, min_height=self.min_height, fast_mode=self.fast_mode, api_key=token))
-            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, min_height=self.min_height, fast_mode=self.fast_mode)) # No token (free) version
+                self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, fast_mode=self.fast_mode, api_key=token))
+            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, fast_mode=self.fast_mode)) # No token (free) version
         if provider_bitmask & 1 << wallet_pb2.BTCTEST_BLOCKSTREAM + 1:
-            self.provider_list.append(BlockstreamAddress(addresses, transactions=transactions, min_height=self.min_height, fast_mode=self.fast_mode))
+            self.provider_list.append(BlockstreamAddress(addresses, transactions=transactions, fast_mode=self.fast_mode))
         if provider_bitmask & 1 << wallet_pb2.BTCTEST_ESPLORA + 1:
             for endpoint in esplora_endpoints:
-                self.provider_list.append(EsploraAddress(addresses, transactions=transactions, min_height=self.min_height, fast_mode=self.fast_mode, **endpoint))
+                self.provider_list.append(EsploraAddress(addresses, transactions=transactions, fast_mode=self.fast_mode, **endpoint))
         if provider_bitmask & 1 << wallet_pb2.BTCTEST_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
-                self.provider_list.append(BitcoinRPCClient(addresses, transactions=transactions, min_height=self.min_height, fast_mode=self.fast_mode, **endpoint))
+                self.provider_list.append(BitcoinRPCClient(addresses, transactions=transactions, fast_mode=self.fast_mode, **endpoint))
         if provider_bitmask & 1 << wallet_pb2.BTCTEST_MEMPOOLSPACE + 1:
-            self.provider_list.append(MempoolSpaceAddress(addresses, transactions=transactions, min_height=self.min_height, fast_mode=self.fast_mode))
+            self.provider_list.append(MempoolSpaceAddress(addresses, transactions=transactions, fast_mode=self.fast_mode))
+
+        if kwargs.get('min_height') is not None:
+            self.min_height = kwargs.get('min_height')
+        else:
+            self.min_height = self.get_block_height()
+        
+        for i in range(len(self.provider_list)):
+            self.provider_list[i].min_height = self.min_height
+
 
     def sync(self):
         for provider in self.provider_list:
@@ -107,7 +115,32 @@ class BitcoinTestAddress:
         newindex = (self.current_index + 1) % len(self.provider_list)
         self.provider_list[newindex].transactions = self.provider_list[self.current_index].transactions
         self.current_index = newindex
+
+    def get_block_height(self):
+        """
+        Retrieves the current block height.
+
+        Returns:
+            float: The current block height.
+
+        Raises:
+            Exception: If the API request fails or the block height cannot be retrieved.
+        """
+        cycle = 1
+        while cycle <= self.max_cycles:
+            self.provider_list[self.current_index].transactions = self.transactions
+            try:
+                h = self.provider_list[self.current_index].get_block_height()
+                if h > 0:
+                    return h
+            except NetworkException:
+                self.transactions = self.provider_list[self.current_index].transactions
+                self.advance_to_next_provider()
+                cycle += 1
+        raise NetworkException(f"None of the address providers are working after {self.max_cycles} tries")
     
+
+
     def get_transaction_history(self):
         for address in self.addresses:
             txs = []

@@ -1,9 +1,9 @@
-from .fullnode import DashRPCClient
+from .fullnode import DogecoinRPCClient
 from ...generated import wallet_pb2
 from ...errors import NetworkException
 
-class DashAddress:
-    """ Load balancer for all DASH address providers provided to an instance of this class,
+class DogecoinAddress:
+    """ Load balancer for all DOGE address providers provided to an instance of this class,
         using the round robin scheduling algorithm.
     """
 
@@ -14,7 +14,6 @@ class DashAddress:
         self.current_index = 0
         self.addresses = addresses
         self.max_cycles = max_cycles
-        self.min_height = kwargs.get('min_height') or 0
         self.fast_mode = kwargs.get('fast_mode') or False
         fullnode_endpoints = kwargs.get('fullnode_endpoints')
 
@@ -27,9 +26,18 @@ class DashAddress:
 
         self.transactions = transactions
 
-        if provider_bitmask & 1 << wallet_pb2.DASH_FULLNODE + 1:
+        if provider_bitmask & 1 << wallet_pb2.DOGE_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
-                self.provider_list.append(DashRPCClient(addresses, transactions=transactions, min_height=self.min_height, fast_mode=self.fast_mode, **endpoint))
+                self.provider_list.append(DogecoinRPCClient(addresses, transactions=transactions, fast_mode=self.fast_mode, **endpoint))
+
+        if kwargs.get('min_height') is not None:
+            self.min_height = kwargs.get('min_height')
+        else:
+            self.min_height = self.get_block_height()
+        
+        for i in range(len(self.provider_list)):
+            self.provider_list[i].min_height = self.min_height
+
 
     def sync(self): 
        for provider in self.provider_list:
@@ -40,10 +48,10 @@ class DashAddress:
 
     def get_balance(self):
         """
-        Retrieves the balance of the Dash address.
+        Retrieves the balance of the Dogecoin address.
 
         Returns:
-            float: The balance of the Dash address in DASH.
+            float: The balance of the Dogecoin address in DOGE.
 
         Raises:
             Exception: If the API request fails or the address balance cannot be retrieved.
@@ -83,7 +91,32 @@ class DashAddress:
         newindex = (self.current_index + 1) % len(self.provider_list)
         self.provider_list[newindex].transactions = self.provider_list[self.current_index].transactions
         self.current_index = newindex
+
+    def get_block_height(self):
+        """
+        Retrieves the current block height.
+
+        Returns:
+            float: The current block height.
+
+        Raises:
+            Exception: If the API request fails or the block height cannot be retrieved.
+        """
+        cycle = 1
+        while cycle <= self.max_cycles:
+            self.provider_list[self.current_index].transactions = self.transactions
+            try:
+                h = self.provider_list[self.current_index].get_block_height()
+                if h > 0:
+                    return h
+            except NetworkException:
+                self.transactions = self.provider_list[self.current_index].transactions
+                self.advance_to_next_provider()
+                cycle += 1
+        raise NetworkException(f"None of the address providers are working after {self.max_cycles} tries")
     
+
+
     def get_transaction_history(self):
         for address in self.addresses:
             txs = []

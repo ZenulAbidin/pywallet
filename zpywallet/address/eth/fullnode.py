@@ -1,6 +1,7 @@
 from web3 import Web3, middleware
 from web3.gas_strategies.time_based import fast_gas_price_strategy
 
+from ...errors import NetworkException
 from ...generated import wallet_pb2
 from ...utils.keccak import to_checksum_address
 
@@ -55,6 +56,15 @@ class EthereumWeb3Client:
             self.transactions = transactions
         else:
             self.transactions = []
+
+        if kwargs.get('min_height') is not None:
+            self.min_height = kwargs.get('min_height')
+        else:
+            try:
+                self.min_height = self.get_block_height()
+            except NetworkException:
+                self.min_height = 0
+
 
     def sync(self):
         self.height = self.get_block_height()
