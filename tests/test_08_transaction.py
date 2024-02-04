@@ -32,7 +32,7 @@ class TestAddress(unittest.TestCase):
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
         b = BitcoinAddress(['16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM'])
-        b.sync()
+
         saved_utxos = b.get_utxos()
         destinations = [Destination("16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinMainNet),
                         Destination("1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002, BitcoinMainNet)]
@@ -60,7 +60,7 @@ class TestAddress(unittest.TestCase):
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
         b = BitcoinAddress(['16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM'])
-        b.sync()
+
         saved_utxos = b.get_utxos()
         destinations = [Destination("16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinSegwitMainNet),
                         Destination("1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002, BitcoinSegwitMainNet)]
@@ -88,7 +88,7 @@ class TestAddress(unittest.TestCase):
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
         bc = BitcoinAddress(['bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c'])
-        bc.sync()
+
         saved_utxos = bc.get_utxos()
         destinations = [Destination("16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinSegwitMainNet),
                         Destination("1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002, BitcoinSegwitMainNet)]
@@ -116,7 +116,7 @@ class TestAddress(unittest.TestCase):
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
         bc2 = BitcoinAddress(['16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM', 'bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c'])
-        bc2.sync()
+
         saved_utxos = bc2.get_utxos()
         destinations = [Destination("16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinSegwitMainNet),
                         Destination("1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002, BitcoinSegwitMainNet)]
@@ -144,7 +144,7 @@ class TestAddress(unittest.TestCase):
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
         bc2 = BitcoinAddress(['16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM', 'bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c'])
-        bc2.sync()
+
         saved_utxos = bc2.get_utxos()
         destinations = [Destination("16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinSegwitMainNet),
                         Destination("1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", 0.00000002, BitcoinSegwitMainNet)]
@@ -179,7 +179,7 @@ class TestAddress(unittest.TestCase):
     def test_005_eth_sign(self):
         """Test creating EVM Ethereum transactions"""
         b = EthereumAddress(['0xd73e8e2ac0099169e7404f23c6caa94cf1884384'])
-        b.sync()
+
         destinations = [Destination("0xea83c649dd49a6ec44c9e2943eb673a8fbb7bab6", 0.00000002, EthereumMainNet)]
 
         utxos = []

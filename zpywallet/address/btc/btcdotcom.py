@@ -72,7 +72,7 @@ class BTCDotComAddress:
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
         self.requests, self.interval_sec = request_interval
-        self.fast_mode = kwargs.get('fast_mode') or False
+        self.fast_mode = kwargs.get('fast_mode') or True
         self.addresses = addresses
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
@@ -87,10 +87,6 @@ class BTCDotComAddress:
             except NetworkException:
                 self.min_height = 0
 
-
-    def sync(self):
-        self.transactions = [*self._get_transaction_history()]
-        self.height = self.get_block_height()
 
     def get_balance(self):
         """
@@ -246,6 +242,7 @@ class BTCDotComAddress:
                         if not ctx.confirmed or ctx.height >= self.min_height:
                             yield ctx
                         else:
+                            self.min_height = self.height + 1
                             return
                     page += 1
                 else:

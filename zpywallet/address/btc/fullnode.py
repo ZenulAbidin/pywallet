@@ -11,12 +11,12 @@ class BitcoinRPCClient:
     """
     
     # Not static because we need to make calls to fetch input transactions.
-    def _clean_tx(self, element, is_mine=False, _recursive=False):
+    def _clean_tx(self, element, block_height, is_mine=False, _recursive=False):
         new_element = wallet_pb2.Transaction()
         new_element.txid = element['txid']
-        if 'blockheight' in element.keys():
+        if block_height:
             new_element.confirmed = True
-            new_element.height = element['blockheight']
+            new_element.height = block_height
         else:
             new_element.confirmed = False
 
@@ -73,7 +73,7 @@ class BitcoinRPCClient:
 
         if is_mine:
             if not _recursive:
-                new_element = self._clean_tx(element, is_mine=True, _recursive=True)
+                new_element = self._clean_tx(element, block_height, is_mine=True, _recursive=True)
                 self.txset.append(new_element)
         else:
             return None
@@ -84,7 +84,7 @@ class BitcoinRPCClient:
         self.rpc_user = kwargs.get('user')
         self.rpc_password = kwargs.get('password')
         self.max_tx_at_once = kwargs.get('max_tx_at_once') or 1000
-        self.fast_mode = kwargs.get('fast_mode') or False
+        self.fast_mode = kwargs.get('fast_mode') or True
         self.min_height = kwargs.get('min_height') or 0
         self.transactions = []
         self.addresses = addresses
@@ -97,15 +97,11 @@ class BitcoinRPCClient:
             self.min_height = kwargs.get('min_height')
         else:
             try:
-                self.min_height = self.get_block_height()
+                self.min_height = self.get_block_height() + 1
             except NetworkException:
                 self.min_height = 0
 
 
-    def sync(self):
-        self.height = self.get_block_height()
-        self.transactions = [*self._get_transaction_history()]
-    
     def _send_rpc_request(self, method, params=None, as_wallet=False):
         payload = {
             'method': method,
@@ -126,7 +122,8 @@ class BitcoinRPCClient:
     def get_block_height(self):
         response = self._send_rpc_request('getblockchaininfo')
         try:
-            return response['result']['blocks']
+            self.height = response['result']['blocks']
+            return self.height
         except Exception as e:
             raise NetworkException(f"Failed to make RPC Call: {str(e)}")
         
@@ -146,25 +143,24 @@ class BitcoinRPCClient:
         total_balance = 0
         confirmed_balance = 0
         for utxo in utxos:
-            total_balance += utxo["amount"]
+            total_balance += utxo.amount
             # Careful: Block height #0 is the Genesis block - don't want to exclude that.
             # (Not that it returns it ever though!)
-            if utxo["confirmed"]:
-                confirmed_balance += utxo["amount"]
+            if utxo.confirmed:
+                confirmed_balance += utxo.amount
         return total_balance, confirmed_balance
         
     def get_utxos(self):
-        self.height = self.get_block_height()
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions)-1, -1, -1):
             for utxo in [u for u in utxos]:
                 # Check if any utxo has been spent in this transaction
-                for vin in self.transactions[i].inputs:
+                for vin in self.transactions[i].btcllike_transaction.inputs:
                     if vin.spent or (vin.txid == utxo["txid"] and vin["index"] == utxo.index):
                         # Spent
                         utxos.remove(utxo)
-            for out in self.transactions[i].outputs:
+            for out in self.transactions[i].btclike_transaction.outputs:
                 if out.address in self.addresses:
                     utxo = wallet_pb2.UTXO()
                     utxo.address = out.address
@@ -195,22 +191,24 @@ class BitcoinRPCClient:
             txs = [*self._get_transaction_history(txhash)]
             txs.extend(self.transactions)
             self.transactions = txs
+        return self.transactions
                 
     def _get_transaction_history(self, txhash=None):
+        self.get_block_height()
         self.txset = [] # Stores all of the output transactions in a temporary place
         found_it = txhash == None
+        if not [*range(self.min_height, self.height+1)]:
+            return
         try:
             # Get the blockchain info to determine the best block height
-            blockchain_info = self._send_rpc_request('getblockchaininfo')
-            best_block_height = blockchain_info['result']['blocks']
             block_hash = self._send_rpc_request('getblockhash', params=[self.min_height])['result']
 
             # Iterate through blocks to fetch transactions
-            for block_height in range(self.min_height, best_block_height+1):
-                block = self._send_rpc_request('getblock', params=[block_hash, 2])['result']
-                block_hash = block['nextblockhash']
+            for block_height in range(self.min_height, self.height+1):
                 if not block_hash:
-                    print(block_height)
+                    break
+                block = self._send_rpc_request('getblock', params=[block_hash, 2])['result']
+                block_hash = block.get('nextblockhash')
 
                 # Iterate through transactions in the block
                 for tx in block['tx']:
@@ -220,11 +218,12 @@ class BitcoinRPCClient:
                         found_it = True
 
                     raw_transaction = tx # Verbosity=2 in bitcoin gives us the getrawtransaction output
-                    parsed_transaction = self._clean_tx(raw_transaction)
+                    parsed_transaction = self._clean_tx(raw_transaction, block_height)
                     if parsed_transaction is not None:
                         yield parsed_transaction
 
             self.txset = []
+            self.min_height = self.height + 1
         except Exception as e:
             self.txset = []
             raise NetworkException(f"Failed to get transaction history: {str(e)}")

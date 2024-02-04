@@ -90,7 +90,7 @@ class EsploraAddress:
         # Ostensibly there are no limits for that site, but I got 429 errors when testing with (1000,1), so
         # the default limit will be the same as for mempool.space - 3 requests per second.
         self.requests, self.interval_sec = request_interval
-        self.fast_mode = kwargs.get('fast_mode') or False
+        self.fast_mode = kwargs.get('fast_mode') or True
         self.addresses = addresses
         self.endpoint = kwargs.get('url')
         if transactions is not None and isinstance(transactions, list):
@@ -106,10 +106,6 @@ class EsploraAddress:
             except NetworkException:
                 self.min_height = 0
 
-
-    def sync(self):
-        self.transactions = [*self._get_transaction_history()]
-        self.height = self.get_block_height()
 
     def get_balance(self):
         """
@@ -257,6 +253,7 @@ class EsploraAddress:
                         if not ctx.confirmed or ctx.height >= self.min_height:
                             yield ctx
                         else:
+                            self.min_height = self.height + 1
                             return
                     if len(data) > 0:
                         last_tx = data[-1]["txid"]

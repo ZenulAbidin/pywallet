@@ -19,7 +19,7 @@ class BitcoinTestAddress:
         self.current_index = 0
         self.addresses = addresses
         self.max_cycles = max_cycles
-        self.fast_mode = kwargs.get('fast_mode') or False
+        self.fast_mode = kwargs.get('fast_mode') or True
         fullnode_endpoints = kwargs.get('fullnode_endpoints')
         esplora_endpoints = kwargs.get('esplora_endpoints')
         blockcypher_tokens = kwargs.get('blockcypher_tokens')
@@ -60,14 +60,6 @@ class BitcoinTestAddress:
         
         for i in range(len(self.provider_list)):
             self.provider_list[i].min_height = self.min_height
-
-
-    def sync(self):
-        for provider in self.provider_list:
-            try:
-                provider.sync()
-            except NetworkException:
-                pass
 
 
     def get_balance(self):

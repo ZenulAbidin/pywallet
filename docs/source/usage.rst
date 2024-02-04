@@ -113,8 +113,8 @@ ZPyWallet has built-in support for fetching transaction history of addresses:
         utxo = UTXO(transacitons[0], 1) # Get the first UTXO (transaction output)
 
     # You can even get the transaction history of random addresses:
-    address = BitcoinAddress(['bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c, '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'])
-    address.sync()
+    address = BitcoinAddress(['bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c', '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'])
+
     # ...Then you can call get_transaction_history(), get_utxos() and get_balance() like for a wallet
     
     total_balance, confirmed_balance = wallet.get_balance() # On Ethereum these two values are identical

@@ -49,7 +49,7 @@ class EthereumWeb3Client:
         self.web3.middleware_onion.add(middleware.simple_cache_middleware)
 
         self.min_height = kwargs.get('min_height') or 0
-        self.fast_mode = kwargs.get('fast_mode') or False
+        self.fast_mode = kwargs.get('fast_mode') or True
         self.transactions = []
         self.addresses = [to_checksum_address(a) for a in addresses]
         if transactions is not None and isinstance(transactions, list):
@@ -61,17 +61,20 @@ class EthereumWeb3Client:
             self.min_height = kwargs.get('min_height')
         else:
             try:
-                self.min_height = self.get_block_height()
+                self.min_height = self.get_block_height() + 1
             except NetworkException:
                 self.min_height = 0
 
 
-    def sync(self):
-        self.height = self.get_block_height()
+    def get_transaction_history(self):
         self.transactions = [*self._get_transaction_history()]
+        return self.transactions
 
     def get_block_height(self):
-        return self.web3.eth.block_number
+        try:
+            return self.web3.eth.block_number
+        except Exception as e:
+            raise NetworkException("Failed to invoke Web3 method")
     
     def get_balance(self):
         """
@@ -87,7 +90,11 @@ class EthereumWeb3Client:
         """
         balance = 0
         for address in self.addresses:
-            balance += self.web3.eth.get_balance(address)
+            try:
+                balance += self.web3.eth.get_balance(address)
+            except Exception as e:
+                raise NetworkException("Failed to invoke Web3 method")
+
         
         # Ethereum has no unconfirmed balances or transactions.
         # But for compatibility reasons, we still return it as a 2-tuple.
@@ -100,7 +107,10 @@ class EthereumWeb3Client:
 
         for block_number in range(self.block_height, self.get_block_height() + 1):
             # Retrieve block information
-            block = self.web3.eth.getBlock(block_number, full_transactions=True)
+            try:
+                block = self.web3.eth.getBlock(block_number, full_transactions=True)
+            except Exception as e:
+                raise NetworkException("Failed to invoke Web3 method")
 
             # Check if the block contains transactions
             if block and 'transactions' in block:

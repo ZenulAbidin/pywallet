@@ -16,7 +16,7 @@ class LitecoinAddress:
         self.current_index = 0
         self.addresses = addresses
         self.max_cycles = max_cycles
-        self.fast_mode = kwargs.get('fast_mode') or False
+        self.fast_mode = kwargs.get('fast_mode') or True
         fullnode_endpoints = kwargs.get('fullnode_endpoints')
         blockcypher_tokens = kwargs.get('blockcypher_tokens')
 
@@ -38,7 +38,7 @@ class LitecoinAddress:
             self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, fast_mode=self.fast_mode)) # No token (free) version
         if provider_bitmask & 1 << wallet_pb2.LTC_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
-                self.provider_list.append(LitecoinRPCClient(addresses, endpoint, transactions=transactions, **endpoint))
+                self.provider_list.append(LitecoinRPCClient(addresses, transactions=transactions, **endpoint))
 
         if kwargs.get('min_height') is not None:
             self.min_height = kwargs.get('min_height')
@@ -49,13 +49,7 @@ class LitecoinAddress:
             self.provider_list[i].min_height = self.min_height
 
 
-    def sync(self): 
-       for provider in self.provider_list:
-            try:
-                provider.sync()
-            except NetworkException:
-                pass
-
+    
     def get_balance(self):
         """
         Retrieves the balance of the Litecoin address.

@@ -16,7 +16,7 @@ class EthereumAddress:
         self.addresses = addresses
         self.max_cycles = max_cycles
         self.height = height
-        self.fast_mode = kwargs.get('fast_mode') or False
+        self.fast_mode = kwargs.get('fast_mode') or True
         self.chain_id = kwargs.get('chain_id') or 1
         fullnode_endpoints = kwargs.get('fullnode_endpoints')
 
@@ -41,10 +41,6 @@ class EthereumAddress:
         for i in range(len(self.provider_list)):
             self.provider_list[i].min_height = self.min_height
 
-
-    def sync(self):
-        # There is nothing to sync on EVM chains
-        return
 
     def get_balance(self):
         """

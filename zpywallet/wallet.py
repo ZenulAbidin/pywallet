@@ -125,7 +125,7 @@ class Wallet:
     """Data class representing a cryptocurrency wallet."""
 
     def __init__(self, network, seed_phrase, password, receive_gap_limit=1000, change_gap_limit=1000,
-                  derivation_path=None, _with_wallet=True, **kwargs):
+                  derivation_path=None, _with_wallet=True, max_cycles=100, **kwargs):
         
         fullnode_endpoints = kwargs.get('fullnode_endpoints')
         esplora_endpoints = kwargs.get('esplora_endpoints')
@@ -235,10 +235,12 @@ class Wallet:
             #     address.pubkey = pubkey.to_hex()
             #     #address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
             #   self.encrypted_private_keys.append(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif())
+
+            self._setup_client(max_cycles=max_cycles)
             
 
     @classmethod
-    def deserialize(cls, data: bytes, password):
+    def deserialize(cls, data: bytes, password, max_cycles=100):
         wallet = wallet_pb2.Wallet()
         wallet.ParseFromString(data)
         seed_phrase = decrypt(wallet.encrypted_seed_phrase, password)
@@ -308,10 +310,12 @@ class Wallet:
         del(seed_phrase)
         del(password)
 
+        self._setup_client(max_cycles=max_cycles)
+
     def network(self):
         return self._network
-
-    def get_transaction_history(self, max_cycles=100):
+    
+    def _setup_client(self, max_cycles=100):
         addresses = [a.address for a in self.wallet.addresses]
 
         fullnode_endpoints = []
@@ -340,24 +344,26 @@ class Wallet:
         kwargs = {'fullnode_endpoints': fullnode_endpoints, 'esplora_endpoints': esplora_endpoints, 'blockcypher_tokens': blockcypher_tokens}
 
         if self._network.COIN == "BCY":
-            address_client = BCYAddress(addresses, max_cycles=max_cycles, **kwargs)
+            self.client = BCYAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
         elif self._network.COIN == "BTC" and not self._network.TESTNET:
-            address_client = BitcoinAddress(addresses, max_cycles=max_cycles, **kwargs)
+            self.client = BitcoinAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
         elif self._network.COIN == "BTC" and self._network.TESTNET:
-            address_client = BitcoinTestAddress(addresses, max_cycles=max_cycles, **kwargs)
+            self.client = BitcoinTestAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
         elif self._network.COIN == "LTC" and not self._network.TESTNET:
-            address_client = LitecoinAddress( addresses, max_cycles=max_cycles, **kwargs)
+            self.client = LitecoinAddress( addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
         elif self._network.COIN == "DOGE" and not self._network.TESTNET:
-            address_client = DogecoinAddress(addresses, max_cycles=max_cycles, **kwargs)
+            self.client = DogecoinAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
         elif self._network.COIN == "DASH" and not self._network.TESTNET:
-            address_client = DashAddress(addresses, max_cycles=max_cycles, **kwargs)
+            self.client = DashAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
         elif self._network.COIN == "ETH" and not self._network.TESTNET:
-            address_client = EthereumAddress(addresses, max_cycles=max_cycles, **kwargs)
+            self.client = EthereumAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
         else:
             raise ValueError("No address client for this network")
 
-        address_client.sync()
-        transactions = address_client.get_transaction_history()
+
+
+    def get_transaction_history(self):
+        transactions = self.client.get_transaction_history()
         # Create a set to keep track of unique txid values
         seen_txids = set()
 
@@ -385,10 +391,10 @@ class Wallet:
             tx_array.append(Transaction(t, self._network))
         return tx_array
     
-    def get_utxos(self, max_cycles=100, only_unspent=False):
+    def get_utxos(self, only_unspent=False):
         addresses = [a.address for a in self.wallet.addresses]
 
-        transactions = self.get_transaction_history(max_cycles=max_cycles)
+        transactions = self.get_transaction_history()
         utxo_set = []
         for t in transactions:
             for i in range(len(t.sat_outputs(only_unspent=only_unspent))):
@@ -423,26 +429,11 @@ class Wallet:
                 break
         return new_inputs
     
-    def get_balance(self, in_standard_units=True, max_cycles=100):
-        addresses = [a.address for a in self.wallet.addresses]
-        
+    def get_balance(self, in_standard_units=True):
         if self._network.SUPPORTS_EVM:
             # We must use the Web3 network to get the balance as UTXOs are not available and getting transaction history
             # of an address is impractically slow.
-            fullnode_endpoints = []
-            
-            for node_pb2 in self.wallet.fullnode_endpoints:
-                node = {}
-                if node_pb2.url:
-                    node['url'] = node_pb2.url
-                if node_pb2.user:
-                    node['user'] = node_pb2.user
-                if node_pb2.password:
-                    node['password'] = node_pb2.password
-                fullnode_endpoints.append(node)
-            kwargs = {'fullnode_endpoints': fullnode_endpoints}
-            address_client = EthereumAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
-            balance = address_client.get_balance()
+            balance = self.client.get_balance()
             if in_standard_units:
                 return balance[0] / 1e18, balance[1] / 1e18
             else:

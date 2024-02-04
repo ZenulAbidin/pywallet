@@ -16,7 +16,7 @@ class DogecoinAddress:
         self.current_index = 0
         self.addresses = addresses
         self.max_cycles = max_cycles
-        self.fast_mode = kwargs.get('fast_mode') or False
+        self.fast_mode = kwargs.get('fast_mode') or True
         blockcypher_tokens = kwargs.get('blockcypher_tokens')
 
         # Set everything to an empty list so that providers do not immediately start fetching
@@ -45,13 +45,7 @@ class DogecoinAddress:
             self.provider_list[i].min_height = self.min_height
 
 
-    def sync(self): 
-       for provider in self.provider_list:
-            try:
-                provider.sync()
-            except NetworkException:
-                pass
-
+    
     def get_balance(self):
         """
         Retrieves the balance of the Dogecoin address.
