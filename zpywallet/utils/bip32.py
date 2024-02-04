@@ -29,8 +29,8 @@ class HDWallet(object):
 
     **WARNING**:
 
-    When creating a NEW wallet you MUST back up the private key. If
-    you don't then any coins sent to your address will be LOST FOREVER.
+    When creating a NEW wallet this way, you MUST back up the private key.
+    If you don't then any coins sent to your address will be LOST FOREVER.
 
     You need to save the private key somewhere. It is OK to just write
     it down on a piece of paper! Don't share this key with anyone!
