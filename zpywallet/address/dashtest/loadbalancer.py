@@ -1,9 +1,9 @@
-from .fullnode import LitecoinRPCClient
+from .fullnode import DashRPCClient
 from ...generated import wallet_pb2
 from ...errors import NetworkException
 
-class LitecoinAddress:
-    """ Load balancer for all LTC address providers provided to an instance of this class,
+class DashTestAddress:
+    """ Load balancer for all DASH address providers provided to an instance of this class,
         using the round robin scheduling algorithm.
     """
 
@@ -26,9 +26,9 @@ class LitecoinAddress:
 
         self.transactions = transactions
 
-        if provider_bitmask & 1 << wallet_pb2.LTC_FULLNODE + 1:
+        if provider_bitmask & 1 << wallet_pb2.DASH_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
-                self.provider_list.append(LitecoinRPCClient(addresses, transactions=transactions, fast_mode=self.fast_mode, **endpoint))
+                self.provider_list.append(DashRPCClient(addresses, transactions=transactions, fast_mode=self.fast_mode, **endpoint))
 
         if kwargs.get('min_height') is not None:
             self.min_height = kwargs.get('min_height')
@@ -42,10 +42,10 @@ class LitecoinAddress:
     
     def get_balance(self):
         """
-        Retrieves the balance of the Litecoin address.
+        Retrieves the balance of the Dash address.
 
         Returns:
-            float: The balance of the Litecoin address in LTC.
+            float: The balance of the Dash address in DASH.
 
         Raises:
             Exception: If the API request fails or the address balance cannot be retrieved.

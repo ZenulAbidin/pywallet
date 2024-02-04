@@ -1,5 +1,4 @@
 import random
-from datetime import datetime
 import requests
 
 from ...errors import NetworkException
@@ -8,7 +7,7 @@ from ...generated import wallet_pb2
 
 class LitecoinRPCClient:
     """Address querying class for Litecoin full nodes utilizing descriptors.
-       Requires node with multi-wallet support and -txindex.
+       Requires node running with -txindex.
     """
     
     # Not static because we need to make calls to fetch input transactions.

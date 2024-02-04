@@ -1,9 +1,9 @@
-from .fullnode import DogecoinRPCClient
+from .fullnode import LitecoinRPCClient
 from ...generated import wallet_pb2
 from ...errors import NetworkException
 
-class DogecoinAddress:
-    """ Load balancer for all DOGE address providers provided to an instance of this class,
+class LitecoinTestAddress:
+    """ Load balancer for all LTC address providers provided to an instance of this class,
         using the round robin scheduling algorithm.
     """
 
@@ -26,9 +26,9 @@ class DogecoinAddress:
 
         self.transactions = transactions
 
-        if provider_bitmask & 1 << wallet_pb2.DOGE_FULLNODE + 1:
+        if provider_bitmask & 1 << wallet_pb2.LTC_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
-                self.provider_list.append(DogecoinRPCClient(addresses, transactions=transactions, fast_mode=self.fast_mode, **endpoint))
+                self.provider_list.append(LitecoinRPCClient(addresses, transactions=transactions, fast_mode=self.fast_mode, **endpoint))
 
         if kwargs.get('min_height') is not None:
             self.min_height = kwargs.get('min_height')
@@ -42,10 +42,10 @@ class DogecoinAddress:
     
     def get_balance(self):
         """
-        Retrieves the balance of the Dogecoin address.
+        Retrieves the balance of the Litecoin address.
 
         Returns:
-            float: The balance of the Dogecoin address in DOGE.
+            float: The balance of the Litecoin address in LTC.
 
         Raises:
             Exception: If the API request fails or the address balance cannot be retrieved.

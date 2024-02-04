@@ -5,8 +5,8 @@ from ...errors import NetworkException
 from ...generated import wallet_pb2
 
 
-class DashRPCClient:
-    """Address querying class for Dash full nodes utilizing descriptors.
+class DogecoinRPCClient:
+    """Address querying class for Dogecoin full nodes utilizing descriptors.
        Requires a node running with -txindex.
     """
     

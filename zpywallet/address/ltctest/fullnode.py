@@ -5,9 +5,9 @@ from ...errors import NetworkException
 from ...generated import wallet_pb2
 
 
-class DashRPCClient:
-    """Address querying class for Dash full nodes utilizing descriptors.
-       Requires a node running with -txindex.
+class LitecoinRPCClient:
+    """Address querying class for Litecoin full nodes utilizing descriptors.
+       Requires node running with -txindex.
     """
     
     # Not static because we need to make calls to fetch input transactions.

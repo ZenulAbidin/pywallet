@@ -73,7 +73,7 @@ class TestAddress(unittest.TestCase):
         except NetworkException as e:
             pass
     
-    def test_003_ltc_address(self):
+    def test_005_ltc_address(self):
         """Test fetching Litecoin addressses"""
         b = LitecoinAddress(['ltc1q9pw48v23gq9d2lqcss8yaqeh7fqzu4wrt6m6nr'], fast_mode=True)
         try:

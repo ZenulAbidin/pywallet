@@ -7,7 +7,7 @@ from ...generated import wallet_pb2
 
 class DashRPCClient:
     """Address querying class for Dash full nodes utilizing descriptors.
-       Requires node with multi-wallet support and -txindex.
+       Requires a node running with -txindex.
     """
     
     # Not static because we need to make calls to fetch input transactions.
@@ -200,7 +200,7 @@ class DashRPCClient:
             for block_height in range(self.min_height, self.height+1):
                 if not block_hash:
                     break
-                block = self._send_rpc_request('getblock', params=[block_hash, True])['result']
+                block = self._send_rpc_request('getblock', params=[block_hash, 2])['result']
                 block_hash = block.get('nextblockhash')
 
                 # Iterate through transactions in the block

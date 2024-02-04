@@ -2,7 +2,7 @@ from .fullnode import DogecoinRPCClient
 from ...generated import wallet_pb2
 from ...errors import NetworkException
 
-class DogecoinAddress:
+class DogecoinTestAddress:
     """ Load balancer for all DOGE address providers provided to an instance of this class,
         using the round robin scheduling algorithm.
     """
