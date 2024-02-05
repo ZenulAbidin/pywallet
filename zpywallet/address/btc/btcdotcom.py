@@ -4,6 +4,7 @@ import time
 from ...errors import NetworkException
 from ...generated import wallet_pb2
 
+
 class BTCDotComAddress:
     """
     A class representing a Bitcoin address.
@@ -26,43 +27,47 @@ class BTCDotComAddress:
 
     def _clean_tx(self, element):
         new_element = wallet_pb2.Transaction()
-        new_element.txid = element['hash']
-        if 'block_height' in element.keys() and element['block_height'] is not None:
+        new_element.txid = element["hash"]
+        if "block_height" in element.keys() and element["block_height"] is not None:
             new_element.confirmed = True
-            new_element.height = element['block_height']
+            new_element.height = element["block_height"]
         else:
             new_element.confirmed = False
-        
+
         if new_element.confirmed:
-            new_element.timestamp = element['block_time']
+            new_element.timestamp = element["block_time"]
 
-        for vin in element['inputs']:
+        for vin in element["inputs"]:
             txinput = new_element.btclike_transaction.inputs.add()
-            txinput.txid = vin['prev_tx_hash']
-            txinput.index = vin['prev_position']
-            txinput.amount = int(vin['prev_value'])
+            txinput.txid = vin["prev_tx_hash"]
+            txinput.index = vin["prev_position"]
+            txinput.amount = int(vin["prev_value"])
 
-        i = 0 
-        for vout in element['outputs']:
+        i = 0
+        for vout in element["outputs"]:
             txoutput = new_element.btclike_transaction.outputs.add()
-            txoutput.amount = int(vout['value'])
+            txoutput.amount = int(vout["value"])
             txoutput.index = i
             i += 1
-            if 'addresses' in vout.keys():
-                txoutput.address = vout['addresses'][0]
-            txoutput.spent = vout['spent_by_tx'] != ""
+            if "addresses" in vout.keys():
+                txoutput.address = vout["addresses"][0]
+            txoutput.spent = vout["spent_by_tx"] != ""
 
         # Now we must calculate the total fee
         total_inputs = sum([a.amount for a in new_element.btclike_transaction.inputs])
         total_outputs = sum([a.amount for a in new_element.btclike_transaction.outputs])
-        new_element.total_fee = (total_inputs - total_outputs)
+        new_element.total_fee = total_inputs - total_outputs
 
-        new_element.btclike_transaction.fee = int((total_inputs - total_outputs) // element['vsize'])
+        new_element.btclike_transaction.fee = int(
+            (total_inputs - total_outputs) // element["vsize"]
+        )
         new_element.fee_metric = wallet_pb2.VBYTE
         return new_element
 
     # BTC.com's rate limits are unknown.
-    def __init__(self, addresses, request_interval=(1000,1), transactions=None, **kwargs):
+    def __init__(
+        self, addresses, request_interval=(1000, 1), transactions=None, **kwargs
+    ):
         """
         Initializes an instance of the BTCDotComAddress class.
 
@@ -72,21 +77,20 @@ class BTCDotComAddress:
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
         self.requests, self.interval_sec = request_interval
-        self.fast_mode = kwargs.get('fast_mode') or True
+        self.fast_mode = kwargs.get("fast_mode") or True
         self.addresses = addresses
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
             self.transactions = []
 
-        if kwargs.get('min_height') is not None:
-            self.min_height = kwargs.get('min_height')
+        if kwargs.get("min_height") is not None:
+            self.min_height = kwargs.get("min_height")
         else:
             try:
                 self.min_height = self.get_block_height()
             except NetworkException:
                 self.min_height = 0
-
 
     def get_balance(self):
         """
@@ -106,11 +110,11 @@ class BTCDotComAddress:
             if utxo.confirmed:
                 confirmed_balance += utxo.amount
         return total_balance, confirmed_balance
-        
+
     def get_utxos(self):
         # Transactions are generated in reverse order
         utxos = []
-        for i in range(len(self.transactions)-1, -1, -1):
+        for i in range(len(self.transactions) - 1, -1, -1):
             for out in self.transactions[i].outputs:
                 if out.spent:
                     continue
@@ -145,10 +149,9 @@ class BTCDotComAddress:
             try:
                 return self.height
             except AttributeError as exc:
-                raise NetworkException("Failed to retrieve current blockchain height") from exc
-
-        
-
+                raise NetworkException(
+                    "Failed to retrieve current blockchain height"
+                ) from exc
 
     def get_transaction_history(self):
         """
@@ -168,7 +171,7 @@ class BTCDotComAddress:
             txs = [*self._get_transaction_history(txhash)]
             txs.extend(self.transactions)
             self.transactions = txs
-                    
+
         return self.transactions
 
     def _get_transaction_history(self, txhash=None):
@@ -206,7 +209,9 @@ class BTCDotComAddress:
                 if data["data"]["list"] is None:
                     return
                 for tx in data["data"]["list"]:
-                    time.sleep(self.interval_sec/(self.requests*len(data["data"]["list"])))
+                    time.sleep(
+                        self.interval_sec / (self.requests * len(data["data"]["list"]))
+                    )
                     if txhash and tx["hash"] == txhash:
                         return
                     ctx = self._clean_tx(tx)
@@ -217,9 +222,8 @@ class BTCDotComAddress:
                 page += 1
             else:
                 raise NetworkException("Failed to retrieve transaction history")
-            
 
-            while data["data"]["list"] is not None: 
+            while data["data"]["list"] is not None:
                 url = f"https://chain.api.btc.com/v3/address/{address}/tx?page={page}&pagesize={pagesize}"
                 for attempt in range(3, -1, -1):
                     if attempt == 0:
@@ -235,7 +239,10 @@ class BTCDotComAddress:
                     if data["data"]["list"] is None:
                         return
                     for tx in data["data"]["list"]:
-                        time.sleep(self.interval_sec/(self.requests*len(data["data"]["list"])))
+                        time.sleep(
+                            self.interval_sec
+                            / (self.requests * len(data["data"]["list"]))
+                        )
                         if txhash and tx["hash"] == txhash:
                             return
                         ctx = self._clean_tx(tx)

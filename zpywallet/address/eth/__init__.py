@@ -1,6 +1,6 @@
 __all__ = [
-    'fullnode',
-    'loadbalancer',
+    "fullnode",
+    "loadbalancer",
 ]
 
 from .loadbalancer import EthereumAddress

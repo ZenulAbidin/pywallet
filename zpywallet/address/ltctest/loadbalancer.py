@@ -2,20 +2,27 @@ from .fullnode import LitecoinRPCClient
 from ...generated import wallet_pb2
 from ...errors import NetworkException
 
+
 class LitecoinTestAddress:
-    """ Load balancer for all LTC address providers provided to an instance of this class,
-        using the round robin scheduling algorithm.
+    """Load balancer for all LTC address providers provided to an instance of this class,
+    using the round robin scheduling algorithm.
     """
 
-    def __init__(self, addresses, providers: bytes = b'\xff\xff', max_cycles=100,
-                 transactions=None, **kwargs):
-        provider_bitmask = int.from_bytes(providers, 'big')
+    def __init__(
+        self,
+        addresses,
+        providers: bytes = b"\xff\xff",
+        max_cycles=100,
+        transactions=None,
+        **kwargs,
+    ):
+        provider_bitmask = int.from_bytes(providers, "big")
         self.provider_list = []
         self.current_index = 0
         self.addresses = addresses
         self.max_cycles = max_cycles
-        self.fast_mode = kwargs.get('fast_mode') or True
-        fullnode_endpoints = kwargs.get('fullnode_endpoints')
+        self.fast_mode = kwargs.get("fast_mode") or True
+        fullnode_endpoints = kwargs.get("fullnode_endpoints")
 
         # Set everything to an empty list so that providers do not immediately start fetching
         # transactions and to avoid exceptions in loops later in this method.
@@ -28,18 +35,23 @@ class LitecoinTestAddress:
 
         if provider_bitmask & 1 << wallet_pb2.LTC_FULLNODE + 1:
             for endpoint in fullnode_endpoints:
-                self.provider_list.append(LitecoinRPCClient(addresses, transactions=transactions, fast_mode=self.fast_mode, **endpoint))
+                self.provider_list.append(
+                    LitecoinRPCClient(
+                        addresses,
+                        transactions=transactions,
+                        fast_mode=self.fast_mode,
+                        **endpoint,
+                    )
+                )
 
-        if kwargs.get('min_height') is not None:
-            self.min_height = kwargs.get('min_height')
+        if kwargs.get("min_height") is not None:
+            self.min_height = kwargs.get("min_height")
         else:
             self.min_height = self.get_block_height()
-        
+
         for i in range(len(self.provider_list)):
             self.provider_list[i].min_height = self.min_height
 
-
-    
     def get_balance(self):
         """
         Retrieves the balance of the Litecoin address.
@@ -58,11 +70,11 @@ class LitecoinTestAddress:
             if utxo.confirmed:
                 confirmed_balance += utxo.amount
         return total_balance, confirmed_balance
-        
+
     def get_utxos(self):
         # Transactions are generated in reverse order
         utxos = []
-        for i in range(len(self.transactions)-1, -1, -1):
+        for i in range(len(self.transactions) - 1, -1, -1):
             for out in self.transactions[i].btclike_transaction.outputs:
                 if out.spent:
                     continue
@@ -77,13 +89,14 @@ class LitecoinTestAddress:
                     utxos.append(utxo)
         return utxos
 
-
     def advance_to_next_provider(self):
         if not self.provider_list:
             return
-        
+
         newindex = (self.current_index + 1) % len(self.provider_list)
-        self.provider_list[newindex].transactions = self.provider_list[self.current_index].transactions
+        self.provider_list[newindex].transactions = self.provider_list[
+            self.current_index
+        ].transactions
         self.current_index = newindex
 
     def get_block_height(self):
@@ -107,9 +120,9 @@ class LitecoinTestAddress:
                 self.transactions = self.provider_list[self.current_index].transactions
                 self.advance_to_next_provider()
                 cycle += 1
-        raise NetworkException(f"None of the address providers are working after {self.max_cycles} tries")
-    
-
+        raise NetworkException(
+            f"None of the address providers are working after {self.max_cycles} tries"
+        )
 
     def get_transaction_history(self):
         for address in self.addresses:
@@ -118,7 +131,9 @@ class LitecoinTestAddress:
             cycle = 1
             while ntransactions != len(self.transactions):
                 if cycle > self.max_cycles:
-                    raise NetworkException(f"None of the address providers are working after {self.max_cycles} tries")
+                    raise NetworkException(
+                        f"None of the address providers are working after {self.max_cycles} tries"
+                    )
                 self.provider_list[self.current_index].transactions = txs
                 self.provider_list[self.current_index].addresses = [address]
                 try:

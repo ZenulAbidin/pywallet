@@ -24,25 +24,31 @@ from .bech32 import bech32_decode, bech32_encode
 from .ripemd160 import ripemd160
 from .utils import ensure_bytes, ensure_str
 from ..network import BitcoinSegwitMainNet
-from ..errors import incompatible_network_bytes_exception_factory, ChecksumException, unsupported_feature_exception_factory
+from ..errors import (
+    incompatible_network_bytes_exception_factory,
+    ChecksumException,
+    unsupported_feature_exception_factory,
+)
 
 
-Point = namedtuple('Point', ['x', 'y'])
+Point = namedtuple("Point", ["x", "y"])
 
-class secp256k1():
-    """ Elliptic curve used in Bitcoin, Ethereum, and their derivatives.
-    """
-    P = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f
+
+class secp256k1:
+    """Elliptic curve used in Bitcoin, Ethereum, and their derivatives."""
+
+    P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
     A = 0
     B = 7
-    N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
-    Gx = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
-    Gy = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
+    N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+    Gx = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798
+    Gy = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8
     G = Point(Gx, Gy)
     H = 1
 
+
 def decode_der_signature(signature):
-    """ Returns the R and S values of a DER signature. """
+    """Returns the R and S values of a DER signature."""
     # Check if the signature is in DER format
     if signature[0] != 0x30:
         raise ValueError("Invalid DER signature format")
@@ -70,7 +76,7 @@ def decode_der_signature(signature):
 
 
 def address_to_key_hash(s):
-    """ Given a Bitcoin address decodes the version and
+    """Given a Bitcoin address decodes the version and
     RIPEMD-160 hash of the public key.
     Args:
         s (bytes): The Bitcoin address to decode
@@ -85,7 +91,7 @@ def address_to_key_hash(s):
 
 
 class PrivateKey:
-    """ Encapsulation of a private key on the secp256k1 curve.
+    """Encapsulation of a private key on the secp256k1 curve.
 
     This class provides capability to generate private keys,
     obtain the corresponding public key, sign messages and
@@ -102,7 +108,7 @@ class PrivateKey:
 
     @staticmethod
     def from_bytes(b, network=BitcoinSegwitMainNet):
-        """ Generates PrivateKey from the underlying bytes.
+        """Generates PrivateKey from the underlying bytes.
 
         Args:
             :param b (bytes): A byte stream containing a 256-bit (32-byte) integer.
@@ -114,14 +120,14 @@ class PrivateKey:
             of the bytes.
         """
         if len(b) < 32:
-            raise ValueError('b must contain at least 32 bytes')
+            raise ValueError("b must contain at least 32 bytes")
 
         ckey = coincurve.PrivateKey(b)
         return PrivateKey(ckey, network)
 
     @staticmethod
     def from_hex(h, network=BitcoinSegwitMainNet):
-        """ Generates PrivateKey from a hex-encoded string.
+        """Generates PrivateKey from a hex-encoded string.
 
         Args:
             :param h (str): A hex-encoded string containing a 256-bit
@@ -136,7 +142,7 @@ class PrivateKey:
 
     @staticmethod
     def from_int(i, network=BitcoinSegwitMainNet):
-        """ Initializes a private key from an integer.
+        """Initializes a private key from an integer.
 
         Args:
             :param i (int): Integer that is the private key.
@@ -151,7 +157,7 @@ class PrivateKey:
 
     @staticmethod
     def from_b58check(private_key, network=BitcoinSegwitMainNet):
-        """ Decodes a Base58Check encoded private-key.
+        """Decodes a Base58Check encoded private-key.
 
         Args:
             :param private_key (str): A Base58Check encoded private key.
@@ -169,7 +175,7 @@ class PrivateKey:
 
     @staticmethod
     def from_random(network=BitcoinSegwitMainNet):
-        """ Initializes a private key from a random integer.
+        """Initializes a private key from a random integer.
 
         Args:
             :param network: The network to use for things like defining key
@@ -178,7 +184,9 @@ class PrivateKey:
         Returns:
             PrivateKey: The object representing the private key.
         """
-        return PrivateKey.from_int(random.SystemRandom().randrange(1, secp256k1.N), network)
+        return PrivateKey.from_int(
+            random.SystemRandom().randrange(1, secp256k1.N), network
+        )
 
     @classmethod
     def from_brainwallet(cls, password, salt="zpywallet", network=BitcoinSegwitMainNet):
@@ -216,7 +224,7 @@ class PrivateKey:
         description.
 
         This supports compressed WIFs - see this for an explanation:
-        https://bitcoin.stackexchange.com/q/7299/112589 
+        https://bitcoin.stackexchange.com/q/7299/112589
         (specifically http://bitcoin.stackexchange.com/a/7958)
 
         Args:
@@ -244,7 +252,8 @@ class PrivateKey:
             raise incompatible_network_bytes_exception_factory(
                 network_name=network.NAME,
                 expected_prefix=network.SECRET_KEY,
-                given_prefix=network_bytes)
+                given_prefix=network_bytes,
+            )
 
         # Drop the network bytes
         extended_key_bytes = extended_key_bytes[1:]
@@ -254,7 +263,10 @@ class PrivateKey:
 
     def __init__(self, ckey, network=BitcoinSegwitMainNet):
         self._key = ckey
-        self._public_key = PublicKey(coincurve.PublicKey.from_secret(binascii.unhexlify(ckey.to_hex())), network=network)
+        self._public_key = PublicKey(
+            coincurve.PublicKey.from_secret(binascii.unhexlify(ckey.to_hex())),
+            network=network,
+        )
         self._network = network
 
     @property
@@ -264,7 +276,7 @@ class PrivateKey:
 
     @property
     def public_key(self):
-        """ Returns the public key associated with this private key.
+        """Returns the public key associated with this private key.
 
         Returns:
             PublicKey:
@@ -274,8 +286,8 @@ class PrivateKey:
         return self._public_key
 
     def der_sign(self, message):
-        """ Signs message using this private key. The message is encoded in UTF-8.
-        
+        """Signs message using this private key. The message is encoded in UTF-8.
+
         Avoid using any non-printable characters or whitespace (except for 0x20
         space and 0x0a newline) inside the signature.
 
@@ -290,7 +302,7 @@ class PrivateKey:
             bytes: The signature encoded in DER form.
         """
         if isinstance(message, str):
-            msg = bytes(message, 'utf-8')
+            msg = bytes(message, "utf-8")
         elif isinstance(message, bytes):
             msg = message
         else:
@@ -299,8 +311,8 @@ class PrivateKey:
         return self._key.sign(msg)
 
     def base64_sign(self, message):
-        """ Signs message using this private key. The message is encoded in UTF-8.
-        
+        """Signs message using this private key. The message is encoded in UTF-8.
+
         Avoid using any non-printable characters or whitespace (except for 0x20
         space and 0x0a newline) inside the signature.
 
@@ -315,17 +327,19 @@ class PrivateKey:
             str: The signature encoded in DER form, which is again encoded in Base64.
         """
         if isinstance(message, str):
-            msg = bytes(message, 'utf-8')
+            msg = bytes(message, "utf-8")
         elif isinstance(message, bytes):
             msg = message
         else:
             raise TypeError("message must be either str or bytes")
 
-        return base64.b64encode(self._key.sign(msg)).decode() # decode is to convert from bytes to str
+        return base64.b64encode(
+            self._key.sign(msg)
+        ).decode()  # decode is to convert from bytes to str
 
     def rfc2440_sign(self, message):
-        """ Signs message using this private key. The message is encoded in UTF-8.
-        
+        """Signs message using this private key. The message is encoded in UTF-8.
+
         Avoid using any non-printable characters or whitespace (except for 0x20
         space and 0x0a newline) inside the signature.
 
@@ -357,7 +371,7 @@ class PrivateKey:
             str: A text string in the form of RFC2440, in a similar form to Electrum.
         """
         if isinstance(message, str):
-            msg = bytes(message, 'utf-8')
+            msg = bytes(message, "utf-8")
         elif isinstance(message, bytes):
             msg = message
         else:
@@ -373,9 +387,8 @@ class PrivateKey:
         rfc2440 += f"-----END {self.network.NAME.upper()} SIGNATURE-----\n"
         return rfc2440
 
-
     def rsz_sign(self, message):
-        """ Signs message using this private key. The message is encoded in UTF-8.
+        """Signs message using this private key. The message is encoded in UTF-8.
 
         Avoid using any non-printable characters or whitespace (except for 0x20
         space and 0x0a newline) inside the signature.
@@ -391,7 +404,7 @@ class PrivateKey:
                 A tuple or R, S, and Z (message hash) values.
         """
         if isinstance(message, str):
-            msg = bytes(message, 'utf-8')
+            msg = bytes(message, "utf-8")
         elif isinstance(message, bytes):
             msg = message
         else:
@@ -403,7 +416,7 @@ class PrivateKey:
         r = int(binascii.hexlify(r), 16)
         s = int(binascii.hexlify(s), 16)
         z = int(binascii.hexlify(z), 16)
-        return r,s,z
+        return r, s, z
 
     def to_wif(self, compressed=False):
         """Export a key to WIF.
@@ -430,10 +443,9 @@ class PrivateKey:
         # BIP32 wallets have a trailing \01 byte
         extended_key_bytes = binascii.unhexlify(extended_key_hex)
         if compressed:
-            extended_key_bytes += b'\01'
+            extended_key_bytes += b"\01"
         # And return the base58-encoded result with a checksum
         return b58encode_check(extended_key_bytes).decode()
-
 
     def to_hex(self):
         "Returns the private key in hexadecimal form."
@@ -445,8 +457,7 @@ class PrivateKey:
         Extended keys contain the network bytes and the public or private
         key.
         """
-        network_hex_chars = binascii.hexlify(
-            bytes([network.SECRET_KEY]))
+        network_hex_chars = binascii.hexlify(bytes([network.SECRET_KEY]))
         return ensure_bytes(network_hex_chars) + ensure_bytes(self.to_hex())
 
     def __bytes__(self):
@@ -457,7 +468,7 @@ class PrivateKey:
 
 
 class PublicKey:
-    """ Encapsulation of a Bitcoin ECDSA public key.
+    """Encapsulation of a Bitcoin ECDSA public key.
 
     This class provides a high-level API to using an ECDSA public
     key, specifically for Bitcoin (secp256k1) purposes.
@@ -472,7 +483,7 @@ class PublicKey:
 
     @staticmethod
     def from_point(p, network=BitcoinSegwitMainNet):
-        """ Generates a public key object from any object
+        """Generates a public key object from any object
         containing x, y coordinates.
 
         Args:
@@ -489,7 +500,7 @@ class PublicKey:
 
     @staticmethod
     def from_bytes(key_bytes, network=BitcoinSegwitMainNet):
-        """ Generates a public key object from a byte  string.
+        """Generates a public key object from a byte  string.
 
         The byte stream must be of the SEC variety
         (http://www.secg.org/): beginning with a single byte telling
@@ -515,7 +526,7 @@ class PublicKey:
 
     @staticmethod
     def from_hex(h, network=BitcoinSegwitMainNet):
-        """ Generates a public key object from a hex-encoded string.
+        """Generates a public key object from a hex-encoded string.
 
         See from_bytes() for requirements of the hex string.
 
@@ -530,7 +541,7 @@ class PublicKey:
         return PublicKey.from_bytes(binascii.unhexlify(h), network)
 
     def verify(self, message, signature, address):
-        """ Verifies a signed message.
+        """Verifies a signed message.
 
         Args:
             message(bytes or str): The message that the signature corresponds to.
@@ -540,17 +551,20 @@ class PublicKey:
         Returns:
             bool: True if the signature is authentic, False otherwise.
         """
-        if self.address(compressed=False) != address and self.address(compressed=True) != address:
+        if (
+            self.address(compressed=False) != address
+            and self.address(compressed=True) != address
+        ):
             return False
 
         if isinstance(message, str):
-            message = message.decode('utf-8')
+            message = message.decode("utf-8")
         if isinstance(signature, str):
             signature = base64.b64decode(signature)
         return coincurve.verify_signature(signature, message, bytes(self))
 
     def rfc2440_verify(self, text):
-        """ Verifies a signed message in the RFC2440 format.
+        """Verifies a signed message in the RFC2440 format.
 
         Args:
             text(str): The verfication message.
@@ -559,10 +573,15 @@ class PublicKey:
             bool: True if the signature is authentic, False otherwise.
         """
 
-        text_lines = text.split('\n')
-        if text_lines[0] != f"-----BEGIN {self.network.NAME.upper()} SIGNED MESSAGE-----":
+        text_lines = text.split("\n")
+        if (
+            text_lines[0]
+            != f"-----BEGIN {self.network.NAME.upper()} SIGNED MESSAGE-----"
+        ):
             raise ValueError("Invalid RFC2440 signature")
-        elif text_lines[-4] != f"-----BEGIN {self.network.NAME.upper()} SIGNATURE -----":
+        elif (
+            text_lines[-4] != f"-----BEGIN {self.network.NAME.upper()} SIGNATURE -----"
+        ):
             raise ValueError("Invalid RFC2440 signature")
         elif text_lines[-4] != f"-----END {self.network.NAME.upper()} SIGNATURE -----":
             raise ValueError("Invalid RFC2440 signature")
@@ -572,10 +591,10 @@ class PublicKey:
         # In case the newline is the first/last character of the message before it was signed,
         # this text_lines slice will have as its first/last element '' so a newline will still be inserted anyway.
         # If the newline is the only character in the message, then we have to check for that directly.
-        if text_lines == ['']:
-            message = '\n'
+        if text_lines == [""]:
+            message = "\n"
         else:
-            message = '\n'.join(text_lines[1:-4])
+            message = "\n".join(text_lines[1:-4])
         return self.verify(message, signature, address)
 
     def __init__(self, ckey, network=BitcoinSegwitMainNet):
@@ -584,8 +603,12 @@ class PublicKey:
 
         # RIPEMD-160 of SHA-256
         if "BASE58" in network.ADDRESS_MODE or "BECH32" in network.ADDRESS_MODE:
-            self.ripe = ripemd160(hashlib.sha256(ckey.format(compressed=False)).digest())
-            self.ripe_compressed = ripemd160(hashlib.sha256(ckey.format(compressed=True)).digest())
+            self.ripe = ripemd160(
+                hashlib.sha256(ckey.format(compressed=False)).digest()
+            )
+            self.ripe_compressed = ripemd160(
+                hashlib.sha256(ckey.format(compressed=True)).digest()
+            )
         else:
             self.ripe = None
             self.ripe_compressed = None
@@ -602,7 +625,7 @@ class PublicKey:
         return self._network
 
     def to_bytes(self, compressed=True):
-        """ Converts the public key into bytes.
+        """Converts the public key into bytes.
 
         Args:
             compressed (bool): Whether to return the compressed form. Default is true.
@@ -612,7 +635,7 @@ class PublicKey:
         return self._key.format(compressed)
 
     def to_hex(self, compressed=True):
-        """ Converts the public key into a hex string.
+        """Converts the public key into a hex string.
 
         Args:
             compressed (bool): Whether to return the compressed form. Default is true.
@@ -625,12 +648,11 @@ class PublicKey:
         return self.to_bytes(compressed=True)
 
     def to_point(self):
-        """ Return the public key points as a Point.
-        """
+        """Return the public key points as a Point."""
         return Point(*self._key.point())
 
     def hash160(self, compressed=True):
-        """ Return the RIPEMD-160 hash of the SHA-256 hash of the
+        """Return the RIPEMD-160 hash of the SHA-256 hash of the
         public key. Only defined if one of base58 or bech32 are supported
         by the network.
 
@@ -643,7 +665,7 @@ class PublicKey:
         return self.ripe_compressed if compressed else self.ripe
 
     def p2pkh_script(self, compressed=True):
-        """ Return the P2PKH script bytes contianing the public key's hash.
+        """Return the P2PKH script bytes contianing the public key's hash.
         Undefined for EVM blockchains.
 
         Args:
@@ -652,15 +674,20 @@ class PublicKey:
         Returns:
             bytes: A P2PKH script.
         """
-        if (compressed and not self.ripe_compressed) or (not compressed and not self.ripe):
+        if (compressed and not self.ripe_compressed) or (
+            not compressed and not self.ripe
+        ):
             return None
         # OP_DUP OP_HASH160 (OP_PUSH of pubkeyhash) OP_EQUALVERIFY OP_CHECKSIG
-        return b"\x76\xa9\x14" + (self.ripe_compressed if compressed else self.ripe) + b"\x88\xac"
-    
+        return (
+            b"\x76\xa9\x14"
+            + (self.ripe_compressed if compressed else self.ripe)
+            + b"\x88\xac"
+        )
 
     @classmethod
     def p2pkh(cls, pubkey_hash):
-        """ Return the P2PKH script bytes contianing the specified pubkey hash.
+        """Return the P2PKH script bytes contianing the specified pubkey hash.
         Only applicable to Bitcoin-like blockchains.
 
         Args:
@@ -670,11 +697,10 @@ class PublicKey:
         """
         # OP_DUP OP_HASH160 (OP_PUSH of pubkeyhash) OP_EQUALVERIFY OP_CHECKSIG
         return b"\x76\xa9\x14" + pubkey_hash + b"\x88\xac"
-    
 
     @classmethod
     def p2sh(cls, script_hash):
-        """ Return the P2SH script bytes contianing the specified script hash.
+        """Return the P2SH script bytes contianing the specified script hash.
         Only applicable to Bitcoin-like blockchains
 
         Args:
@@ -684,10 +710,10 @@ class PublicKey:
         """
         # OP_HASH160 (OP_PUSH of scripthash) OP_EQUAL
         return b"\xa9\x14" + script_hash + b"\x87"
-    
+
     # P2SH-P2WPKH is currently not supported
     def p2wpkh_script(self, compressed=True):
-        """ Return the P2WPKH script bytes contianing the public key's hash.
+        """Return the P2WPKH script bytes contianing the public key's hash.
         Undefined by EVM blockchains.
 
         Args:
@@ -697,15 +723,16 @@ class PublicKey:
         Returns:
             bytes: A P2WPKH script.
         """
-        if (compressed and not self.ripe_compressed) or (not compressed and not self.ripe):
+        if (compressed and not self.ripe_compressed) or (
+            not compressed and not self.ripe
+        ):
             return None
         # OP_0 (OP_PUSH of pubkeyhash)
         return b"\x00\x14" + (self.ripe_compressed if compressed else self.ripe)
-    
 
     @classmethod
     def p2wpkh(cls, pubkey_hash):
-        """ Return the P2WPKH script bytes contianing the specified pubkey hash.
+        """Return the P2WPKH script bytes contianing the specified pubkey hash.
         Only applicable to Bitcoin-like blockchains.
 
         Args:
@@ -718,7 +745,7 @@ class PublicKey:
 
     @classmethod
     def p2wsh(cls, script_hash):
-        """ Return the P2WSH script bytes contianing the specified script hash.
+        """Return the P2WSH script bytes contianing the specified script hash.
         Only applicable to Bitcoin-like blockchains.
 
         Args:
@@ -728,10 +755,10 @@ class PublicKey:
         """
         # OP_0 (OP_PUSH of scripthash)
         return b"\x00\x20" + script_hash
-    
+
     @classmethod
     def script(cls, address, network):
-        """ Returns the appropriate script depending on the address value.
+        """Returns the appropriate script depending on the address value.
         Only applicable to Bitcoin-like blockchains.
 
         Args:
@@ -741,7 +768,7 @@ class PublicKey:
             bytes: the address script.
         """
         if network.SUPPORTS_EVM:
-            return None # Undefined
+            return None  # Undefined
         else:
             try:
                 b = b58decode_check(address)
@@ -761,7 +788,7 @@ class PublicKey:
                     raise ValueError("Unknown address type")
 
     def keccak256(self):
-        """ Return the Keccak-256 hash of the SHA-256 hash of the
+        """Return the Keccak-256 hash of the SHA-256 hash of the
         public key. Only defined if hex addresses are supported by
         the network.
 
@@ -769,9 +796,9 @@ class PublicKey:
             bytes: Keccak-256 byte string.
         """
         return self.keccak
-    
+
     def base58_address(self, compressed=True):
-        """ Address property that returns a base58 encoding of the public key.
+        """Address property that returns a base58 encoding of the public key.
 
         Args:
             compressed (bool): Whether or not the compressed key should
@@ -783,15 +810,16 @@ class PublicKey:
         if not self.network or not self.network.ADDRESS_MODE:
             raise TypeError("Invalid network parameter")
         elif "BASE58" not in self.network.ADDRESS_MODE:
-            raise unsupported_feature_exception_factory(self.network.NAME, "base58 addresses")
+            raise unsupported_feature_exception_factory(
+                self.network.NAME, "base58 addresses"
+            )
 
         # Put the version byte in front, 0x00 for Mainnet, 0x6F for testnet
         version = bytes([self.network.PUBKEY_ADDRESS])
         return ensure_str(b58encode_check(version + self.hash160(compressed)))
 
-
     def bech32_address(self, compressed=True, witness_version=0):
-        """ Address property that returns a bech32 encoding of the public key.
+        """Address property that returns a bech32 encoding of the public key.
 
         Args:
             compressed (bool): Whether or not the compressed key should
@@ -808,23 +836,27 @@ class PublicKey:
         if not self.network or not self.network.ADDRESS_MODE:
             raise TypeError("Invalid network parameter")
         elif "BECH32" not in self.network.ADDRESS_MODE:
-            raise unsupported_feature_exception_factory(self.network.NAME, "bech32 addresses")
+            raise unsupported_feature_exception_factory(
+                self.network.NAME, "bech32 addresses"
+            )
 
         if not self.network.BECH32_PREFIX:
             raise ValueError("Network does not support Bech32")
-        return bech32_encode(self.network.BECH32_PREFIX, witness_version, self.hash160(compressed))
-
+        return bech32_encode(
+            self.network.BECH32_PREFIX, witness_version, self.hash160(compressed)
+        )
 
     def hex_address(self):
-        """ Address property that returns a hexadecimal encoding of the public key. """
+        """Address property that returns a hexadecimal encoding of the public key."""
 
         if not self.network or not self.network.ADDRESS_MODE:
             raise TypeError("Invalid network parameter")
         elif "HEX" not in self.network.ADDRESS_MODE:
-            raise unsupported_feature_exception_factory(self.network.NAME, "hexadecimal addresses")
+            raise unsupported_feature_exception_factory(
+                self.network.NAME, "hexadecimal addresses"
+            )
 
-        return '0x' + binascii.hexlify(self.keccak[12:]).decode('ascii')
-
+        return "0x" + binascii.hexlify(self.keccak[12:]).decode("ascii")
 
     def address(self, compressed=True, witness_version=0):
         """Returns the address genereated according to the first supported address format by the network."""

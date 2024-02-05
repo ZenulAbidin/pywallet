@@ -1,6 +1,7 @@
 import requests
 from ...errors import NetworkException
 
+
 class BlockcypherFeeEstimator:
     """
     A class representing a Dogecoin fee rate estimator using Blockcypher API.
@@ -40,7 +41,9 @@ class BlockcypherFeeEstimator:
 
         params = None
         if self.api_key:
-            params = {"token": self.api_key}  # Fix the assignment of the API key parameter
+            params = {
+                "token": self.api_key
+            }  # Fix the assignment of the API key parameter
 
         # Get the current fee rate from the specified API:
         for attempt in range(3, -1, -1):
@@ -57,7 +60,9 @@ class BlockcypherFeeEstimator:
         if response.status_code == 200:
             data = response.json()
             fee_rate_kb = data["high_fee_per_kb"]
-            fee_rate_vbyte = fee_rate_kb / 100000000 # Convert to sats/vByte
+            fee_rate_vbyte = fee_rate_kb / 100000000  # Convert to sats/vByte
             return fee_rate_vbyte
         else:
-            raise NetworkException("Failed to retrieve current fee rate from Blockcypher for Dogecoin")
+            raise NetworkException(
+                "Failed to retrieve current fee rate from Blockcypher for Dogecoin"
+            )

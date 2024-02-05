@@ -1,3 +1,1 @@
-__all__ = [
-    'wallet_pb2'
-]
+__all__ = ["wallet_pb2"]

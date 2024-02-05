@@ -3,21 +3,21 @@ from .fullnode import EthereumWeb3FeeEstimator
 from ...errors import NetworkException
 from ...nodes.eth import eth_nodes
 
+
 class EthereumFeeEstimator:
-    """ Load balancer for all ETH gas providers provided to an instance of this class,
-        using the round robin scheduling algorithm.
+    """Load balancer for all ETH gas providers provided to an instance of this class,
+    using the round robin scheduling algorithm.
     """
 
     def __init__(self, **kwargs):
         self.provider_list = []
-        fullnode_endpoints = kwargs.get('fullnode_endpoints')
+        fullnode_endpoints = kwargs.get("fullnode_endpoints")
 
         if not fullnode_endpoints:
             fullnode_endpoints = [] + eth_nodes
 
         for endpoint in fullnode_endpoints:
             self.provider_list.append(EthereumWeb3FeeEstimator(**endpoint))
-
 
     def estimate_gas(self, transaction_obj):
         """

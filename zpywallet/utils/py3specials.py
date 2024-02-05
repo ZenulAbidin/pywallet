@@ -4,27 +4,30 @@ import hashlib
 from typing import AnyStr, Union, List
 
 
-string_types = (str)
+string_types = str
 string_or_bytes_types = (str, bytes)
 int_types = (int, float)
 # Base switching
 code_strings = {
-    2: '01',
-    10: '0123456789',
-    16: '0123456789abcdef',
-    32: 'abcdefghijklmnopqrstuvwxyz234567',
-    58: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
-    256: ''.join([chr(x) for x in range(256)])
+    2: "01",
+    10: "0123456789",
+    16: "0123456789abcdef",
+    32: "abcdefghijklmnopqrstuvwxyz234567",
+    58: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
+    256: "".join([chr(x) for x in range(256)]),
 }
+
 
 def bin_dbl_sha256(s):
     bytes_to_hash = from_string_to_bytes(s)
     return hashlib.sha256(hashlib.sha256(bytes_to_hash).digest()).digest()
 
+
 def lpad(msg, symbol, length):
     if len(msg) >= length:
         return msg
     return symbol * (length - len(msg)) + msg
+
 
 def get_code_string(base):
     if base in code_strings:
@@ -53,14 +56,14 @@ def bin_to_b58check(inp: bytes, magicbyte: int = 0) -> str:
         leadingzbytes += 1
 
     checksum = bin_dbl_sha256(inp)[:4]
-    return '1' * leadingzbytes + changebase(inp+checksum, 256, 58)
+    return "1" * leadingzbytes + changebase(inp + checksum, 256, 58)
 
 
 def bytes_to_hex_string(b: Union[int, bytes, List[str], List[int]]) -> str:
     if isinstance(b, str):
         return b
 
-    return ''.join('{:02x}'.format(y) for y in b)
+    return "".join("{:02x}".format(y) for y in b)
 
 
 def safe_from_hex(s: str) -> bytes:
@@ -68,7 +71,7 @@ def safe_from_hex(s: str) -> bytes:
 
 
 def from_int_representation_to_bytes(a: int) -> bytes:
-    return bytes(str(a), 'utf-8')
+    return bytes(str(a), "utf-8")
 
 
 def from_int_to_byte(a: int) -> bytes:
@@ -80,11 +83,11 @@ def from_byte_to_int(a: bytes) -> int:
 
 
 def from_string_to_bytes(a: AnyStr) -> bytes:
-    return a if isinstance(a, bytes) else bytes(a, 'utf-8')
+    return a if isinstance(a, bytes) else bytes(a, "utf-8")
 
 
 def safe_hexlify(a: bytes) -> str:
-    return str(binascii.hexlify(a), 'utf-8')
+    return str(binascii.hexlify(a), "utf-8")
 
 
 def encode(val, base, minlen=0):
@@ -98,12 +101,11 @@ def encode(val, base, minlen=0):
 
     pad_size = minlen - len(result_bytes)
 
-    padding_element = b'\x00' if base == 256 else b'1' \
-        if base == 58 else b'0'
-    if (pad_size > 0):
-        result_bytes = padding_element*pad_size + result_bytes
+    padding_element = b"\x00" if base == 256 else b"1" if base == 58 else b"0"
+    if pad_size > 0:
+        result_bytes = padding_element * pad_size + result_bytes
 
-    result_string = ''.join([chr(y) for y in result_bytes])
+    result_string = "".join([chr(y) for y in result_bytes])
     result = result_bytes if base == 256 else result_string
 
     return result
@@ -116,9 +118,12 @@ def decode(string, base):
     code_string = get_code_string(base)
     result = 0
     if base == 256:
+
         def extract(d, cs):
             return d
+
     else:
+
         def extract(d, cs):
             return cs.find(d if isinstance(d, str) else chr(d))
 

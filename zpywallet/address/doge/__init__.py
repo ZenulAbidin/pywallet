@@ -1,6 +1,3 @@
-__all__ = [
-    'blockcypher',
-    'loadbalancer'
-]
+__all__ = ["blockcypher", "loadbalancer"]
 
 from .loadbalancer import DogecoinAddress

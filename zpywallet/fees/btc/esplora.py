@@ -1,6 +1,7 @@
 import requests
 from ...errors import NetworkException
 
+
 class EsploraFeeEstimator:
     """
     A class representing a Bitcoin fee rate estimator using Esplora API.
@@ -31,7 +32,7 @@ class EsploraFeeEstimator:
                 a particular amount of seconds. Set to (0, N) for no rate limiting, where N > 0.
         """
         self.requests, self.interval_sec = request_interval
-        self.endpoint = kwargs.get('url')
+        self.endpoint = kwargs.get("url")
 
     def get_fee_rate(self):
         # Define the default API URL within the method:

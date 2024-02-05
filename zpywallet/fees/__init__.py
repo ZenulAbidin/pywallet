@@ -1,10 +1,4 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__all__ = [
-    'btc',
-    'dash',
-    'doge',
-    'eth',
-    'ltc'
-]
+__all__ = ["btc", "dash", "doge", "eth", "ltc"]

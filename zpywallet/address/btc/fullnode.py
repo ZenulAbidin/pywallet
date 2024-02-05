@@ -7,127 +7,154 @@ from ...generated import wallet_pb2
 
 class BitcoinRPCClient:
     """Address querying class for Bitcoin full nodes utilizing descriptors.
-       Requires a node running with -txindex.
+    Requires a node running with -txindex.
     """
-    
+
     # Not static because we need to make calls to fetch input transactions.
     def _clean_tx(self, element, block_height, is_mine=False, _recursive=False):
         new_element = wallet_pb2.Transaction()
-        new_element.txid = element['txid']
+        new_element.txid = element["txid"]
         if block_height:
             new_element.confirmed = True
             new_element.height = block_height
         else:
             new_element.confirmed = False
 
-        if 'blocktime' in element.keys():
-            new_element.timestamp = element['blocktime']
-    
+        if "blocktime" in element.keys():
+            new_element.timestamp = element["blocktime"]
+
         isCoinbase = False
-        for vin in element['vin']:
+        for vin in element["vin"]:
             txinput = new_element.btclike_transaction.inputs.add()
-            if 'prevout' in vin.keys():
-                isCoinbase = isCoinbase or vin['prevout']['generated']
+            if "prevout" in vin.keys():
+                isCoinbase = isCoinbase or vin["prevout"]["generated"]
                 is_mine = True
                 if not isCoinbase:
-                    txinput.txid = vin['txid']
-                    txinput.index = vin['vout']
-                txinput.amount = int(vin['value'] * 1e8)
-            elif 'txid' in vin.keys():
+                    txinput.txid = vin["txid"]
+                    txinput.index = vin["vout"]
+                txinput.amount = int(vin["value"] * 1e8)
+            elif "txid" in vin.keys():
                 # If there is a vin txid then it's not e.g. a coinbase transaction input
-                txinput.txid = vin['txid']
-                txinput.index = vin['vout']
+                txinput.txid = vin["txid"]
+                txinput.index = vin["vout"]
                 # To fill in the amount, we have to get the other transaction id
                 # But only if we're not parsing a coinbase transaction
                 if txinput.txid in [t.txid for t in self.txset] or is_mine:
-                    res = self._send_rpc_request('getrawtransaction', params=[vin['txid'], True])
-                    fine_rawtx = res['result']
-                    txinput.amount = int(fine_rawtx["vout"][txinput.index]["value"] * 1e8)
-                    if 'address' in fine_rawtx["vout"][txinput.index]['scriptPubKey'].keys():
-                        address = fine_rawtx["vout"][txinput.index]['scriptPubKey']['address']
-                    elif 'addresses' in fine_rawtx["vout"][txinput.index]['scriptPubKey'].keys():
-                        address = fine_rawtx["vout"][txinput.index]['scriptPubKey']['addresses'][0]
+                    res = self._send_rpc_request(
+                        "getrawtransaction", params=[vin["txid"], True]
+                    )
+                    fine_rawtx = res["result"]
+                    txinput.amount = int(
+                        fine_rawtx["vout"][txinput.index]["value"] * 1e8
+                    )
+                    if (
+                        "address"
+                        in fine_rawtx["vout"][txinput.index]["scriptPubKey"].keys()
+                    ):
+                        address = fine_rawtx["vout"][txinput.index]["scriptPubKey"][
+                            "address"
+                        ]
+                    elif (
+                        "addresses"
+                        in fine_rawtx["vout"][txinput.index]["scriptPubKey"].keys()
+                    ):
+                        address = fine_rawtx["vout"][txinput.index]["scriptPubKey"][
+                            "addresses"
+                        ][0]
                     is_mine = is_mine or address in self.addresses
             else:
                 isCoinbase = True
 
-        for vout in element['vout']:
+        for vout in element["vout"]:
             txoutput = new_element.btclike_transaction.outputs.add()
-            txoutput.amount = int(vout['value'] * 1e8)
-            txoutput.index = vout['n']
-            if 'address' in vout['scriptPubKey'].keys():
-                txoutput.address = vout['scriptPubKey']['address']
-            elif 'addresses' in vout['scriptPubKey'].keys():
-                txoutput.address = vout['scriptPubKey']['addresses'][0]
+            txoutput.amount = int(vout["value"] * 1e8)
+            txoutput.index = vout["n"]
+            if "address" in vout["scriptPubKey"].keys():
+                txoutput.address = vout["scriptPubKey"]["address"]
+            elif "addresses" in vout["scriptPubKey"].keys():
+                txoutput.address = vout["scriptPubKey"]["addresses"][0]
             is_mine = is_mine or txoutput.address in self.addresses
 
         if not isCoinbase and (not self.fast_mode or (_recursive and is_mine)):
             # Now we must calculate the total fee
-            total_inputs = sum([a.amount for a in new_element.btclike_transaction.inputs])
-            total_outputs = sum([a.amount for a in new_element.btclike_transaction.outputs])
+            total_inputs = sum(
+                [a.amount for a in new_element.btclike_transaction.inputs]
+            )
+            total_outputs = sum(
+                [a.amount for a in new_element.btclike_transaction.outputs]
+            )
 
-            new_element.total_fee = (total_inputs - total_outputs)
+            new_element.total_fee = total_inputs - total_outputs
 
-            new_element.btclike_transaction.fee = int((total_inputs - total_outputs) // element['vsize'])
+            new_element.btclike_transaction.fee = int(
+                (total_inputs - total_outputs) // element["vsize"]
+            )
         new_element.fee_metric = wallet_pb2.VBYTE
 
         if is_mine:
             if not _recursive:
-                new_element = self._clean_tx(element, block_height, is_mine=True, _recursive=True)
+                new_element = self._clean_tx(
+                    element, block_height, is_mine=True, _recursive=True
+                )
                 self.txset.append(new_element)
         else:
             return None
         return new_element
 
     def __init__(self, addresses, transactions=None, **kwargs):
-        self.rpc_url = kwargs.get('url')
-        self.rpc_user = kwargs.get('user')
-        self.rpc_password = kwargs.get('password')
-        self.max_tx_at_once = kwargs.get('max_tx_at_once') or 1000
-        self.fast_mode = kwargs.get('fast_mode') or True
-        self.min_height = kwargs.get('min_height') or 0
+        self.rpc_url = kwargs.get("url")
+        self.rpc_user = kwargs.get("user")
+        self.rpc_password = kwargs.get("password")
+        self.max_tx_at_once = kwargs.get("max_tx_at_once") or 1000
+        self.fast_mode = kwargs.get("fast_mode") or True
+        self.min_height = kwargs.get("min_height") or 0
         self.transactions = []
         self.addresses = addresses
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
             self.transactions = []
-    
-        if kwargs.get('min_height') is not None:
-            self.min_height = kwargs.get('min_height')
+
+        if kwargs.get("min_height") is not None:
+            self.min_height = kwargs.get("min_height")
         else:
             try:
                 self.min_height = self.get_block_height() + 1
             except NetworkException:
                 self.min_height = 0
 
-
     def _send_rpc_request(self, method, params=None, as_wallet=False):
         payload = {
-            'method': method,
-            'params': params or [],
-            'jsonrpc': '2.0',
-            'id': random.randint(1, 999999)
+            "method": method,
+            "params": params or [],
+            "jsonrpc": "2.0",
+            "id": random.randint(1, 999999),
         }
         try:
-            response = requests.post(self.rpc_url, auth=(self.rpc_user, self.rpc_password) if self.rpc_user and \
-                                        self.rpc_password else None, json=payload, timeout=86400)
+            response = requests.post(
+                self.rpc_url,
+                auth=(
+                    (self.rpc_user, self.rpc_password)
+                    if self.rpc_user and self.rpc_password
+                    else None
+                ),
+                json=payload,
+                timeout=86400,
+            )
             j = response.json()
-            if 'result' not in j.keys():
+            if "result" not in j.keys():
                 raise NetworkException("Failed to get result")
             return j
         except Exception as e:
             raise NetworkException(f"RPC call failed: {str(e)}")
-    
+
     def get_block_height(self):
-        response = self._send_rpc_request('getblockchaininfo')
+        response = self._send_rpc_request("getblockchaininfo")
         try:
-            self.height = response['result']['blocks']
+            self.height = response["result"]["blocks"]
             return self.height
         except Exception as e:
             raise NetworkException(f"Failed to make RPC Call: {str(e)}")
-        
-
 
     def get_balance(self):
         """
@@ -149,15 +176,17 @@ class BitcoinRPCClient:
             if utxo.confirmed:
                 confirmed_balance += utxo.amount
         return total_balance, confirmed_balance
-        
+
     def get_utxos(self):
         # Transactions are generated in reverse order
         utxos = []
-        for i in range(len(self.transactions)-1, -1, -1):
+        for i in range(len(self.transactions) - 1, -1, -1):
             for utxo in [u for u in utxos]:
                 # Check if any utxo has been spent in this transaction
                 for vin in self.transactions[i].btcllike_transaction.inputs:
-                    if vin.spent or (vin.txid == utxo["txid"] and vin["index"] == utxo.index):
+                    if vin.spent or (
+                        vin.txid == utxo["txid"] and vin["index"] == utxo.index
+                    ):
                         # Spent
                         utxos.remove(utxo)
             for out in self.transactions[i].btclike_transaction.outputs:
@@ -171,7 +200,7 @@ class BitcoinRPCClient:
                     utxo.confirmed = self.transactions[i].confirmed
                     utxos.append(utxo)
         return utxos
-    
+
     def get_transaction_history(self):
         """
         Retrieves the transaction history of the Bitcoin address from cached data augmented with network data.
@@ -192,32 +221,36 @@ class BitcoinRPCClient:
             txs.extend(self.transactions)
             self.transactions = txs
         return self.transactions
-                
+
     def _get_transaction_history(self, txhash=None):
         self.get_block_height()
-        self.txset = [] # Stores all of the output transactions in a temporary place
+        self.txset = []  # Stores all of the output transactions in a temporary place
         found_it = txhash == None
-        if not [*range(self.min_height, self.height+1)]:
+        if not [*range(self.min_height, self.height + 1)]:
             return
         try:
             # Get the blockchain info to determine the best block height
-            block_hash = self._send_rpc_request('getblockhash', params=[self.min_height])['result']
+            block_hash = self._send_rpc_request(
+                "getblockhash", params=[self.min_height]
+            )["result"]
 
             # Iterate through blocks to fetch transactions
-            for block_height in range(self.min_height, self.height+1):
+            for block_height in range(self.min_height, self.height + 1):
                 if not block_hash:
                     break
-                block = self._send_rpc_request('getblock', params=[block_hash, 2])['result']
-                block_hash = block.get('nextblockhash')
+                block = self._send_rpc_request("getblock", params=[block_hash, 2])[
+                    "result"
+                ]
+                block_hash = block.get("nextblockhash")
 
                 # Iterate through transactions in the block
-                for tx in block['tx']:
-                    if tx['txid'] != txhash and not found_it:
+                for tx in block["tx"]:
+                    if tx["txid"] != txhash and not found_it:
                         continue  # Don't process until we reach the specified transaction hash
                     else:
                         found_it = True
 
-                    raw_transaction = tx # Verbosity=2 in bitcoin gives us the getrawtransaction output
+                    raw_transaction = tx  # Verbosity=2 in bitcoin gives us the getrawtransaction output
                     parsed_transaction = self._clean_tx(raw_transaction, block_height)
                     if parsed_transaction is not None:
                         yield parsed_transaction
@@ -227,4 +260,3 @@ class BitcoinRPCClient:
         except Exception as e:
             self.txset = []
             raise NetworkException(f"Failed to get transaction history: {str(e)}")
-

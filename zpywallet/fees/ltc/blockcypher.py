@@ -1,6 +1,7 @@
 import requests
 from ...errors import NetworkException
 
+
 class BlockcypherFeeEstimator:
     """
     A class representing a Litecoin fee rate estimator using Blockcypher API.
@@ -40,7 +41,9 @@ class BlockcypherFeeEstimator:
 
         params = None
         if self.api_key:
-            params = {"token": self.api_key}  # Fix the assignment of the API key parameter
+            params = {
+                "token": self.api_key
+            }  # Fix the assignment of the API key parameter
 
         # Get the current fee rate from the specified API:
         for attempt in range(3, -1, -1):
@@ -60,4 +63,6 @@ class BlockcypherFeeEstimator:
             fee_rate_vbyte = fee_rate_kb / 1000  # Convert to sats/vByte
             return fee_rate_vbyte
         else:
-            raise NetworkException("Failed to retrieve current fee rate from Blockcypher for Litecoin")
+            raise NetworkException(
+                "Failed to retrieve current fee rate from Blockcypher for Litecoin"
+            )

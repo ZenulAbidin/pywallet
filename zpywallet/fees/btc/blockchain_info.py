@@ -1,6 +1,7 @@
 import requests
 from ...errors import NetworkException
 
+
 class BlockchainInfoFeeEstimator:
     """
     A class representing a Bitcoin fee rate estimator using Blockchain.info API.
@@ -50,7 +51,11 @@ class BlockchainInfoFeeEstimator:
 
         if response.status_code == 200:
             data = response.json()
-            fee_rate = data["priority"]  # You can use other fee rate values available in the response
+            fee_rate = data[
+                "priority"
+            ]  # You can use other fee rate values available in the response
             return fee_rate
         else:
-            raise NetworkException("Failed to retrieve current fee rate from Blockchain.info")
+            raise NetworkException(
+                "Failed to retrieve current fee rate from Blockchain.info"
+            )

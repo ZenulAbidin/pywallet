@@ -1,6 +1,7 @@
 import requests
 from ...errors import NetworkException
 
+
 class BlockcypherFeeEstimator:
     """
     A class representing a Bitcoin fee rate estimator using Blockcypher API.
@@ -38,7 +39,6 @@ class BlockcypherFeeEstimator:
         # Define the default API URL within the method for Blockcypher:
         api_url = "https://api.blockcypher.com/v1/btc/main"
 
-
         params = None
         if self.api_key:
             params = {"token", self.api_key}
@@ -61,4 +61,6 @@ class BlockcypherFeeEstimator:
             fee_rate_vbyte = fee_rate_kb / 1000  # Convert to sats/vByte
             return fee_rate_vbyte
         else:
-            raise NetworkException("Failed to retrieve current fee rate from Blockcypher")
+            raise NetworkException(
+                "Failed to retrieve current fee rate from Blockcypher"
+            )

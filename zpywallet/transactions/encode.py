@@ -52,7 +52,7 @@ SIGHASH_ALL = 1
 #         return False
 #     except ValueError:
 #         return False
-    
+
 # def address_is_p2wsh(address, network=BitcoinSegwitMainNet):
 #     """Checks whether the address is P2WSH"""
 #     if "BECH32" not in network.ADDRESS_MODE:
@@ -65,14 +65,22 @@ SIGHASH_ALL = 1
 #     except ValueError:
 #         return False
 
+
 def script_is_p2pkh(script):
-    return len(script) == 25 and script[0:3] == b"\x76\xa9\x14" and script[23:25] == b"\x88\xac"
+    return (
+        len(script) == 25
+        and script[0:3] == b"\x76\xa9\x14"
+        and script[23:25] == b"\x88\xac"
+    )
+
 
 def script_is_p2sh(script):
     return len(script) == 23 and script[0:2] == b"\xa9\x14" and script[24] == b"\x87"
 
+
 def script_is_p2wpkh(script):
     return len(script) == 22 and script[0:2] == b"\x00\x14"
+
 
 def script_is_p2wsh(script):
     return len(script) == 34 and script[0:2] == b"\x00\x20"
@@ -81,15 +89,16 @@ def script_is_p2wsh(script):
 def int_to_hex(i, min_bytes=1):
     return i.to_bytes(max(min_bytes, (i.bit_length() + 7) // 8), byteorder="little")
 
+
 def create_varint(value):
-    if value < 0xfd:
+    if value < 0xFD:
         return int_to_hex(value, min_bytes=1)
-    elif value <= 0xffff:
-        return b'\xfd' + int_to_hex(value, min_bytes=2)
-    elif value <= 0xffffffff:
-        return b'\xfe' + int_to_hex(value, min_bytes=4)
+    elif value <= 0xFFFF:
+        return b"\xfd" + int_to_hex(value, min_bytes=2)
+    elif value <= 0xFFFFFFFF:
+        return b"\xfe" + int_to_hex(value, min_bytes=4)
     else:
-        return b'\xff' + int_to_hex(value, min_bytes=8)
+        return b"\xff" + int_to_hex(value, min_bytes=8)
 
 
 def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network):
@@ -113,7 +122,7 @@ def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network)
             if i == b2i:
                 partial_transaction += create_varint(len(script_pubkey)) + script_pubkey
             else:
-                partial_transaction += bytes_2_inputs[i][1] # The empty scriptsig
+                partial_transaction += bytes_2_inputs[i][1]  # The empty scriptsig
             partial_transaction += bytes_2_inputs[i][2]
         partial_transaction += bytes_3
         partial_transaction += bytes_4
@@ -142,7 +151,6 @@ def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network)
     signed_transaction += bytes_4
 
     return signed_transaction.hex()
-    
 
 
 def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network):
@@ -155,14 +163,14 @@ def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network)
     # 1.  nVersion of the transaction (4-byte little endian)
     # 2.  hashPrevouts (32-byte hash)
     # 3.  hashSequence (32-byte hash)
-    # 4.  outpoint (32-byte hash + 4-byte little endian) 
+    # 4.  outpoint (32-byte hash + 4-byte little endian)
     # 5.  scriptCode of the input (serialized as scripts inside CTxOuts)
     # 6.  value of the output spent by this input (8-byte little endian)
     # 7.  nSequence of the input (4-byte little endian)
     # 8.  hashOutputs (32-byte hash)
     # 9.  nLocktime of the transaction (4-byte little endian)
     # 10. sighash type of the signature (4-byte little endian)
-    
+
     signatures = []
     witness_stack = []
     # Note that only ONE INPUT IS FILLED AT A TIME DURING SIGNING
@@ -192,7 +200,7 @@ def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network)
             signatures.append(b"\x00")
         else:
             raise ValueError("Unsupported script type")
-    
+
     # Now that we have all the signatures, we can assemble the signed transaction
     signed_transaction = bytes_1
     for i in range(0, len(bytes_2_inputs)):
@@ -212,22 +220,36 @@ def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network)
     signed_transaction += bytes_4
 
     return signed_transaction.hex()
-    
 
-def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True, network=BitcoinSegwitMainNet, full_nodes=[], **kwargs):
+
+def create_transaction(
+    inputs: List[UTXO],
+    outputs: List[Destination],
+    rbf=True,
+    network=BitcoinSegwitMainNet,
+    full_nodes=[],
+    **kwargs
+):
     """
     Creates a signed transaction, given a network an array of UTXOs, and an array of address/amount
     destination tuples.
     Never call this function directly, it does not automatically calculate change or fees. Instead, use Wallet.create_transaction().
     """
-    
+
     # First, construct the raw transacation
     if network.SUPPORTS_EVM:
         try:
-            return create_web3_transaction(inputs[0].address(), outputs[0].address(), outputs[0].amount(in_standard_units=False),
-                                           inputs[0]._private_key(), full_nodes, kwargs.get('gas'), network.CHAIN_ID)
+            return create_web3_transaction(
+                inputs[0].address(),
+                outputs[0].address(),
+                outputs[0].amount(in_standard_units=False),
+                inputs[0]._private_key(),
+                full_nodes,
+                kwargs.get("gas"),
+                network.CHAIN_ID,
+            )
         finally:
-            del(inputs)
+            del inputs
     else:
         all_legacy = True
         for i in inputs:
@@ -236,26 +258,28 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
             except ValueError:
                 all_legacy = False
                 if not network.SUPPORTS_SEGWIT:
-                    raise ValueError("You must use a segwit network to use bech32 inputs")
+                    raise ValueError(
+                        "You must use a segwit network to use bech32 inputs"
+                    )
                 break
         tx_bytes_1 = tx_bytes_2 = tx_bytes_3 = tx_bytes_4 = b""
-        tx_bytes_1 += int_to_hex(1, 4) # Version 1 transaction
+        tx_bytes_1 += int_to_hex(1, 4)  # Version 1 transaction
         if network.SUPPORTS_SEGWIT and not all_legacy:
-            tx_bytes_1 += b"\x00\x01" # Signal segwit support
-        
+            tx_bytes_1 += b"\x00\x01"  # Signal segwit support
+
         # We process the outputs before the inputs so that we can use it for segwit transactions.
         tx_bytes_3 += create_varint(len(outputs))
-        tx_bytes_3a = b''
+        tx_bytes_3a = b""
         for o in outputs:
-            tx_bytes_3b = b''
+            tx_bytes_3b = b""
             tx_bytes_3b += int_to_hex(o.amount(in_standard_units=False), 8)
-            #if network.SUPPORTS_SEGWIT and o.script_pubkey()[0] == 0:
+            # if network.SUPPORTS_SEGWIT and o.script_pubkey()[0] == 0:
             #    script =  b"\x76\xa9" + o.script_pubkey()[1:] + b"\x88\xac"
             #    tx_bytes_3b += create_varint(len(script)) + script
-            #else:
+            # else:
             script = o.script_pubkey()
             tx_bytes_3b += create_varint(len(script))
-            tx_bytes_3b += script            
+            tx_bytes_3b += script
             tx_bytes_3a += tx_bytes_3b
         tx_bytes_3 += tx_bytes_3a
 
@@ -271,36 +295,50 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
             # To avoid a chicken-and-egg, we set the signature scripts to empty.
             # This is the prescribed behavior by the bitcoin protocol.
             # EDIT I heard it's just the scriptpubkey
-            input_bytes_2 = b"\x00" #create_varint(len(i._script_pubkey())) + i._script_pubkey()
+            input_bytes_2 = (
+                b"\x00"  # create_varint(len(i._script_pubkey())) + i._script_pubkey()
+            )
 
-            input_bytes_3 = int_to_hex(0xfffffffd if rbf else 0xffffffff, 4) # disables timelocks, see https://bitcointalk.org/index.php?topic=5479540.msg63401889#msg63401889
+            input_bytes_3 = int_to_hex(
+                0xFFFFFFFD if rbf else 0xFFFFFFFF, 4
+            )  # disables timelocks, see https://bitcointalk.org/index.php?topic=5479540.msg63401889#msg63401889
 
             segwit_payload = b""
             # It is easier to prepare the Segwit signing data here.
             if network.SUPPORTS_SEGWIT and not all_legacy:
                 # nVersion of the transaction (4-byte little endian)
                 segwit_payload = int_to_hex(1, 4)
-                
+
                 # hashPrevouts (32-byte hash)
                 hashPrevouts = b""
                 for j in inputs:
-                    hashPrevouts += binascii.unhexlify(j.txid().encode())[::-1] + int_to_hex(j.index(), 4)
-                segwit_payload += hashlib.sha256(hashlib.sha256(hashPrevouts).digest()).digest()
+                    hashPrevouts += binascii.unhexlify(j.txid().encode())[
+                        ::-1
+                    ] + int_to_hex(j.index(), 4)
+                segwit_payload += hashlib.sha256(
+                    hashlib.sha256(hashPrevouts).digest()
+                ).digest()
 
                 # hashSequence (32-byte hash)
                 hashSequence = b""
                 for j in inputs:
-                    hashSequence += input_bytes_3 # The timelock is the same for all inputs.
-                segwit_payload += hashlib.sha256(hashlib.sha256(hashSequence).digest()).digest()
+                    hashSequence += (
+                        input_bytes_3  # The timelock is the same for all inputs.
+                    )
+                segwit_payload += hashlib.sha256(
+                    hashlib.sha256(hashSequence).digest()
+                ).digest()
 
                 # outpoint (32-byte hash + 4-byte little endian)
-                segwit_payload += binascii.unhexlify(i.txid().encode())[::-1] + int_to_hex(i.index(), 4)
+                segwit_payload += binascii.unhexlify(i.txid().encode())[
+                    ::-1
+                ] + int_to_hex(i.index(), 4)
 
                 # scriptCode of the input (serialized as scripts inside CTxOuts)
                 # note: for p2wpkh this is actually the P2PKH script!!!
-                script =  b"\x76\xa9" + i._script_pubkey()[1:] + b"\x88\xac"
+                script = b"\x76\xa9" + i._script_pubkey()[1:] + b"\x88\xac"
                 segwit_payload += create_varint(len(script)) + script
-                #segwit_payload += create_varint(len(i._script_pubkey())) + i._script_pubkey()
+                # segwit_payload += create_varint(len(i._script_pubkey())) + i._script_pubkey()
 
                 # value of the output spent by this input (8-byte little endian)
                 segwit_payload += int_to_hex(i.amount(in_standard_units=False), 8)
@@ -309,7 +347,9 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
                 segwit_payload += input_bytes_3
 
                 # hashOutputs (32-byte hash)
-                segwit_payload += hashlib.sha256(hashlib.sha256(tx_bytes_3a).digest()).digest()
+                segwit_payload += hashlib.sha256(
+                    hashlib.sha256(tx_bytes_3a).digest()
+                ).digest()
 
                 # nLocktime of the transaction (4-byte little endian)
                 segwit_payload += int_to_hex(0, 4)
@@ -317,19 +357,33 @@ def create_transaction(inputs: List[UTXO], outputs: List[Destination], rbf=True,
                 # sighash type of the signature (4-byte little endian)
                 segwit_payload += int_to_hex(SIGHASH_ALL, 4)
 
-
             # If this is a segwit transaction these will need to go into witness data eventually.
-            tx_bytes_2_inputs.append([input_bytes_1, input_bytes_2, input_bytes_3, i._script_pubkey(), i._private_key(), SIGHASH_ALL, i.address(), segwit_payload])
-        
+            tx_bytes_2_inputs.append(
+                [
+                    input_bytes_1,
+                    input_bytes_2,
+                    input_bytes_3,
+                    i._script_pubkey(),
+                    i._private_key(),
+                    SIGHASH_ALL,
+                    i.address(),
+                    segwit_payload,
+                ]
+            )
+
         # tx_bytes_3 should also contain the witness data
 
-        tx_bytes_4 += int_to_hex(0, 4) # Disable locktime (redundant)
+        tx_bytes_4 += int_to_hex(0, 4)  # Disable locktime (redundant)
 
-        del(inputs)
+        del inputs
         if network.SUPPORTS_SEGWIT and not all_legacy:
-            return create_signatures_segwit(tx_bytes_1, tx_bytes_2_inputs, tx_bytes_3, tx_bytes_4, network)
+            return create_signatures_segwit(
+                tx_bytes_1, tx_bytes_2_inputs, tx_bytes_3, tx_bytes_4, network
+            )
         else:
-            return create_signatures_legacy(tx_bytes_1, tx_bytes_2_inputs, tx_bytes_3, tx_bytes_4, network)
+            return create_signatures_legacy(
+                tx_bytes_1, tx_bytes_2_inputs, tx_bytes_3, tx_bytes_4, network
+            )
 
 
 def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, gas, chainId):
@@ -340,7 +394,7 @@ def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, gas, c
     # Check the nonce for the sender address
     for node in fullnodes:
         try:
-            w3 = web3.Web3(web3.HTTPProvider(node['url']))
+            w3 = web3.Web3(web3.HTTPProvider(node["url"]))
             # This makes it fetch max<priority>feepergas info faster
             w3.eth.set_gas_price_strategy(fast_gas_price_strategy)
             w3.middleware_onion.add(web3.middleware.time_based_cache_middleware)
@@ -351,23 +405,25 @@ def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, gas, c
 
             # Build the transaction dictionary
             transaction = {
-                'nonce': nonce,
-                'to': to_checksum_address(receiver_address),
-                'value': w3.toWei(amount, 'ether'),  # Sending 1 ether, adjust as needed
+                "nonce": nonce,
+                "to": to_checksum_address(receiver_address),
+                "value": w3.toWei(amount, "ether"),  # Sending 1 ether, adjust as needed
                 #'gas': gas,#21000,  # Gas limit
                 # Since the London hard work (EIP-1559), nobody uses gasPrice anymore. They use max<Priority>FeePerGas
                 # Which is automatically specified (somehow) in Web3.
                 #'gasPrice': w3.toWei(gasPrice, 'gwei'),  # Gas price in Gwei, adjust as needed
-                'chainId': chainId,  # 1 for Mainnet, change to 3 for Ropsten, 4 for Rinkeby, etc.
+                "chainId": chainId,  # 1 for Mainnet, change to 3 for Ropsten, 4 for Rinkeby, etc.
             }
 
             # OK now calculate the gas
             if not gas:
                 gas = w3.eth.estimate_gas(transaction)
-            transaction['gas'] = gas
+            transaction["gas"] = gas
 
             # Sign the transaction
-            return w3.eth.account.signTransaction(transaction, binascii.unhexlify(private_key[2:].encode()))
+            return w3.eth.account.signTransaction(
+                transaction, binascii.unhexlify(private_key[2:].encode())
+            )
         except Exception:
             pass
     raise RuntimeError("Cannot sign web3 transaction (try specifying different nodes)")

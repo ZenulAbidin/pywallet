@@ -2,22 +2,29 @@ from .blockcypher import BlockcypherAddress
 from ...generated import wallet_pb2
 from ...errors import NetworkException
 
-class BCYAddress:
-    """ Load balancer for all BCY address providers provided to an instance of this class,
-        using the round robin scheduling algorithm.
 
-        Note: Some web-based providers use API keys. You can speficy an array
+class BCYAddress:
+    """Load balancer for all BCY address providers provided to an instance of this class,
+    using the round robin scheduling algorithm.
+
+    Note: Some web-based providers use API keys. You can speficy an array
     """
 
-    def __init__(self, addresses, providers: bytes = b'\xff\xff', max_cycles=100,
-                 transactions=None, **kwargs):
-        provider_bitmask = int.from_bytes(providers, 'big')
+    def __init__(
+        self,
+        addresses,
+        providers: bytes = b"\xff\xff",
+        max_cycles=100,
+        transactions=None,
+        **kwargs,
+    ):
+        provider_bitmask = int.from_bytes(providers, "big")
         self.provider_list = []
         self.current_index = 0
         self.addresses = addresses
         self.max_cycles = max_cycles
-        self.fast_mode = kwargs.get('fast_mode') or True
-        blockcypher_tokens = kwargs.get('blockcypher_tokens')
+        self.fast_mode = kwargs.get("fast_mode") or True
+        blockcypher_tokens = kwargs.get("blockcypher_tokens")
 
         # Set everything to an empty list so that providers do not immediately start fetching
         # transactions and to avoid exceptions in loops later in this method.
@@ -37,19 +44,28 @@ class BCYAddress:
             if not tokens:
                 tokens = []
             for token in tokens:
-                self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, fast_mode=self.fast_mode, api_key=token))
-            self.provider_list.append(BlockcypherAddress(addresses, transactions=transactions, fast_mode=self.fast_mode)) # No token (free) version
+                self.provider_list.append(
+                    BlockcypherAddress(
+                        addresses,
+                        transactions=transactions,
+                        fast_mode=self.fast_mode,
+                        api_key=token,
+                    )
+                )
+            self.provider_list.append(
+                BlockcypherAddress(
+                    addresses, transactions=transactions, fast_mode=self.fast_mode
+                )
+            )  # No token (free) version
 
-        if kwargs.get('min_height') is not None:
-            self.min_height = kwargs.get('min_height')
+        if kwargs.get("min_height") is not None:
+            self.min_height = kwargs.get("min_height")
         else:
             self.min_height = self.get_block_height()
-        
+
         for i in range(len(self.provider_list)):
             self.provider_list[i].min_height = self.min_height
 
-
-    
     def get_balance(self):
         """
         Retrieves the balance of the Blockcypher address.
@@ -68,11 +84,11 @@ class BCYAddress:
             if utxo.confirmed:
                 confirmed_balance += utxo.amount
         return total_balance, confirmed_balance
-        
+
     def get_utxos(self):
         # Transactions are generated in reverse order
         utxos = []
-        for i in range(len(self.transactions)-1, -1, -1):
+        for i in range(len(self.transactions) - 1, -1, -1):
             for out in self.transactions[i].outputs:
                 if out.spent:
                     continue
@@ -87,13 +103,14 @@ class BCYAddress:
                     utxos.append(utxo)
         return utxos
 
-
     def advance_to_next_provider(self):
         if not self.provider_list:
             return
-        
+
         newindex = (self.current_index + 1) % len(self.provider_list)
-        self.provider_list[newindex].transactions = self.provider_list[self.current_index].transactions
+        self.provider_list[newindex].transactions = self.provider_list[
+            self.current_index
+        ].transactions
         self.current_index = newindex
 
     def get_block_height(self):
@@ -117,9 +134,9 @@ class BCYAddress:
                 self.transactions = self.provider_list[self.current_index].transactions
                 self.advance_to_next_provider()
                 cycle += 1
-        raise NetworkException(f"None of the address providers are working after {self.max_cycles} tries")
-    
-
+        raise NetworkException(
+            f"None of the address providers are working after {self.max_cycles} tries"
+        )
 
     def get_transaction_history(self):
         for address in self.addresses:
@@ -128,7 +145,9 @@ class BCYAddress:
             cycle = 1
             while ntransactions != len(self.transactions):
                 if cycle > self.max_cycles:
-                    raise NetworkException(f"None of the address providers are working after {self.max_cycles} tries")
+                    raise NetworkException(
+                        f"None of the address providers are working after {self.max_cycles} tries"
+                    )
                 self.provider_list[self.current_index].transactions = txs
                 self.provider_list[self.current_index].addresses = [address]
                 try:
@@ -142,4 +161,3 @@ class BCYAddress:
                     cycle += 1
             self.transactions.extend(txs)
         return self.transactions
-    

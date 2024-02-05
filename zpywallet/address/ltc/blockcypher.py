@@ -6,8 +6,10 @@ from ...errors import NetworkException
 from ...utils.utils import convert_to_utc_timestamp
 from ...generated import wallet_pb2
 
+
 def deduplicate(elements):
-    return reduce(lambda re, x: re+[x] if x not in re else re, elements, [])
+    return reduce(lambda re, x: re + [x] if x not in re else re, elements, [])
+
 
 class BlockcypherAddress:
     """
@@ -33,50 +35,63 @@ class BlockcypherAddress:
 
     def _clean_tx(self, element):
         new_element = wallet_pb2.Transaction()
-        new_element.txid = element['hash']
-        
-        if 'block_height' not in element.keys():
+        new_element.txid = element["hash"]
+
+        if "block_height" not in element.keys():
             new_element.confirmed = False
-        elif element['block_height'] == -1:
+        elif element["block_height"] == -1:
             new_element.confirmed = False
-        elif element['block_index'] == 0: #coinbase transaction
+        elif element["block_index"] == 0:  # coinbase transaction
             new_element.confirmed = True
             new_element.height = 0
         else:
             new_element.confirmed = True
-            new_element.height = element['block_height']
-        
-        if 'confirmed' in element.keys():
-            new_element.timestamp = convert_to_utc_timestamp(element['confirmed'].split(".")[0].split('Z')[0], '%Y-%m-%dT%H:%M:%S')
-        
-        for vin in element['inputs']:
+            new_element.height = element["block_height"]
+
+        if "confirmed" in element.keys():
+            new_element.timestamp = convert_to_utc_timestamp(
+                element["confirmed"].split(".")[0].split("Z")[0], "%Y-%m-%dT%H:%M:%S"
+            )
+
+        for vin in element["inputs"]:
             txinput = new_element.btclike_transaction.inputs.add()
-            txinput.txid = '' if 'prev_hash' not in vin.keys() else vin['prev_hash']
-            txinput.index = vin['output_index']
-            txinput.amount = 0 if 'output_value' not in vin.keys() else int(vin['output_value'])
-        
+            txinput.txid = "" if "prev_hash" not in vin.keys() else vin["prev_hash"]
+            txinput.index = vin["output_index"]
+            txinput.amount = (
+                0 if "output_value" not in vin.keys() else int(vin["output_value"])
+            )
+
         i = 0
-        for vout in element['outputs']:
+        for vout in element["outputs"]:
             txoutput = new_element.btclike_transaction.outputs.add()
-            txoutput.amount = int(vout['value'])
+            txoutput.amount = int(vout["value"])
             txoutput.index = i
             i += 1
-            if vout['addresses']:
-                txoutput.address = vout['addresses'][0]
-            txoutput.spent = 'spent_by' in vout.keys()
-        
+            if vout["addresses"]:
+                txoutput.address = vout["addresses"][0]
+            txoutput.spent = "spent_by" in vout.keys()
+
         # Now we must calculate the total fee
         total_inputs = sum([a.amount for a in new_element.btclike_transaction.inputs])
         total_outputs = sum([a.amount for a in new_element.btclike_transaction.outputs])
         new_element.total_fee = total_inputs - total_outputs
 
-        size_element = element['vsize'] if 'vsize' in element.keys() else element['size']
+        size_element = (
+            element["vsize"] if "vsize" in element.keys() else element["size"]
+        )
         new_element.btclike_transaction.fee = int(new_element.total_fee // size_element)
         new_element.fee_metric = wallet_pb2.VBYTE
-        
+
         return new_element
 
-    def __init__(self, addresses, request_interval=(3,1), transactions=None, api_key=None, **kwargs):
+    def __init__(
+        self,
+        addresses,
+        request_interval=(3, 1),
+        transactions=None,
+        api_key=None,
+        **kwargs,
+    ):
         """
         Initializes an instance of the BlockcypherAddress class.
 
@@ -89,22 +104,19 @@ class BlockcypherAddress:
         self.addresses = addresses
         self.api_key = api_key
         self.requests, self.interval_sec = request_interval
-        self.fast_mode = kwargs.get('fast_mode') or True
+        self.fast_mode = kwargs.get("fast_mode") or True
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
             self.transactions = []
 
-        if kwargs.get('min_height') is not None:
-            self.min_height = kwargs.get('min_height')
+        if kwargs.get("min_height") is not None:
+            self.min_height = kwargs.get("min_height")
         else:
             try:
                 self.min_height = self.get_block_height()
             except NetworkException:
                 self.min_height = 0
-
-
-    
 
     def get_balance(self):
         """
@@ -126,16 +138,18 @@ class BlockcypherAddress:
             if utxo["confirmed"]:
                 confirmed_balance += utxo["amount"]
         return total_balance, confirmed_balance
-        
+
     def get_utxos(self):
         self.height = self.get_block_height()
         # Transactions are generated in reverse order
         utxos = []
-        for i in range(len(self.transactions)-1, -1, -1):
+        for i in range(len(self.transactions) - 1, -1, -1):
             for utxo in [u for u in utxos]:
                 # Check if any utxo has been spent in this transaction
                 for vin in self.transactions[i].inputs:
-                    if vin.spent or (vin.txid == utxo["txid"] and vin["index"] == utxo.index):
+                    if vin.spent or (
+                        vin.txid == utxo["txid"] and vin["index"] == utxo.index
+                    ):
                         # Spent
                         utxos.remove(utxo)
             for out in self.transactions[i].outputs:
@@ -175,8 +189,6 @@ class BlockcypherAddress:
         self.height = data["height"]
         return self.height
 
-
-
     def get_transaction_history(self):
         """
         Retrieves the transaction history of the Litecoin address from cached data augmented with network data.
@@ -195,7 +207,7 @@ class BlockcypherAddress:
             txs = [*self._get_transaction_history(txhash)]
             txs.extend(self.transactions)
             self.transactions = txs
-                    
+
         self.transactions = deduplicate(self.transactions)
         return self.transactions
 
@@ -238,7 +250,7 @@ class BlockcypherAddress:
                     pass
 
             for tx in data["txs"]:
-                time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
+                time.sleep(self.interval_sec / (self.requests * len(data["txs"])))
                 if txhash and tx["hash"] == txhash:
                     return
                 ctx = self._clean_tx(tx)
@@ -246,12 +258,12 @@ class BlockcypherAddress:
                     yield ctx
                 else:
                     return
-            if 'hasMore' not in data.keys():
+            if "hasMore" not in data.keys():
                 return
             else:
                 block_height = data["txs"][-1]["block_height"]
-            
-            while 'hasMore' in data.keys() and data['hasMore']:
+
+            while "hasMore" in data.keys() and data["hasMore"]:
                 url = f"https://api.blockcypher.com/v1/ltc/main/addrs/{address}/full?limit={interval}&before={block_height}&txlimit={txlimit}"
                 for attempt in range(3, -1, -1):
                     if attempt == 0:
@@ -265,7 +277,9 @@ class BlockcypherAddress:
                 if response.status_code == 200:
                     data = response.json()
                     for tx in data["txs"]:
-                        time.sleep(self.interval_sec/(self.requests*len(data["txs"])))
+                        time.sleep(
+                            self.interval_sec / (self.requests * len(data["txs"]))
+                        )
                         if txhash and tx["hash"] == txhash:
                             return
                         ctx = self._clean_tx(tx)
@@ -274,7 +288,7 @@ class BlockcypherAddress:
                         else:
                             self.min_height = self.height + 1
                             return
-                    if 'hasMore' not in data.keys():
+                    if "hasMore" not in data.keys():
                         return
                     else:
                         block_height = data["txs"][-1]["block_height"]

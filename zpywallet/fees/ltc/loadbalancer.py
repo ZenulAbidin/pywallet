@@ -4,23 +4,24 @@ from .fullnode import LitecoinRPCClient
 from ...errors import NetworkException
 from ...nodes.ltc import ltc_nodes
 
+
 class LitecoinFeeEstimator:
-    """ Load balancer for all Litecoin fee providers provided to an instance of this class,
-        using the round robin scheduling algorithm.
+    """Load balancer for all Litecoin fee providers provided to an instance of this class,
+    using the round robin scheduling algorithm.
     """
 
     def __init__(self, **kwargs):
         self.provider_list = []
-        fullnode_endpoints = kwargs.get('fullnode_endpoints') or []
+        fullnode_endpoints = kwargs.get("fullnode_endpoints") or []
         fullnode_endpoints += ltc_nodes
-        blockcypher_tokens = kwargs.get('blockcypher_tokens')
+        blockcypher_tokens = kwargs.get("blockcypher_tokens")
 
         tokens = blockcypher_tokens
         if not tokens:
             tokens = []
         for token in tokens:
             self.provider_list.append(BlockcypherFeeEstimator(api_key=token))
-        self.provider_list.append(BlockcypherFeeEstimator()) # No token (free) version
+        self.provider_list.append(BlockcypherFeeEstimator())  # No token (free) version
         for endpoint in fullnode_endpoints:
             self.provider_list.append(LitecoinRPCClient(**endpoint))
 

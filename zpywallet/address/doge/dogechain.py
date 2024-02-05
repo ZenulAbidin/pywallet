@@ -9,8 +9,10 @@ from ...errors import NetworkException
 from ...utils.utils import convert_to_utc_timestamp
 from ...generated import wallet_pb2
 
+
 def deduplicate(elements):
-    return reduce(lambda re, x: re+[x] if x not in re else re, elements, [])
+    return reduce(lambda re, x: re + [x] if x not in re else re, elements, [])
+
 
 class DogeChainAddress:
     """
@@ -41,7 +43,7 @@ class DogeChainAddress:
                 response = requests.get(url, timeout=60)
                 if response.status_code == 200:
                     data = element
-                    element = response.json()['transaction']
+                    element = response.json()["transaction"]
                     break
                 else:
                     raise NetworkException("Failed to retrieve transaction history")
@@ -49,9 +51,9 @@ class DogeChainAddress:
                 pass
 
         new_element = wallet_pb2.Transaction()
-        new_element.txid = element['hash']
-        
-        if element['confirmations'] == 0:
+        new_element.txid = element["hash"]
+
+        if element["confirmations"] == 0:
             new_element.confirmed = False
             new_element.height = 0
         else:
@@ -63,41 +65,51 @@ class DogeChainAddress:
                 try:
                     response = requests.get(url, timeout=60)
                     if response.status_code == 200:
-                        new_element.height = response.json()['block']['height']
+                        new_element.height = response.json()["block"]["height"]
                         break
                     else:
                         raise NetworkException("Failed to retrieve transaction history")
                 except requests.RequestException:
                     pass
-        
-        new_element.timestamp = element['time']
-        
-        for vin in element['inputs']:
+
+        new_element.timestamp = element["time"]
+
+        for vin in element["inputs"]:
             txinput = new_element.btclike_transaction.inputs.add()
-            txinput.txid = '' if 'previous_output' not in vin.keys() else vin['previous_output'].get('hash') or ''
-            txinput.index = 0 if 'previous_output' not in vin.keys() else vin['previous_output'].get('pos') or 0
-            txinput.amount = 0 if 'value' not in vin.keys() else int(float(vin['value']) * 1e8)
-        
+            txinput.txid = (
+                ""
+                if "previous_output" not in vin.keys()
+                else vin["previous_output"].get("hash") or ""
+            )
+            txinput.index = (
+                0
+                if "previous_output" not in vin.keys()
+                else vin["previous_output"].get("pos") or 0
+            )
+            txinput.amount = (
+                0 if "value" not in vin.keys() else int(float(vin["value"]) * 1e8)
+            )
+
         i = 0
-        for vout in element['outputs']:
+        for vout in element["outputs"]:
             txoutput = new_element.btclike_transaction.outputs.add()
-            txoutput.amount = int(float(vout['value']) * 1e8)
+            txoutput.amount = int(float(vout["value"]) * 1e8)
             txoutput.index = i
             i += 1
-            txoutput.address = vout['address']
-            txoutput.spent = vout['spent'] is not None
-        
+            txoutput.address = vout["address"]
+            txoutput.spent = vout["spent"] is not None
+
         # Now we must calculate the total fee
         total_inputs = sum([a.amount for a in new_element.btclike_transaction.inputs])
         total_outputs = sum([a.amount for a in new_element.btclike_transaction.outputs])
         new_element.total_fee = total_inputs - total_outputs
 
-        new_element.btclike_transaction.fee = int(float(element['fee']) * 1e8)
+        new_element.btclike_transaction.fee = int(float(element["fee"]) * 1e8)
         new_element.fee_metric = wallet_pb2.BYTE
-        
+
         return new_element
 
-    def __init__(self, addresses, request_interval=(3,1), transactions=None, **kwargs):
+    def __init__(self, addresses, request_interval=(3, 1), transactions=None, **kwargs):
         """
         Initializes an instance of the DogeChainAddress class.
 
@@ -108,22 +120,19 @@ class DogeChainAddress:
         """
         self.addresses = addresses
         self.requests, self.interval_sec = request_interval
-        self.fast_mode = kwargs.get('fast_mode') or True
+        self.fast_mode = kwargs.get("fast_mode") or True
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
             self.transactions = []
 
-        if kwargs.get('min_height') is not None:
-            self.min_height = kwargs.get('min_height')
+        if kwargs.get("min_height") is not None:
+            self.min_height = kwargs.get("min_height")
         else:
             try:
                 self.min_height = self.get_block_height()
             except NetworkException:
                 self.min_height = 0
-
-
-    
 
     def get_balance(self):
         """
@@ -143,11 +152,11 @@ class DogeChainAddress:
             if utxo.confirmed:
                 confirmed_balance += utxo.amount
         return total_balance, confirmed_balance
-        
+
     def get_utxos(self):
         # Transactions are generated in reverse order
         utxos = []
-        for i in range(len(self.transactions)-1, -1, -1):
+        for i in range(len(self.transactions) - 1, -1, -1):
             for out in self.transactions[i].outputs:
                 if out.spent:
                     continue
@@ -170,7 +179,7 @@ class DogeChainAddress:
         uri = "wss://ws.dogechain.info/inv"
         for attempt in range(3, -1, -1):
             if attempt == 0:
-                                raise NetworkException("Network request failure")
+                raise NetworkException("Network request failure")
             try:
                 ws = websocket.create_connection(uri)
                 message = {"op": "ping_block"}
@@ -188,12 +197,9 @@ class DogeChainAddress:
                 except Exception:
                     pass
                 break
-        
-        self.height = response['x']['height']
+
+        self.height = response["x"]["height"]
         return self.height
-        
-
-
 
     def get_transaction_history(self):
         """
@@ -248,7 +254,9 @@ class DogeChainAddress:
                     pass
 
             for tx in data["transactions"]:
-                time.sleep(self.interval_sec/(self.requests*len(data["transactions"])))
+                time.sleep(
+                    self.interval_sec / (self.requests * len(data["transactions"]))
+                )
                 if txhash and tx["hash"] == txhash:
                     return
                 ctx = self._clean_tx(tx)
@@ -258,10 +266,12 @@ class DogeChainAddress:
                     return
             if not data["transactions"]:
                 return
-            
+
             while data["transactions"]:
                 i += 1
-                url = f"https://dogechain.info/api/v1/address/transactions/{address}/{i}"
+                url = (
+                    f"https://dogechain.info/api/v1/address/transactions/{address}/{i}"
+                )
                 for attempt in range(3, -1, -1):
                     if attempt == 0:
                         raise NetworkException("Network request failure")
@@ -274,7 +284,10 @@ class DogeChainAddress:
                 if response.status_code == 200:
                     data = response.json()
                     for tx in data["transactions"]:
-                        time.sleep(self.interval_sec/(self.requests*len(data["transactions"])))
+                        time.sleep(
+                            self.interval_sec
+                            / (self.requests * len(data["transactions"]))
+                        )
                         if txhash and tx["hash"] == txhash:
                             return
                         ctx = self._clean_tx(tx)

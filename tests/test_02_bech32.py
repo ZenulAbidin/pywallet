@@ -27,9 +27,11 @@ import binascii
 import unittest
 from zpywallet.utils import bech32
 
+
 def segwit_scriptpubkey(witver, witprog):
     """Construct a Segwit scriptPubKey for a given witness program."""
     return bytes([witver + 0x50 if witver else 0, len(witprog)] + witprog)
+
 
 VALID_BECH32 = [
     "A12UEL5L",
@@ -52,53 +54,66 @@ VALID_BECH32M = [
 ]
 
 INVALID_BECH32 = [
-    " 1nwldj5",          # HRP character out of range
+    " 1nwldj5",  # HRP character out of range
     "\x7F" + "1axkwrx",  # HRP character out of range
     "\x80" + "1eym55h",  # HRP character out of range
     # overall max length exceeded
     "an84characterslonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1569pvx",
-    "pzry9x0s0muk",      # No separator character
-    "1pzry9x0s0muk",     # Empty HRP
-    "x1b4n0q5v",         # Invalid data character
-    "li1dgmt3",          # Too short checksum
-    "de1lg7wt" + "\xFF", # Invalid character in checksum
-    "A1G7SGD8",          # checksum calculated with uppercase form of HRP
-    "10a06t8",           # empty HRP
-    "1qzzfhee",          # empty HRP
+    "pzry9x0s0muk",  # No separator character
+    "1pzry9x0s0muk",  # Empty HRP
+    "x1b4n0q5v",  # Invalid data character
+    "li1dgmt3",  # Too short checksum
+    "de1lg7wt" + "\xFF",  # Invalid character in checksum
+    "A1G7SGD8",  # checksum calculated with uppercase form of HRP
+    "10a06t8",  # empty HRP
+    "1qzzfhee",  # empty HRP
 ]
 
 INVALID_BECH32M = [
-    " 1xj0phk",          # HRP character out of range
+    " 1xj0phk",  # HRP character out of range
     "\x7F" + "1g6xzxy",  # HRP character out of range
     "\x80" + "1vctc34",  # HRP character out of range
     # overall max length exceeded
     "an84characterslonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11d6pts4",
-    "qyrz8wqd2c9m",      # No separator character
-    "1qyrz8wqd2c9m",     # Empty HRP
-    "y1b0jsk6g",         # Invalid data character
-    "lt1igcx5c0",        # Invalid data character
-    "in1muywd",          # Too short checksum
-    "mm1crxm3i",         # Invalid character in checksum
-    "au1s5cgom",         # Invalid character in checksum
-    "M1VUXWEZ",          # Checksum calculated with uppercase form of HRP
-    "16plkw9",           # Empty HRP
-    "1p2gdwpf",          # Empty HRP
+    "qyrz8wqd2c9m",  # No separator character
+    "1qyrz8wqd2c9m",  # Empty HRP
+    "y1b0jsk6g",  # Invalid data character
+    "lt1igcx5c0",  # Invalid data character
+    "in1muywd",  # Too short checksum
+    "mm1crxm3i",  # Invalid character in checksum
+    "au1s5cgom",  # Invalid character in checksum
+    "M1VUXWEZ",  # Checksum calculated with uppercase form of HRP
+    "16plkw9",  # Empty HRP
+    "1p2gdwpf",  # Empty HRP
 ]
 
 VALID_ADDRESS = [
-    ["BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4", "0014751e76e8199196d454941c45d1b3a323f1433bd6"],
-    ["tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7",
-     "00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262"],
-    ["bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7kt5nd6y",
-     "5128751e76e8199196d454941c45d1b3a323f1433bd6751e76e8199196d454941c45d1b3a323f1433bd6"],
+    [
+        "BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4",
+        "0014751e76e8199196d454941c45d1b3a323f1433bd6",
+    ],
+    [
+        "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7",
+        "00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262",
+    ],
+    [
+        "bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7kt5nd6y",
+        "5128751e76e8199196d454941c45d1b3a323f1433bd6751e76e8199196d454941c45d1b3a323f1433bd6",
+    ],
     ["BC1SW50QGDZ25J", "6002751e"],
     ["bc1zw508d6qejxtdg4y5r3zarvaryvaxxpcs", "5210751e76e8199196d454941c45d1b3a323"],
-    ["tb1qqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesrxh6hy",
-     "0020000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433"],
-    ["tb1pqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesf3hn0c",
-     "5120000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433"],
-    ["bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0",
-     "512079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"],
+    [
+        "tb1qqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesrxh6hy",
+        "0020000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433",
+    ],
+    [
+        "tb1pqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesf3hn0c",
+        "5120000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433",
+    ],
+    [
+        "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0",
+        "512079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+    ],
 ]
 
 INVALID_ADDRESS = [
@@ -142,6 +157,7 @@ INVALID_ADDRESS_ENC = [
     ("bc", 16, 41),
 ]
 
+
 class TestSegwitAddress(unittest.TestCase):
     """Unit test class for segwit addressess."""
 
@@ -152,22 +168,24 @@ class TestSegwitAddress(unittest.TestCase):
             for test in tests:
                 hrp, _, dspec = bech32._bech32_decode(test)
                 self.assertTrue(hrp is not None and dspec == spec)
-                pos = test.rfind('1')
-                test = test[:pos+1] + chr(ord(test[pos + 1]) ^ 1) + test[pos+2:]
+                pos = test.rfind("1")
+                test = test[: pos + 1] + chr(ord(test[pos + 1]) ^ 1) + test[pos + 2 :]
                 hrp, _, dspec = bech32._bech32_decode(test)
                 self.assertIsNone(hrp)
 
     def test_invalid_checksum(self):
         """Test validation of invalid checksums."""
         for spec in bech32.Encoding:
-            tests = INVALID_BECH32 if spec == bech32.Encoding.BECH32 else INVALID_BECH32M
+            tests = (
+                INVALID_BECH32 if spec == bech32.Encoding.BECH32 else INVALID_BECH32M
+            )
             for test in tests:
                 hrp, _, dspec = bech32._bech32_decode(test)
                 self.assertTrue(hrp is None or dspec != spec)
 
     def test_valid_address(self):
         """Test whether valid addresses decode to the correct output."""
-        for (address, hexscript) in VALID_ADDRESS:
+        for address, hexscript in VALID_ADDRESS:
             hrp = "bc"
             witver, witprog = bech32.bech32_decode(hrp, address)
             if witver is None:

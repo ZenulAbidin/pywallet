@@ -32,11 +32,10 @@ import base64
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 
-__author__    = "Andrey Izman"
-__email__     = "izmanw@gmail.com"
+__author__ = "Andrey Izman"
+__email__ = "izmanw@gmail.com"
 __copyright__ = "Copyright 2018-2019 Andrey Izman"
-__license__   = "MIT"
-
+__license__ = "MIT"
 
 
 py2 = sys.version_info[0] == 2
@@ -45,10 +44,11 @@ BLOCK_SIZE = 16
 KEY_LEN = 32
 IV_LEN = 16
 
+
 def hash_password_pbkdf2(password, iterations=600000, key_length=128):
     # Hash the password using PBKDF2
-    return hashlib.pbkdf2_hmac('sha256', password, b'Salted__', iterations, key_length)
-    
+    return hashlib.pbkdf2_hmac("sha256", password, b"Salted__", iterations, key_length)
+
 
 def encrypt(raw, passphrase):
     """
@@ -62,7 +62,8 @@ def encrypt(raw, passphrase):
     salt = Random.new().read(8)
     key, iv = __derive_key_and_iv(passphrase, salt)
     cipher = AES.new(key, AES.MODE_CBC, iv)
-    return base64.b64encode(b'Salted__' + salt + cipher.encrypt(__pkcs7_padding(raw)))
+    return base64.b64encode(b"Salted__" + salt + cipher.encrypt(__pkcs7_padding(raw)))
+
 
 def decrypt(enc, passphrase):
     """
@@ -75,7 +76,7 @@ def decrypt(enc, passphrase):
     """
     ct = base64.b64decode(enc)
     salted = ct[:8]
-    if salted != b'Salted__':
+    if salted != b"Salted__":
         raise ValueError("Decryption failed")
     salt = ct[8:16]
     key, iv = __derive_key_and_iv(passphrase, salt)
@@ -84,6 +85,7 @@ def decrypt(enc, passphrase):
     if len(d) == 0:
         raise ValueError("Decryption failed")
     return d
+
 
 def __pkcs7_padding(s):
     """
@@ -95,9 +97,10 @@ def __pkcs7_padding(s):
     @type s: string
     @rtype: string
     """
-    s_len = len(s if py2 else s.encode('utf-8'))
+    s_len = len(s if py2 else s.encode("utf-8"))
     s = s + (BLOCK_SIZE - s_len % BLOCK_SIZE) * chr(BLOCK_SIZE - s_len % BLOCK_SIZE)
-    return s if py2 else bytes(s, 'utf-8')
+    return s if py2 else bytes(s, "utf-8")
+
 
 def __pkcs7_trimming(s):
     """
@@ -107,8 +110,9 @@ def __pkcs7_trimming(s):
     @rtype: string
     """
     if sys.version_info[0] == 2:
-        return s[0:-ord(s[-1])]
-    return s[0:-s[-1]]
+        return s[0 : -ord(s[-1])]
+    return s[0 : -s[-1]]
+
 
 def __derive_key_and_iv(password, salt):
     """
@@ -119,13 +123,13 @@ def __derive_key_and_iv(password, salt):
     @type salt: string
     @rtype: string
     """
-    d = d_i = b''
-    enc_pass = password if py2 else password.encode('utf-8')
+    d = d_i = b""
+    enc_pass = password if py2 else password.encode("utf-8")
     while len(d) < KEY_LEN + IV_LEN:
         d_i = hash_password_pbkdf2(d_i + enc_pass + salt)
         d += d_i
-    return d[:KEY_LEN], d[KEY_LEN:KEY_LEN + IV_LEN]
+    return d[:KEY_LEN], d[KEY_LEN : KEY_LEN + IV_LEN]
 
 
-if __name__ == '__main__':    #code to execute if called from command-line
+if __name__ == "__main__":  # code to execute if called from command-line
     print(decrypt(encrypt("text", "pass"), "pass"))

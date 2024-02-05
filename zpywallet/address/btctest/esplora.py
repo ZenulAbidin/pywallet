@@ -4,6 +4,7 @@ import requests
 from ...errors import NetworkException
 from ...generated import wallet_pb2
 
+
 class EsploraAddress:
     """
     A class representing a Bitcoin address.
@@ -38,45 +39,45 @@ class EsploraAddress:
 
     def _clean_tx(self, element):
         new_element = wallet_pb2.Transaction()
-        new_element.txid = element['txid']
-        if 'block_height' in element['status'].keys():
+        new_element.txid = element["txid"]
+        if "block_height" in element["status"].keys():
             new_element.confirmed = True
-            new_element.height = element['status']['block_height']
+            new_element.height = element["status"]["block_height"]
         else:
             new_element.confirmed = False
-            
-        if new_element.confirmed:
-            new_element.timestamp = element['status']['block_time']
 
-        for vin in element['vin']:
+        if new_element.confirmed:
+            new_element.timestamp = element["status"]["block_time"]
+
+        for vin in element["vin"]:
             txinput = new_element.btclike_transaction.inputs.add()
-            txinput.txid = vin['txid']
-            txinput.index = vin['vout']
-            if vin['prevout'] is not None:
-                txinput.amount = int(vin['prevout']['value'])
+            txinput.txid = vin["txid"]
+            txinput.index = vin["vout"]
+            if vin["prevout"] is not None:
+                txinput.amount = int(vin["prevout"]["value"])
             else:
                 txinput.amount = int(0)
 
         i = 0
-        for vout in element['vout']:
+        for vout in element["vout"]:
             txoutput = new_element.btclike_transaction.outputs.add()
-            txoutput.amount = int(vout['value'])
+            txoutput.amount = int(vout["value"])
             txoutput.index = i
             i += 1
-            if 'scriptpubkey_address' in vout.keys():
-                txoutput.address = vout['scriptpubkey_address']
+            if "scriptpubkey_address" in vout.keys():
+                txoutput.address = vout["scriptpubkey_address"]
 
         # Now we must calculate the total fee
         total_inputs = sum([a.amount for a in new_element.btclike_transaction.inputs])
         total_outputs = sum([a.amount for a in new_element.btclike_transaction.outputs])
 
-        new_element.total_fee = (total_inputs - total_outputs)
+        new_element.total_fee = total_inputs - total_outputs
 
-        new_element.btclike_transaction.fee = int(element['fee'])
+        new_element.btclike_transaction.fee = int(element["fee"])
         new_element.fee_metric = wallet_pb2.VBYTE
         return new_element
 
-    def __init__(self, addresses, request_interval=(3,1), transactions=None, **kwargs):
+    def __init__(self, addresses, request_interval=(3, 1), transactions=None, **kwargs):
         """
         Initializes an instance of the EsploraAddress class.
 
@@ -90,22 +91,21 @@ class EsploraAddress:
         # Ostensibly there are no limits for that site, but I got 429 errors when testing with (1000,1), so
         # the default limit will be the same as for mempool.space - 3 requests per second.
         self.requests, self.interval_sec = request_interval
-        self.fast_mode = kwargs.get('fast_mode') or True
+        self.fast_mode = kwargs.get("fast_mode") or True
         self.addresses = addresses
-        self.endpoint = kwargs.get('url')
+        self.endpoint = kwargs.get("url")
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
             self.transactions = []
 
-        if kwargs.get('min_height') is not None:
-            self.min_height = kwargs.get('min_height')
+        if kwargs.get("min_height") is not None:
+            self.min_height = kwargs.get("min_height")
         else:
             try:
                 self.min_height = self.get_block_height()
             except NetworkException:
                 self.min_height = 0
-
 
     def get_balance(self):
         """
@@ -125,11 +125,11 @@ class EsploraAddress:
             if utxo.confirmed:
                 confirmed_balance += utxo.amount
         return total_balance, confirmed_balance
-        
+
     def get_utxos(self):
         # Transactions are generated in reverse order
         utxos = []
-        for i in range(len(self.transactions)-1, -1, -1):
+        for i in range(len(self.transactions) - 1, -1, -1):
             for out in self.transactions[i].outputs:
                 if out.spent:
                     continue
@@ -157,7 +157,7 @@ class EsploraAddress:
                 pass
             except requests.exceptions.JSONDecodeError:
                 pass
-        
+
         if response.status_code == 200:
             self.height = int(response.text)
             return self.height
@@ -165,10 +165,9 @@ class EsploraAddress:
             try:
                 return self.height
             except AttributeError as exc:
-                raise NetworkException("Failed to retrieve current blockchain height") from exc
-
-        
-
+                raise NetworkException(
+                    "Failed to retrieve current blockchain height"
+                ) from exc
 
     def get_transaction_history(self):
         """
@@ -188,7 +187,7 @@ class EsploraAddress:
             txs = [*self._get_transaction_history(txhash)]
             txs.extend(self.transactions)
             self.transactions = txs
-                    
+
         return self.transactions
 
     def _get_transaction_history(self, txhash=None):
@@ -218,7 +217,7 @@ class EsploraAddress:
                     pass
 
             for tx in data:
-                time.sleep(self.interval_sec/(self.requests*len(data)))
+                time.sleep(self.interval_sec / (self.requests * len(data)))
                 if txhash and tx["txid"] == txhash:
                     return
                 ctx = self._clean_tx(tx)
@@ -226,12 +225,12 @@ class EsploraAddress:
                     yield ctx
                 else:
                     return
-            
+
             if len(data) > 0:
                 last_tx = data[-1]["txid"]
             else:
                 break
-            
+
             while len(data) > 0:
                 url = f"{self.endpoint}/address/{address}/txs/chain/{last_tx}"
                 for attempt in range(3, -1, -1):
@@ -246,7 +245,7 @@ class EsploraAddress:
                 if response.status_code == 200:
                     data = response.json()
                     for tx in data:
-                        time.sleep(self.interval_sec/(self.requests*len(data)))
+                        time.sleep(self.interval_sec / (self.requests * len(data)))
                         if txhash and tx["hash"] == txhash:
                             return
                         ctx = self._clean_tx(tx)
@@ -259,4 +258,3 @@ class EsploraAddress:
                         last_tx = data[-1]["txid"]
                 else:
                     raise NetworkException("Failed to retrieve transaction history")
-

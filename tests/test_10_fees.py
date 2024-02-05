@@ -11,14 +11,12 @@ from zpywallet.fees.doge import DogecoinFeeEstimator
 from zpywallet.fees.eth import EthereumFeeEstimator
 
 
-
 class TestAddress(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures, if any."""
 
     def tearDown(self):
         """Tear down test fixtures, if any."""
-
 
     def test_000_btc_fee_estimator(self):
         """Test estimating Bitcoin fees."""
@@ -29,7 +27,7 @@ class TestAddress(unittest.TestCase):
         """Test estimating Litecoin fees."""
         b = LitecoinFeeEstimator()
         b.get_fee_rate()
-        
+
     def test_002_dash_fee_estimator(self):
         """Test estimating Dash fees."""
         b = DashFeeEstimator()
@@ -43,4 +41,4 @@ class TestAddress(unittest.TestCase):
     def test_004_eth_fee_estimator(self):
         """Test estimating Ethereum fees."""
         b = EthereumFeeEstimator()
-        #print(b.estimate_gas())
+        # print(b.estimate_gas())

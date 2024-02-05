@@ -14,14 +14,9 @@ from zpywallet.utxo import UTXO
 from .destination import Destination, FeePolicy
 
 from .mnemonic import Mnemonic
-from .utils.bip32 import (
-    HDWallet
-)
+from .utils.bip32 import HDWallet
 
-from .utils.keys import (
-    PrivateKey,
-    PublicKey
-)
+from .utils.keys import PrivateKey, PublicKey
 from .transactions.encode import create_transaction
 from .transactions.decode import transaction_size_simple
 from .broadcast import broadcast_transaction
@@ -49,7 +44,7 @@ from .network import (
     DashTestNet,
     DashInvertedMainNet,
     BitcoinCashMainNet,
-    BlockcypherTestNet
+    BlockcypherTestNet,
 )
 
 from .address.bcy import BCYAddress
@@ -66,6 +61,7 @@ from .utils.aes import decrypt, encrypt
 
 from .transaction import Transaction
 
+
 def generate_mnemonic(strength=128):
     """Creates a new seed phrase of the specified length"""
     if strength % 32 != 0:
@@ -73,12 +69,14 @@ def generate_mnemonic(strength=128):
     if strength < 128 or strength > 256:
         raise ValueError("strength should be >= 128 and <= 256")
     entropy = urandom(strength // 8)
-    mne = Mnemonic(language='english')
+    mne = Mnemonic(language="english")
     mnemonic = mne.to_mnemonic(entropy)
     return mnemonic
 
 
-def create_wallet(mnemonic=None, network=BitcoinSegwitMainNet, strength=128) -> HDWallet:
+def create_wallet(
+    mnemonic=None, network=BitcoinSegwitMainNet, strength=128
+) -> HDWallet:
     """Generate a new wallet class from a mnemonic phrase, optionally randomly generated
 
     Args:
@@ -93,7 +91,7 @@ def create_wallet(mnemonic=None, network=BitcoinSegwitMainNet, strength=128) -> 
 
     Return:
         HDWallet: a wallet class
-    
+
     Usage:
         w = create_wallet(network='BTC', children=10)
     """
@@ -111,7 +109,7 @@ def create_keypair(network=BitcoinSegwitMainNet):
 
     Return:
         PrivateKey, PublicKey: a tuple of a private key and public key.
-    
+
     Usage:
         w = create_wallet(network='BTC', children=10)
     """
@@ -121,23 +119,38 @@ def create_keypair(network=BitcoinSegwitMainNet):
     pub = prv.public_key
     return prv, pub
 
+
 class Wallet:
     """Data class representing a cryptocurrency wallet."""
 
-    def __init__(self, network, seed_phrase, password, receive_gap_limit=1000, change_gap_limit=1000,
-                  derivation_path=None, _with_wallet=True, max_cycles=100, **kwargs):
-        
-        fullnode_endpoints = kwargs.get('fullnode_endpoints')
-        esplora_endpoints = kwargs.get('esplora_endpoints')
-        blockcypher_tokens = kwargs.get('blockcypher_tokens')
+    def __init__(
+        self,
+        network,
+        seed_phrase,
+        password,
+        receive_gap_limit=1000,
+        change_gap_limit=1000,
+        derivation_path=None,
+        _with_wallet=True,
+        max_cycles=100,
+        **kwargs,
+    ):
+
+        fullnode_endpoints = kwargs.get("fullnode_endpoints")
+        esplora_endpoints = kwargs.get("esplora_endpoints")
+        blockcypher_tokens = kwargs.get("blockcypher_tokens")
 
         self._network = network
         if not derivation_path:
-            derivation_path = network.BIP32_SEGWIT_PATH if network.BIP32_SEGWIT_PATH else network.BIP32_PATH
+            derivation_path = (
+                network.BIP32_SEGWIT_PATH
+                if network.BIP32_SEGWIT_PATH
+                else network.BIP32_PATH
+            )
 
         if not seed_phrase:
             seed_phrase = generate_mnemonic()
-        
+
         if _with_wallet:
             self.wallet = wallet_pb2.Wallet()
             self.wallet.SerializeToString()
@@ -149,13 +162,15 @@ class Wallet:
                 self.wallet.derivation_path = derivation_path
             else:
                 raise ValueError("Invalid derivation path")
-            
+
             # Generate addresses and keys
             hdwallet = HDWallet.from_mnemonic(mnemonic=seed_phrase, network=network)
-            
+
             # We do not save the password. Instead, we are going to generate a base64-encrypted
             # serialization of this wallet file using the password.
-            self.wallet.encrypted_seed_phrase = encrypt(seed_phrase, password) # AES-256-CBC encryption
+            self.wallet.encrypted_seed_phrase = encrypt(
+                seed_phrase, password
+            )  # AES-256-CBC encryption
 
             # Set properties
             if network == BitcoinSegwitMainNet:
@@ -211,24 +226,30 @@ class Wallet:
 
             if blockcypher_tokens is not None:
                 self.wallet.blockcypher_tokens.extend(blockcypher_tokens)
-            
+
             self.encrypted_private_keys = []
             for i in range(0, receive_gap_limit):
-                privkey = hdwallet.get_child_for_path(f"{derivation_path}/0/{i}").private_key
+                privkey = hdwallet.get_child_for_path(
+                    f"{derivation_path}/0/{i}"
+                ).private_key
                 pubkey = privkey.public_key
 
                 # Add an Address
                 address = self.wallet.addresses.add()
                 address.address = pubkey.address()
                 address.pubkey = pubkey.to_hex()
-                #address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif() # Security risk
-                self.encrypted_private_keys.append(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif())
-            self.encrypted_private_keys = encrypt(json.dumps(self.encrypted_private_keys), password)
+                # address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif() # Security risk
+                self.encrypted_private_keys.append(
+                    privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
+                )
+            self.encrypted_private_keys = encrypt(
+                json.dumps(self.encrypted_private_keys), password
+            )
 
             # for i in range(0, change_gap_limit):
             #     privkey = hdwallet.get_child_for_path(f"{derivation_path}/1/{i}").private_key
             #     pubkey = privkey.public_key
-                
+
             #     # Add an Address
             #     address = self.wallet.addresses.add()
             #     address.address = pubkey.address()
@@ -237,7 +258,6 @@ class Wallet:
             #   self.encrypted_private_keys.append(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif())
 
             self._setup_client(max_cycles=max_cycles)
-            
 
     @classmethod
     def deserialize(cls, data: bytes, password, max_cycles=100):
@@ -293,11 +313,15 @@ class Wallet:
         self = cls(network, seed_phrase, password, _with_wallet=False)
         self.wallet = wallet
         hdwallet = HDWallet.from_mnemonic(mnemonic=seed_phrase, network=network)
-        
+
         self.encrypted_private_keys = []
         for i in range(0, self.wallet.receive_gap_limit):
-            privkey = hdwallet.get_child_for_path(f"{self.wallet.derivation_path}/0/{i}").private_key
-            self.encrypted_private_keys.append(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif())
+            privkey = hdwallet.get_child_for_path(
+                f"{self.wallet.derivation_path}/0/{i}"
+            ).private_key
+            self.encrypted_private_keys.append(
+                privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
+            )
             pubkey = privkey.public_key
 
             # Add an Address
@@ -305,62 +329,101 @@ class Wallet:
             address.address = pubkey.address()
             address.pubkey = pubkey.to_hex()
             # address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
-        self.encrypted_private_keys = encrypt(json.dumps(self.encrypted_private_keys), password)
+        self.encrypted_private_keys = encrypt(
+            json.dumps(self.encrypted_private_keys), password
+        )
 
-        del(seed_phrase)
-        del(password)
+        del seed_phrase
+        del password
 
         self._setup_client(max_cycles=max_cycles)
 
     def network(self):
         return self._network
-    
+
     def _setup_client(self, max_cycles=100):
         addresses = [a.address for a in self.wallet.addresses]
 
         fullnode_endpoints = []
         esplora_endpoints = []
         blockcypher_tokens = []
-        
+
         for node_pb2 in self.wallet.fullnode_endpoints:
             node = {}
             if node_pb2.url:
-                node['url'] = node_pb2.url
+                node["url"] = node_pb2.url
             if node_pb2.user:
-                node['user'] = node_pb2.user
+                node["user"] = node_pb2.user
             if node_pb2.password:
-                node['password'] = node_pb2.password
+                node["password"] = node_pb2.password
             fullnode_endpoints.append(node)
-        
+
         for node_pb2 in self.wallet.esplora_endpoints:
             node = {}
             if node_pb2.url:
-                node['url'] = node_pb2.url
+                node["url"] = node_pb2.url
             esplora_endpoints.append(node)
-                    
+
         for token in self.wallet.blockcypher_tokens:
             blockcypher_tokens.append(token)
 
-        kwargs = {'fullnode_endpoints': fullnode_endpoints, 'esplora_endpoints': esplora_endpoints, 'blockcypher_tokens': blockcypher_tokens}
+        kwargs = {
+            "fullnode_endpoints": fullnode_endpoints,
+            "esplora_endpoints": esplora_endpoints,
+            "blockcypher_tokens": blockcypher_tokens,
+        }
 
         if self._network.COIN == "BCY":
-            self.client = BCYAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
+            self.client = BCYAddress(
+                addresses,
+                transactions=self.wallet.transactions,
+                max_cycles=max_cycles,
+                **kwargs,
+            )
         elif self._network.COIN == "BTC" and not self._network.TESTNET:
-            self.client = BitcoinAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
+            self.client = BitcoinAddress(
+                addresses,
+                transactions=self.wallet.transactions,
+                max_cycles=max_cycles,
+                **kwargs,
+            )
         elif self._network.COIN == "BTC" and self._network.TESTNET:
-            self.client = BitcoinTestAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
+            self.client = BitcoinTestAddress(
+                addresses,
+                transactions=self.wallet.transactions,
+                max_cycles=max_cycles,
+                **kwargs,
+            )
         elif self._network.COIN == "LTC" and not self._network.TESTNET:
-            self.client = LitecoinAddress( addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
+            self.client = LitecoinAddress(
+                addresses,
+                transactions=self.wallet.transactions,
+                max_cycles=max_cycles,
+                **kwargs,
+            )
         elif self._network.COIN == "DOGE" and not self._network.TESTNET:
-            self.client = DogecoinAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
+            self.client = DogecoinAddress(
+                addresses,
+                transactions=self.wallet.transactions,
+                max_cycles=max_cycles,
+                **kwargs,
+            )
         elif self._network.COIN == "DASH" and not self._network.TESTNET:
-            self.client = DashAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
+            self.client = DashAddress(
+                addresses,
+                transactions=self.wallet.transactions,
+                max_cycles=max_cycles,
+                **kwargs,
+            )
         elif self._network.COIN == "ETH" and not self._network.TESTNET:
-            self.client = EthereumAddress(addresses, transactions=self.wallet.transactions, max_cycles=max_cycles, **kwargs)
+            self.client = EthereumAddress(
+                addresses,
+                transactions=self.wallet.transactions,
+                max_cycles=max_cycles,
+                **kwargs,
+            )
         else:
             raise ValueError("No address client for this network")
-
-
 
     def get_transaction_history(self):
         transactions = self.client.get_transaction_history()
@@ -390,7 +453,7 @@ class Wallet:
         for t in transactions:
             tx_array.append(Transaction(t, self._network))
         return tx_array
-    
+
     def get_utxos(self, only_unspent=False):
         addresses = [a.address for a in self.wallet.addresses]
 
@@ -399,36 +462,52 @@ class Wallet:
         for t in transactions:
             for i in range(len(t.sat_outputs(only_unspent=only_unspent))):
                 try:
-                    utxo_set.append(UTXO(t, i, addresses=addresses, other_transactions=transactions, only_mine=True))
+                    utxo_set.append(
+                        UTXO(
+                            t,
+                            i,
+                            addresses=addresses,
+                            other_transactions=transactions,
+                            only_mine=True,
+                        )
+                    )
                 except ValueError:
                     pass
-        
+
         return utxo_set
-    
+
     def _to_human_friendly_utxo(self, inputs, private_keys):
         new_inputs = []
         for ii in range(len(inputs)):
             u = inputs[ii]
-            for i in range (len(private_keys)):
+            for i in range(len(private_keys)):
                 private_key = private_keys[i]
                 privkey = PrivateKey.from_wif(private_key.decode(), self._network)
                 try:
-                    a = [privkey.public_key.base58_address(True),
+                    a = [
+                        privkey.public_key.base58_address(True),
                         privkey.public_key.base58_address(False),
-                        privkey.public_key.bech32_address()]
+                        privkey.public_key.bech32_address(),
+                    ]
                 except Exception as e:
-                    a = [privkey.public_key.base58_address(True),
-                        privkey.public_key.base58_address(False)]
-                u._output['private_key'] = private_key if u._output['address'] in a else None
-                u._output['script_pubkey'] = PublicKey.script(u._output['address'], self._network)
-                del(privkey)
-                del(private_key)
-                if u._output['private_key'] == None:
+                    a = [
+                        privkey.public_key.base58_address(True),
+                        privkey.public_key.base58_address(False),
+                    ]
+                u._output["private_key"] = (
+                    private_key if u._output["address"] in a else None
+                )
+                u._output["script_pubkey"] = PublicKey.script(
+                    u._output["address"], self._network
+                )
+                del privkey
+                del private_key
+                if u._output["private_key"] == None:
                     continue
                 new_inputs.append(u)
                 break
         return new_inputs
-    
+
     def get_balance(self, in_standard_units=True):
         if self._network.SUPPORTS_EVM:
             # We must use the Web3 network to get the balance as UTXOs are not available and getting transaction history
@@ -438,7 +517,7 @@ class Wallet:
                 return balance[0] / 1e18, balance[1] / 1e18
             else:
                 return balance
-        
+
         # Not an EVM chain
 
         total_balance = 0
@@ -456,7 +535,7 @@ class Wallet:
 
     def addresses(self):
         return [a.address for a in self.wallet.addresses]
-    
+
     def random_address(self):
         addresses = self.addresses()
         return addresses[randrange(0, len(addresses))]
@@ -466,16 +545,15 @@ class Wallet:
         try:
             private_keys = json.loads(decrypt(self.encrypted_private_keys, password))
         except ValueError as e:
-            del(private_keys)
+            del private_keys
             raise e
         return private_keys
-
 
     def _add_stock_nodes(self):
         fullnode_endpoints = []
         for f in self.wallet.fullnode_endpoints:
             _f = {}
-            _f['url'] = f.url
+            _f["url"] = f.url
             fullnode_endpoints.append(_f)
         if not self._network.SUPPORTS_EVM:
             return fullnode_endpoints
@@ -483,17 +561,23 @@ class Wallet:
             if self._network.COIN == "ETH":
                 fullnode_endpoints.extend(eth_nodes)
             return fullnode_endpoints
-        
+
     def _calculate_change(self, inputs, destinations, fee_rate):
-        temp_transaction = create_transaction(inputs, destinations, network=self._network)
+        temp_transaction = create_transaction(
+            inputs, destinations, network=self._network
+        )
         size = transaction_size_simple(temp_transaction)
         total_inputs = sum([i.amount(in_standard_units=False) for i in inputs])
         total_outputs = sum([o.amount(in_standard_units=False) for o in destinations])
-        fee_proportional_outputs = [o for o in destinations if o.fee_policy() == FeePolicy.PROPORTIONAL]
+        fee_proportional_outputs = [
+            o for o in destinations if o.fee_policy() == FeePolicy.PROPORTIONAL
+        ]
 
-        if total_inputs < total_outputs + size*fee_rate:
+        if total_inputs < total_outputs + size * fee_rate:
             if fee_proportional_outputs:
-                proportional_fee = int(math.ceil((size*fee_rate) / len(fee_proportional_outputs)))
+                proportional_fee = int(
+                    math.ceil((size * fee_rate) / len(fee_proportional_outputs))
+                )
                 old_destinations = destinations
                 destinations = []
                 for o in old_destinations:
@@ -502,20 +586,32 @@ class Wallet:
                     destinations.append(o)
             else:
                 raise ValueError("Not enough balance for this transaction")
-        
-        # If after applying proportional fee scaling we STILL don't have enough balance,
-        # then that means the outputs are greater than the inputs (possibly a dust input set)
+
+        # If after applying proportional fee scaling we STILL don't have
+        # enough balance, then that means the outputs are greater than the inputs (possibly a dust input set)
         # In this case, the total_outputs is most likely negative.
         total_outputs = sum([o.amount(in_standard_units=False) for o in destinations])
-        if total_inputs < total_outputs + size*fee_rate:
-            raise ValueError("Not enough balance for this transaction (are you trying to send dust amounts?)")
+        if total_inputs < total_outputs + size * fee_rate:
+            raise ValueError(
+                "Not enough balance for this transaction (are you trying to send dust amounts?)"
+            )
 
-        change = total_inputs - total_outputs - size*fee_rate
-        return None if change <= 0 else Destination(self.random_address(), change / 1e8, self._network)
-
+        change = total_inputs - total_outputs - size * fee_rate
+        return (
+            None
+            if change <= 0
+            else Destination(self.random_address(), change / 1e8, self._network)
+        )
 
     # Fee rate is in the unit used by the network, ie. vbytes, bytes or wei
-    def create_transaction(self, password: bytes, destinations: List[Destination], fee_rate=None, spend_unconfirmed_inputs=False, **kwargs):
+    def create_transaction(
+        self,
+        password: bytes,
+        destinations: List[Destination],
+        fee_rate=None,
+        spend_unconfirmed_inputs=False,
+        **kwargs,
+    ):
         inputs = self.get_utxos(only_unspent=True)
 
         if not spend_unconfirmed_inputs:
@@ -524,7 +620,7 @@ class Wallet:
                 if i.height():
                     confirmed_inputs.append(i)
             inputs = confirmed_inputs
-        
+
         private_keys = self.private_keys(password)
 
         inputs = self._to_human_friendly_utxo(inputs, private_keys)
@@ -532,9 +628,15 @@ class Wallet:
         fullnode_endpoints = self._add_stock_nodes()
 
         if self._network.SUPPORTS_EVM:
-           #Note: On EVM chains we do NOT need to estimate the fee. Web3.py does all the heavy lifting for us.
-            create_transaction(inputs, destinations, network=self._network, full_nodes=fullnode_endpoints, **kwargs)
-        
+            # Note: On EVM chains we do NOT need to estimate the fee. Web3.py does all the heavy lifting for us.
+            create_transaction(
+                inputs,
+                destinations,
+                network=self._network,
+                full_nodes=fullnode_endpoints,
+                **kwargs,
+            )
+
         # Depending on the size of the transactions, we may need to add a change output. Otherwise,
         # the remaining balance is going to the miner.
         # This is not the real change input, we need to find the size of the transaction first.
@@ -546,7 +648,6 @@ class Wallet:
         if change:
             destinations.append(change)
         return create_transaction(inputs, destinations, network=self._network)
-
 
     def broadcast_transaction(self, transaction):
         broadcast_transaction(transaction, self._network)

@@ -1,6 +1,7 @@
 import requests
 from ...errors import NetworkException
 
+
 class EarnDotComFeeEstimator:
     """
     A class representing a Bitcoin fee rate estimator using Earn.com API.
@@ -50,7 +51,9 @@ class EarnDotComFeeEstimator:
 
         if response.status_code == 200:
             data = response.json()
-            fee_rate = data["fastestFee"]  # You can use other fee rate values available in the response
+            fee_rate = data[
+                "fastestFee"
+            ]  # You can use other fee rate values available in the response
             return fee_rate
         else:
             raise NetworkException("Failed to retrieve current fee rate from Earn.com")

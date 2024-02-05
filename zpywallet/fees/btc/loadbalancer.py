@@ -11,22 +11,22 @@ from .mempoolspace import MempoolSpaceFeeEstimator
 from ...errors import NetworkException
 from ...nodes.btc import btc_nodes, btc_esplora_nodes
 
+
 class BitcoinFeeEstimator:
-    """ Load balancer for all BTC fee providers provided to an instance of this class,
-        using the round robin scheduling algorithm.
+    """Load balancer for all BTC fee providers provided to an instance of this class,
+    using the round robin scheduling algorithm.
     """
 
     def __init__(self, **kwargs):
         self.provider_list = []
-        fullnode_endpoints = kwargs.get('fullnode_endpoints')
-        esplora_endpoints = kwargs.get('esplora_endpoints')
-        blockcypher_tokens = kwargs.get('blockcypher_tokens')
+        fullnode_endpoints = kwargs.get("fullnode_endpoints")
+        esplora_endpoints = kwargs.get("esplora_endpoints")
+        blockcypher_tokens = kwargs.get("blockcypher_tokens")
 
         if not esplora_endpoints:
             esplora_endpoints = [] + btc_esplora_nodes
         if not fullnode_endpoints:
             fullnode_endpoints = [] + btc_nodes
-
 
         self.provider_list.append(BlockchainInfoFeeEstimator())
         tokens = blockcypher_tokens
@@ -34,7 +34,7 @@ class BitcoinFeeEstimator:
             tokens = []
         for token in tokens:
             self.provider_list.append(BlockcypherFeeEstimator(api_key=token))
-        self.provider_list.append(BlockcypherFeeEstimator()) # No token (free) version
+        self.provider_list.append(BlockcypherFeeEstimator())  # No token (free) version
         self.provider_list.append(BlockstreamFeeEstimator())
         self.provider_list.append(EarnDotComFeeEstimator())
         for endpoint in esplora_endpoints:
@@ -43,7 +43,6 @@ class BitcoinFeeEstimator:
             self.provider_list.append(BitcoinRPCClient(**endpoint))
         self.provider_list.append(MempoolSpaceFeeEstimator())
 
-    
     def get_fee_rate(self):
         """
         Gets the network fee rate.

@@ -28,31 +28,37 @@ class WatchOnlyWalletError(Exception):
     performing an operation that requires a public key.
     """
 
+
 class SegwitError(Exception):
     """
     Raised when a network does not support Segwit (P2WPKH).
     """
+
 
 class InvalidPathError(Exception):
     """
     Raised when the provided derivation path is invalid.
     """
 
+
 class NetworkException(Exception):
     """
     Raised when a network request fails.
     """
 
+
 def incompatible_network_bytes_exception_factory(
-        network_name, expected_prefix, given_prefix):
+    network_name, expected_prefix, given_prefix
+):
     """A factory function for IncompatibleNetworkException."""
     return IncompatibleNetworkException(
         f"Incorrect network. {network_name} expects a byte prefix of "
-        f"{expected_prefix}, but you supplied {given_prefix}")
+        f"{expected_prefix}, but you supplied {given_prefix}"
+    )
 
 
-def unsupported_feature_exception_factory(
-        network_name, feature):
+def unsupported_feature_exception_factory(network_name, feature):
     """Another factory function for IncompatibleNetworkException."""
     return IncompatibleNetworkException(
-        f"{network_name} does not support feature: {feature}")
+        f"{network_name} does not support feature: {feature}"
+    )

@@ -1,6 +1,7 @@
 """
 Module for generating Heirarchical Deterministic (HD) keys for supported networks.
 """
+
 from binascii import hexlify, unhexlify
 from hashlib import sha256, sha512
 import hmac
@@ -12,13 +13,18 @@ import coincurve
 from .base58 import b58encode_check, b58decode_check
 from ..mnemonic.mnemonic import Mnemonic
 from .keys import PrivateKey, PublicKey, Point, secp256k1
-from ..errors import incompatible_network_bytes_exception_factory, InvalidChildException, \
-    InvalidPathError, WatchOnlyWalletError, SegwitError, unsupported_feature_exception_factory
+from ..errors import (
+    incompatible_network_bytes_exception_factory,
+    InvalidChildException,
+    InvalidPathError,
+    WatchOnlyWalletError,
+    SegwitError,
+    unsupported_feature_exception_factory,
+)
 from .utils import ensure_bytes, ensure_str, hash160, is_hex_string, long_to_hex
 
 # import all the networks
 from ..network import BitcoinSegwitMainNet
-
 
 
 class HDWallet(object):
@@ -48,17 +54,19 @@ class HDWallet(object):
     https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
     """
 
-    def __init__(self,
-                 chain_code,
-                 depth=0,
-                 parent_fingerprint=0,
-                 child_number=0,
-                 private_exponent=None,
-                 private_key=None,
-                 public_pair=None,
-                 public_key=None,
-                 mnemonic=None,
-                 network=BitcoinSegwitMainNet):
+    def __init__(
+        self,
+        chain_code,
+        depth=0,
+        parent_fingerprint=0,
+        child_number=0,
+        private_exponent=None,
+        private_key=None,
+        public_pair=None,
+        public_key=None,
+        mnemonic=None,
+        network=BitcoinSegwitMainNet,
+    ):
         """Construct a new BIP32 compliant wallet.
 
         You probably don't want to use this init methd. Instead use one
@@ -70,10 +78,8 @@ class HDWallet(object):
         in the class methods.
         """
 
-        if (not (private_exponent or private_key) and
-                not (public_pair or public_key)):
-            raise ValueError(
-                "You must supply one of private_exponent or public_pair")
+        if not (private_exponent or private_key) and not (public_pair or public_key):
+            raise ValueError("You must supply one of private_exponent or public_pair")
 
         self.mnemonic = mnemonic
         self.private_key = None
@@ -90,16 +96,15 @@ class HDWallet(object):
         else:
             self.public_key = self.private_key.public_key
 
-        if (self.private_key and self.private_key.public_key !=
-                self.public_key):
-            raise ValueError(
-                "Provided private and public values do not match")
+        if self.private_key and self.private_key.public_key != self.public_key:
+            raise ValueError("Provided private and public values do not match")
 
         def hex_check_length(val, hex_len):
             if isinstance(val, int):
                 return long_to_hex(val, hex_len)
-            elif (isinstance(val, str) or
-                    isinstance(val, bytes)) and is_hex_string(val):
+            elif (isinstance(val, str) or isinstance(val, bytes)) and is_hex_string(
+                val
+            ):
                 val = ensure_bytes(val)
                 if len(val) != hex_len:
                     raise ValueError("Invalid parameter length")
@@ -110,8 +115,7 @@ class HDWallet(object):
         def hex_int(val):
             if isinstance(val, int):
                 return int(val)
-            elif (isinstance(val, str) or
-                    isinstance(val, bytes)):
+            elif isinstance(val, str) or isinstance(val, bytes):
                 val = ensure_bytes(val)
                 if not is_hex_string(val):
                     val = hexlify(val)
@@ -121,8 +125,7 @@ class HDWallet(object):
 
         self.network = network
         self.depth = hex_int(depth)
-        if (isinstance(parent_fingerprint, str) or
-                isinstance(parent_fingerprint, bytes)):
+        if isinstance(parent_fingerprint, str) or isinstance(parent_fingerprint, bytes):
             val = ensure_bytes(parent_fingerprint)
             if val.startswith(b"0x"):
                 parent_fingerprint = val[2:]
@@ -159,7 +162,7 @@ class HDWallet(object):
     @property
     def mnemonic_phrase(self):
         """Returns the mnemonic phrase for this wallet, if specified.
-        
+
         WARNING: Never share your mnemonic phrase with anyone. They can
         use it to steal your assets.
         """
@@ -169,7 +172,7 @@ class HDWallet(object):
     def fingerprint(self):
         """The first 32 bits of the identifier are called the fingerprint."""
         # 32 bits == 4 Bytes == 8 hex characters
-        return b'0x' + self.identifier[:8]
+        return b"0x" + self.identifier[:8]
 
     def create_new_address_for_user(self, user_id):
         """Create a new bitcoin address to accept payments for a User.
@@ -245,13 +248,11 @@ class HDWallet(object):
         return child
 
     def legacy_child(self):
-        """Equivalent to get_child(44, is_prime=True)
-        """
+        """Equivalent to get_child(44, is_prime=True)"""
         return self.get_child(44, is_prime=True)
 
     def segwit_child(self):
-        """Equivalent to get_child(84, is_prime=True)
-        """
+        """Equivalent to get_child(84, is_prime=True)"""
         return self.get_child(84, is_prime=True)
 
     def get_child(self, child_number, is_prime=None, as_private=True):
@@ -303,11 +304,14 @@ class HDWallet(object):
             # Otherwise is_prime is set so the child_number should be between
             # 0 and 0x80000000
             if child_number < 0 or child_number >= boundary:
-                raise ValueError(f"Invalid child number. Must be between 0 and {boundary}")
+                raise ValueError(
+                    f"Invalid child number. Must be between 0 and {boundary}"
+                )
 
         if not self.private_key and is_prime:
             raise WatchOnlyWalletError(
-                "Cannot compute a prime child without a private key")
+                "Cannot compute a prime child without a private key"
+            )
 
         if is_prime:
             # Even though we take child_number as an int < boundary, the
@@ -317,7 +321,7 @@ class HDWallet(object):
 
         if is_prime:
             # Let data = concat(0x00, self.key, child_number)
-            data = b'00' + ensure_bytes(self.private_key.to_hex())
+            data = b"00" + ensure_bytes(self.private_key.to_hex())
         else:
             data = self.get_public_key_hex()
         data += child_number_hex
@@ -327,7 +331,8 @@ class HDWallet(object):
         ichild = hmac.new(
             unhexlify(ensure_bytes(self.chain_code)),
             msg=unhexlify(ensure_bytes(data)),
-            digestmod=sha512).digest()
+            digestmod=sha512,
+        ).digest()
         # Split I into its 32 Byte components.
         ichild_left, ichild_right = ichild[:32], ichild[32:]
 
@@ -342,14 +347,16 @@ class HDWallet(object):
             # I_L is added to the current key's secret exponent (mod n), where
             # n is the order of the ECDSA curve in use.
             private_exponent = (
-                (int(hexlify(ichild_left), 16) +
-                 int(ensure_bytes(self.private_key.to_hex()), 16))
-                % secp256k1.N)
+                int(hexlify(ichild_left), 16)
+                + int(ensure_bytes(self.private_key.to_hex()), 16)
+            ) % secp256k1.N
             # I_R is the child's chain code
         else:
             # Only use public information for this derivation
             gen = coincurve.PublicKey.from_point(secp256k1.Gx, secp256k1.Gy)
-            point = Point(*gen.multiply(ichild_left).add(self.public_key.to_bytes()).point())
+            point = Point(
+                *gen.multiply(ichild_left).add(self.public_key.to_bytes()).point()
+            )
             # I_R is the child's chain code
 
         child = self.__class__(
@@ -359,7 +366,8 @@ class HDWallet(object):
             child_number=child_number_hex,
             private_exponent=private_exponent,
             public_pair=point,
-            network=self.network)
+            network=self.network,
+        )
         if not as_private:
             return child.public_copy()
         return child
@@ -372,7 +380,8 @@ class HDWallet(object):
             parent_fingerprint=self.parent_fingerprint,
             child_number=self.child_number,
             public_pair=self.public_key.to_point(),
-            network=self.network)
+            network=self.network,
+        )
 
     def crack_private_key(self, child_private_key):
         """Crack the parent private key given a child private key.
@@ -401,15 +410,15 @@ class HDWallet(object):
             raise InvalidChildException("This is not a valid child")
         if child_private_key.child_number >= 0x80000000:
             raise InvalidChildException(
-                "Cannot crack private keys from private derivation")
+                "Cannot crack private keys from private derivation"
+            )
 
         # Duplicate the public child derivation
         child_number_hex = long_to_hex(child_private_key.child_number, 8)
         data = self.get_public_key_hex() + child_number_hex
         ichild = hmac.new(
-            unhexlify(self.chain_code),
-            msg=unhexlify(data),
-            digestmod=sha512).digest()
+            unhexlify(self.chain_code), msg=unhexlify(data), digestmod=sha512
+        ).digest()
         ichild_left, _ = ichild[:32], ichild[32:]
         # Public derivation is the same as private derivation plus some offset
         # knowing the child's private key allows us to find this offset just
@@ -422,7 +431,8 @@ class HDWallet(object):
             parent_fingerprint=self.parent_fingerprint,
             child_number=self.child_number,
             private_key=parent_private_key,
-            network=self.network)
+            network=self.network,
+        )
 
     def serialize(self, private=True, segwit=False):
         """Serialize this key.
@@ -446,41 +456,39 @@ class HDWallet(object):
             elif segwit:
                 if not self.network.EXT_SEGWIT_SECRET_KEY:
                     raise SegwitError("Segwit is not supported on this network")
-                network_version = long_to_hex(
-                    self.network.EXT_SEGWIT_SECRET_KEY, 8)
+                network_version = long_to_hex(self.network.EXT_SEGWIT_SECRET_KEY, 8)
             else:
                 if not self.network.EXT_SECRET_KEY:
-                    raise unsupported_feature_exception_factory(self.network.NAME, "private key serialization")
-                network_version = long_to_hex(
-                    self.network.EXT_SECRET_KEY, 8)
+                    raise unsupported_feature_exception_factory(
+                        self.network.NAME, "private key serialization"
+                    )
+                network_version = long_to_hex(self.network.EXT_SECRET_KEY, 8)
         else:
             if segwit:
                 if not self.network.EXT_SEGWIT_PUBLIC_KEY:
                     raise SegwitError("Segwit is not supported on this network")
-                network_version = long_to_hex(
-                    self.network.EXT_SEGWIT_PUBLIC_KEY, 8)
+                network_version = long_to_hex(self.network.EXT_SEGWIT_PUBLIC_KEY, 8)
             else:
                 if not self.network.EXT_PUBLIC_KEY:
-                    raise unsupported_feature_exception_factory(self.network.NAME, "public key serialization")
-                network_version = long_to_hex(
-                    self.network.EXT_PUBLIC_KEY, 8)
+                    raise unsupported_feature_exception_factory(
+                        self.network.NAME, "public key serialization"
+                    )
+                network_version = long_to_hex(self.network.EXT_PUBLIC_KEY, 8)
         depth = long_to_hex(self.depth, 2)
         parent_fingerprint = self.parent_fingerprint[2:]  # strip leading 0x
         child_number = long_to_hex(self.child_number, 8)
         chain_code = self.chain_code
-        ret = (network_version + depth + parent_fingerprint + child_number +
-               chain_code)
+        ret = network_version + depth + parent_fingerprint + child_number + chain_code
         # Private and public serializations are slightly different
         if private:
-            ret += b'00' + ensure_bytes(self.private_key.to_hex())
+            ret += b"00" + ensure_bytes(self.private_key.to_hex())
         else:
             ret += self.get_public_key_hex(compressed=True)
         return ensure_bytes(ret.lower())
 
     def serialize_b58(self, private=True, segwit=False):
         """Encode the serialized node in base58."""
-        return ensure_str(
-            b58encode_check(unhexlify(self.serialize(private, segwit))))
+        return ensure_str(b58encode_check(unhexlify(self.serialize(private, segwit))))
 
     def address(self, compressed=True, witness_version=0):
         """Create a public address from this Wallet.
@@ -499,9 +507,12 @@ class HDWallet(object):
         Returns:
             str: An encoded address
         """
-        key = PublicKey.from_bytes(unhexlify(self.get_public_key_hex()), network=self.network)
-        return ensure_str(key.address(compressed=compressed,
-                                      witness_version=witness_version))
+        key = PublicKey.from_bytes(
+            unhexlify(self.get_public_key_hex()), network=self.network
+        )
+        return ensure_str(
+            key.address(compressed=compressed, witness_version=witness_version)
+        )
 
     @classmethod
     def deserialize(cls, key, network=BitcoinSegwitMainNet):
@@ -539,7 +550,13 @@ class HDWallet(object):
         # Now that we double checkd the values, convert back to bytes because
         # they're easier to slice
         version, depth, parent_fingerprint, child, chain_code, key_data = (
-            key[:4], key[4], key[5:9], key[9:13], key[13:45], key[45:])
+            key[:4],
+            key[4],
+            key[5:9],
+            key[9:13],
+            key[13:45],
+            key[45:],
+        )
 
         if int(depth) == 0 and int(hexlify(parent_fingerprint), 16) != 0:
             raise ValueError("Zero depth with non-zero parent fingerprint")
@@ -555,8 +572,10 @@ class HDWallet(object):
             # Private key
             if version_long != network.EXT_SECRET_KEY:
                 raise incompatible_network_bytes_exception_factory(
-                    network.NAME, unhexlify(f"{network.EXT_SECRET_KEY:x}".zfill(8)),
-                    version)
+                    network.NAME,
+                    unhexlify(f"{network.EXT_SECRET_KEY:x}".zfill(8)),
+                    version,
+                )
             exponent = key_data[1:]
             iexponent = int(hexlify(exponent), 16)
             if iexponent < 1 or iexponent >= secp256k1.N:
@@ -565,8 +584,10 @@ class HDWallet(object):
             # Compressed public coordinates
             if version_long != network.EXT_PUBLIC_KEY:
                 raise incompatible_network_bytes_exception_factory(
-                    network.NAME, unhexlify(f"{network.EXT_PUBLIC_KEY:x}".zfill(8)),
-                    version)
+                    network.NAME,
+                    unhexlify(f"{network.EXT_PUBLIC_KEY:x}".zfill(8)),
+                    version,
+                )
             pubkey = PublicKey.from_bytes(key_data)
             # Even though this was generated from a compressed pubkey, we
             # want to store it as an uncompressed pubkey
@@ -581,26 +602,28 @@ class HDWallet(object):
                 return byte_seq
             return int(hexlify(byte_seq), 16)
 
-        return cls(depth=bytes_int(depth),
-                   parent_fingerprint=bytes_int(parent_fingerprint),
-                   child_number=bytes_int(child),
-                   chain_code=bytes_int(chain_code),
-                   private_exponent=bytes_int(exponent),
-                   public_key=pubkey,
-                   network=network)
+        return cls(
+            depth=bytes_int(depth),
+            parent_fingerprint=bytes_int(parent_fingerprint),
+            child_number=bytes_int(child),
+            chain_code=bytes_int(chain_code),
+            private_exponent=bytes_int(exponent),
+            public_key=pubkey,
+            network=network,
+        )
 
     @classmethod
-    def from_mnemonic(cls, mnemonic, passphrase='', network=BitcoinSegwitMainNet):
+    def from_mnemonic(cls, mnemonic, passphrase="", network=BitcoinSegwitMainNet):
         """Generate a new PrivateKey from a secret key.
 
         :param mnemonic: The key to use to generate this wallet.
         :param passphrase: An optional passphrase for this mnemonic.
         :param network: The network to use. Defaults to Bitcoin mainnet.
-        
+
 
         See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Serialization_format
         """
-        mne = Mnemonic(language='english')
+        mne = Mnemonic(language="english")
         seed = ensure_bytes(mne.to_seed(mnemonic, passphrase))
 
         # Given a seed S of at least 128 bits, but 256 is advised
@@ -609,9 +632,12 @@ class HDWallet(object):
         # Split I into two 32-byte sequences, IL and IR.
         Il, Ir = I[:32], I[32:]
         # Use IL as master secret key, and IR as master chain code.
-        return cls(private_exponent=int(hexlify(Il), 16),
-                   chain_code=hexlify(Ir), mnemonic=mnemonic,
-                   network=network)
+        return cls(
+            private_exponent=int(hexlify(Il), 16),
+            chain_code=hexlify(Ir),
+            mnemonic=mnemonic,
+            network=network,
+        )
 
     @classmethod
     def from_brainwallet(cls, password, network=BitcoinSegwitMainNet):
@@ -627,7 +653,7 @@ class HDWallet(object):
             It may be a long string. Do not use a phrase from a book or song,
             as that will be guessed and is not secure.
             :param network: The network to use. Defaults to Bitcoin mainnet.
-        
+
         Returns:
             Wallet: A Wallet object.
         """
@@ -641,9 +667,11 @@ class HDWallet(object):
         # Split I into two 32-byte sequences, IL and IR.
         Il, Ir = I[:32], I[32:]
         # Use IL as master secret key, and IR as master chain code.
-        return cls(private_exponent=int(hexlify(Il), 16),
-                   chain_code=hexlify(Ir),
-                   network=network)
+        return cls(
+            private_exponent=int(hexlify(Il), 16),
+            chain_code=hexlify(Ir),
+            network=network,
+        )
 
     @classmethod
     def from_master_seed(cls, seed, network=BitcoinSegwitMainNet):
@@ -652,7 +680,7 @@ class HDWallet(object):
         :param seed: The byte sequence to use to generate this wallet. The seed length
             should be at least 128 bits, no longer than 256 bits, and be divisible by 32.
         :param network: The network to use. Defaults to Bitcoin mainnet.
-        
+
 
         See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Serialization_format
         """
@@ -663,13 +691,15 @@ class HDWallet(object):
         # Split I into two 32-byte sequences, IL and IR.
         Il, Ir = I[:32], I[32:]
         # Use IL as master secret key, and IR as master chain code.
-        return cls(private_exponent=int(hexlify(Il), 16),
-                   chain_code=hexlify(Ir),
-                   network=network)
+        return cls(
+            private_exponent=int(hexlify(Il), 16),
+            chain_code=hexlify(Ir),
+            network=network,
+        )
 
     @classmethod
-    def from_random(cls, passphrase='', strength=128, network=BitcoinSegwitMainNet):
-        """ Generates a master key from system entropy.
+    def from_random(cls, passphrase="", strength=128, network=BitcoinSegwitMainNet):
+        """Generates a master key from system entropy.
 
         Args:
             :param strength (int): Amount of entropy desired, in bits.
@@ -689,24 +719,23 @@ class HDWallet(object):
         if strength < 128 or strength > 256:
             raise ValueError("strength should be >= 128 and <= 256")
         entropy = urandom(strength // 8)
-        mne = Mnemonic(language='english')
+        mne = Mnemonic(language="english")
         mnemonic = mne.to_mnemonic(entropy)
-        return cls.from_mnemonic(
-            mnemonic, passphrase, network=network)
-
+        return cls.from_mnemonic(mnemonic, passphrase, network=network)
 
     def __eq__(self, other):
         attrs = [
-            'chain_code',
-            'depth',
-            'parent_fingerprint',
-            'child_number',
-            'private_key',
-            'public_key',
-            'network',
+            "chain_code",
+            "depth",
+            "parent_fingerprint",
+            "child_number",
+            "private_key",
+            "public_key",
+            "network",
         ]
         return other and all(
-            getattr(self, attr) == getattr(other, attr) for attr in attrs)
+            getattr(self, attr) == getattr(other, attr) for attr in attrs
+        )
 
     def __ne__(self, other):
         return not self == other
@@ -732,7 +761,7 @@ class HDWallet(object):
         """
         seed = str(urandom(64))  # 512/8
         # weak extra protection inspired by pybitcointools implementation:
-        seed += str(int(time.time()*10**6))
+        seed += str(int(time.time() * 10**6))
         if user_entropy:
             user_entropy = str(user_entropy)  # allow for int/long
             seed += user_entropy

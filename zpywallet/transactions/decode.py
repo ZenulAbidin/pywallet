@@ -1,8 +1,10 @@
 from ..network import BitcoinSegwitMainNet
 from .script import Script
 
+
 class InvalidTransactionError(Exception):
     pass
+
 
 def hex_to_int(string):
     return int.from_bytes(bytes.fromhex(string), byteorder="little")
@@ -16,40 +18,46 @@ def parse_transaction(raw_transaction_hex, segwit=False):
 
     try:
         # Version
-        transaction['version'] = hex_to_int(raw_transaction_hex[0:8])
+        transaction["version"] = hex_to_int(raw_transaction_hex[0:8])
         index = 8
 
         # Marker & Flag (for SegWit)
         if segwit:
-            marker = raw_transaction_hex[index:index+2]
+            marker = raw_transaction_hex[index : index + 2]
             index += 2
-            flag = raw_transaction_hex[index:index+2]
+            flag = raw_transaction_hex[index : index + 2]
             index += 2
             witness_flag_size = 2
 
             if hex_to_int(marker) == 0 and hex_to_int(flag) != 1:
-                raise InvalidTransactionError("Marker byte must be 0x00, flag byte immediately after it must be 0x01")
+                raise InvalidTransactionError(
+                    "Marker byte must be 0x00, flag byte immediately after it must be 0x01"
+                )
 
         # Input Count
         input_count, varint_length = parse_varint_hex(raw_transaction_hex[index:])
-        transaction['input_count'] = input_count
+        transaction["input_count"] = input_count
         index += varint_length * 2
 
         if input_count == 0:
-            raise InvalidTransactionError("Input count must not be zero (is this a segwit transaction?)")
+            raise InvalidTransactionError(
+                "Input count must not be zero (is this a segwit transaction?)"
+            )
 
         # Inputs
-        transaction['inputs'] = []
+        transaction["inputs"] = []
         for _ in range(input_count):
             input_data = {}
             # Previous Transaction Hash
-            b = bytearray.fromhex(raw_transaction_hex[index:index+64])
+            b = bytearray.fromhex(raw_transaction_hex[index : index + 64])
             b.reverse()
-            input_data['prev_tx_hash'] = b.hex()
+            input_data["prev_tx_hash"] = b.hex()
             index += 64
 
             # Previous Transaction Output Index
-            input_data['prev_tx_output_index'] = hex_to_int(raw_transaction_hex[index:index+8])
+            input_data["prev_tx_output_index"] = hex_to_int(
+                raw_transaction_hex[index : index + 8]
+            )
             index += 8
 
             # Script Length
@@ -57,30 +65,34 @@ def parse_transaction(raw_transaction_hex, segwit=False):
             index += varint_length * 2
 
             # Script Signature
-            input_data['script_signature'] = raw_transaction_hex[index:index+(script_length*2)]
+            input_data["script_signature"] = raw_transaction_hex[
+                index : index + (script_length * 2)
+            ]
             index += script_length * 2
 
             # Sequence
-            input_data['sequence'] = raw_transaction_hex[index:index+8]
+            input_data["sequence"] = raw_transaction_hex[index : index + 8]
             index += 8
 
-            transaction['inputs'].append(input_data)
+            transaction["inputs"].append(input_data)
 
         # Output Count
         output_count, varint_length = parse_varint_hex(raw_transaction_hex[index:])
-        transaction['output_count'] = output_count
+        transaction["output_count"] = output_count
         index += varint_length * 2
 
         if output_count == 0:
-            raise InvalidTransactionError("Output count must not be zero "
-                                          "(If this is a segwit transaction, pass segwit=True)")
+            raise InvalidTransactionError(
+                "Output count must not be zero "
+                "(If this is a segwit transaction, pass segwit=True)"
+            )
 
         # Outputs
-        transaction['outputs'] = []
+        transaction["outputs"] = []
         for _ in range(output_count):
             output_data = {}
             # Value
-            output_data['value'] = hex_to_int(raw_transaction_hex[index:index+16])
+            output_data["value"] = hex_to_int(raw_transaction_hex[index : index + 16])
             index += 16
 
             # Script Length
@@ -88,57 +100,66 @@ def parse_transaction(raw_transaction_hex, segwit=False):
             index += varint_length * 2
 
             # Script Public Key
-            output_data['script_pubkey'] = raw_transaction_hex[index:index+(script_length*2)]
+            output_data["script_pubkey"] = raw_transaction_hex[
+                index : index + (script_length * 2)
+            ]
 
-            
             index += script_length * 2
 
-            transaction['outputs'].append(output_data)
+            transaction["outputs"].append(output_data)
 
         # Witness Data (for SegWit)
         # Ensure that the flag signals that witness data is present.
         if segwit and flag:
             for j in range(input_count):
                 witness_start = index
-                transaction["inputs"][j]['witness_data'] = []
-                witness_count, varint_length = parse_varint_hex(raw_transaction_hex[index:])
+                transaction["inputs"][j]["witness_data"] = []
+                witness_count, varint_length = parse_varint_hex(
+                    raw_transaction_hex[index:]
+                )
                 index += varint_length * 2
 
                 for _ in range(witness_count):
-                    item_length, varint_length = parse_varint_hex(raw_transaction_hex[index:])
+                    item_length, varint_length = parse_varint_hex(
+                        raw_transaction_hex[index:]
+                    )
                     index += varint_length * 2
-                    item = raw_transaction_hex[index:index+(item_length*2)]
+                    item = raw_transaction_hex[index : index + (item_length * 2)]
                     index += item_length * 2
-                    transaction["inputs"][j]['witness_data'].append(item)
+                    transaction["inputs"][j]["witness_data"].append(item)
 
             witness_end = index
         # Lock Time
-        transaction['lock_time'] = raw_transaction_hex[index:index+8]
+        transaction["lock_time"] = raw_transaction_hex[index : index + 8]
 
-        if index+8 != len(raw_transaction_hex):
-            raise InvalidTransactionError("Junk bytes after the transaction "
-                            "(If this is a segwit transaction, pass segwit=True)")
+        if index + 8 != len(raw_transaction_hex):
+            raise InvalidTransactionError(
+                "Junk bytes after the transaction "
+                "(If this is a segwit transaction, pass segwit=True)"
+            )
 
         # Don't forget thhe lengths are in hex characters
         witness_size = (witness_end - witness_start) // 2 + witness_flag_size
-        
+
         return transaction, witness_size
-    
+
     except IndexError as e:
         raise InvalidTransactionError("Transaction too short") from e
     except ValueError as e:
         raise InvalidTransactionError("Invalid hexadecimal") from e
 
+
 def parse_varint_hex(data):
     varint_type = hex_to_int(data[0:2])
-    if varint_type < 0xfd:
+    if varint_type < 0xFD:
         return varint_type, 1
-    elif varint_type == 0xfd:
+    elif varint_type == 0xFD:
         return hex_to_int(data[2:6]), 3
-    elif varint_type == 0xfe:
+    elif varint_type == 0xFE:
         return hex_to_int(data[2:10]), 5
-    elif varint_type == 0xff:
+    elif varint_type == 0xFF:
         return hex_to_int(data[2:18]), 9
+
 
 def transaction_size(raw_transaction_hex, segwit=False):
     _, witness_size = parse_transaction(raw_transaction_hex, segwit)
@@ -157,8 +178,9 @@ def transaction_size(raw_transaction_hex, segwit=False):
         # Convert to vbytes
         return round(weight_units / 4)
 
+
 def transaction_size_simple(raw_transaction_hex):
-    """ Returns the transaction size without throwing exceptions for valid & modern Segwit transactions """
+    """Returns the transaction size without throwing exceptions for valid & modern Segwit transactions"""
     try:
         return transaction_size(raw_transaction_hex, False)
     except InvalidTransactionError:
@@ -166,17 +188,24 @@ def transaction_size_simple(raw_transaction_hex):
 
 
 def parse_transaction_simple(raw_transaction_hex):
-    """ Returns the parsed raw transaction without throwing exceptions for valid & modern Segwit transactions """
+    """Returns the parsed raw transaction without throwing exceptions for valid & modern Segwit transactions"""
     try:
         return parse_transaction(raw_transaction_hex, False)
     except InvalidTransactionError:
         return parse_transaction(raw_transaction_hex, True)
 
+
 def insert_address_in_outputs(fine_rawtx, network=BitcoinSegwitMainNet):
     for i in range(len(fine_rawtx["outputs"])):
         out = fine_rawtx["outputs"][i]
-        script = Script.from_raw(out["script_pubkey"], network=network) # I have no idea what to use the has_segwit flag for.
-        fine_rawtx["outputs"][i]["address"] = script.to_p2pkh() or script.to_p2sh() or script.to_p2wpkh() \
-                                            or script.to_p2wsh() or script.to_p2tr()
+        script = Script.from_raw(
+            out["script_pubkey"], network=network
+        )  # I have no idea what to use the has_segwit flag for.
+        fine_rawtx["outputs"][i]["address"] = (
+            script.to_p2pkh()
+            or script.to_p2sh()
+            or script.to_p2wpkh()
+            or script.to_p2wsh()
+            or script.to_p2tr()
+        )
     return fine_rawtx
-
