@@ -1,5 +1,6 @@
-introduction
---------
+Introduction
+============
+
 ZPyWallet is a powerful Hierarchical Deterministic (HD) wallet backend designed for creating wallet software.
 It provides a secure and convenient way to manage cryptographic keys, generate addresses, and perform wallet-related operations.
 Whether you are building a cryptocurrency wallet application, integrating wallet functionality into an existing project, or
