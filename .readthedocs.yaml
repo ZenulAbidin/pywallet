@@ -15,7 +15,6 @@ build:
     # golang: "1.19"
   jobs:
     pre_build:
-      - pip install -r requirements.txt
       - sphinx-apidoc -o docs/source/ zpywallet/
       -  python docs/source/patch_module.py
 
