@@ -133,6 +133,5 @@ or create a Github issue.
 Indices and Tables
 ==================
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
 
