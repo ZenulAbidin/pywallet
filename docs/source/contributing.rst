@@ -1,5 +1,5 @@
 Contributing to ZPyWallet
-========================
+=========================
 
 Thank you for your interest in contributing to ZPyWallet! We welcome contributions from the community to help improve our project. Please take a moment to review the following guidelines before getting started.
 
@@ -37,7 +37,7 @@ How to Contribute
 7. Wait for the project maintainers to review your pull request. They may provide feedback or request further changes.
 
 Code Style
------------
+----------
 
 Please adhere to the existing code style used in the project. If there are specific guidelines or conventions, they will be mentioned in the repository or project documentation. Consistent code style helps maintain the project's readability and makes it easier for others to contribute.
 
@@ -47,7 +47,7 @@ Testing
 If you're contributing code changes, it's important to ensure that the existing tests pass and, if applicable, add new tests for your changes. Running ``tox`` (the project's test suite) locally before submitting a pull request is highly recommended.
 
 Issue Reporting
-----------------
+---------------
 
 If you encounter any issues or have suggestions for improvements, please submit them via GitHub issues. Provide a clear and descriptive title along with steps to reproduce the problem, if applicable. If you're suggesting a feature or enhancement, explain how it would be valuable to the project.
 
@@ -57,7 +57,7 @@ Code of Conduct
 Contributors are expected to adhere to the project's Code of Conduct, which ensures a welcoming and inclusive environment for everyone. Make sure to familiarize yourself with the Code of Conduct available in the repository.
 
 Questions or Help
-------------------
+-----------------
 
 If you have any questions or need help with anything related to the project or your contribution, feel free to reach out to the maintainers. You can use the communication channels mentioned in the repository, such as Discord, Gitter, or a mailing list.
 
