@@ -49,10 +49,6 @@ napoleon_use_ivar = False
 napoleon_use_param = True
 napoleon_use_rtype = True
 
-
-# Specify the path to your Python modules or packages
-autodoc_mock_imports = ["zpywallet"]
-
 # Additional configuration options for autodoc
 autodoc_default_options = {
     "members": True,
