@@ -27,9 +27,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install -r requirements-dev.txt
-    
-    - name: Create _static directory
-      run: mkdir docs/source/_static  
 
     - name: Test with tox
       run: tox
