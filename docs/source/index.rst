@@ -1,6 +1,9 @@
 .. ZPyWallet Documentation Index
    :orphan:
 
+Home
+====
+
 Welcome to the documentation for ZPyWallet!
 
 .. toctree::
