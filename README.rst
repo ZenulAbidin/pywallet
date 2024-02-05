@@ -90,127 +90,19 @@ Or build directly:
    $ python setup.py install
 
 
-
-
 Example code:
 =============
 
-Note that this code is probably out-of-date.
+Consult the documentation for up-to-date code snippets.
 
-Create HD Wallet
-----------------
-
-The following code creates a new Bitcoin HD wallet:
-
-.. code:: python
-
-    # create_btc_wallet.py
-
-    from zpywallet import wallet
-
-    # creates a wallet with a new, random mnemonic phrase.
-    # By default, it creates Bitcoin Mainnet wallets.
-    w = wallet.create_wallet_json(children=1)
-
-    print(w)
-
-Output looks like this:
-
-.. code:: bash
-
-    $ python create_btc_wallet.py
-
-    {
-        'address': 'bc1qjvugs62gt5w97rv4sw3kkhnmv2s2kg58lucmux',
-        'children': [{'address': 'bc1q5vyxj4a6c2v4p9dxrd59vztfussg9hdywr5yrn',
-                    'bip32_path': "m/44'/0'/0'/0",
-                    'path': 'm/0',
-                    'xpublic_key': 'xpub68yG1oCYQLpAKxj3DPo6cvqAzNEeUFMhMfEhXcEyem1vqK87QeaQH8o7uUw8fYkhtuVcMiJrxbLFDyESnK8YPQ97fSzPpPLTiauEWyqTX76'}],
-        'coin': 'BTC',
-        'private_key': '45471d4504a3631425371a590d168fa0df4f01c7fe5df2b355da6434145b6915',
-        'public_key': '0286e42376ab09ce71b2be8174f2ebbf2f79fef9ca0c255838c2016951b7b4411f',
-        'seed': 'spring ahead flat scheme can opera genre tribe airport friend nurse '
-                'exclude',
-        'wif': '5JLoBxMCZCAqnue56GZZLquzPwob6XHdJttKJn19qGShKQgE2xM',
-        'xprivate_key': 'xprv9s21ZrQH143K28nnAjfgJ9eRCmQMYuBtbKWVZLqsEc7aBYh81uLFHQoKt2dZdSyKAu6KaFSiqjWyZejrtx3FmRjRaf1KsBFgkNM4CMm66Jh',
-        'xpublic_key': 'xpub661MyMwAqRbcEcsFGmCgfHb9koEqxMujxYS6MjFUnweZ4M2GZSeVqD7ojJAE5QvmbXn16QPHcHLk5bkdkqXtcV1nj1aVyRqax9NeaTAnhH6',
-        'xpublic_key_prime': 'xpub68yG1oCgk1M8XBxmkp6f6JgRdTyX6XJd7a6LmDG14DomrswTMkxGiByKiwpf5p6szSqDciybesxjDC7yKBrgbaczQe6q1puBHbvfKxg1uqr'
-    }
-
-Similarly, you can do the same for an Ethereum wallet:
-
-.. code:: python
-
-    # create_eth_wallet.py
-
-    from zpywallet import wallet
-    
-    w = wallet.create_wallet_json(network="ETH", children=1)
-
-    print(w)
-
-Output looks like this (no WIF or xpub/prv for Ethereum as its not supported):
-
-.. code:: bash
-
-    $ python create_eth_wallet.py
-
-    {
-        'address': '0x8dbe02c146eacbe410f63348f489a16160deb6f0',
-        'children': [{'address': '0xdd030270458ad17b125c200bb2f11d0fdbf7e05c',
-                    'path': 'm/0'}],
-        'coin': 'ETH',
-        'private_key': '85b41c45f425dd1f7f431326449afc0564b2d110f7f89563f1a1ee4055a4ce39',
-        'public_key': '026e93d77ee81bd28e2d2e0962928a00ee27a20f0da2b7437db8bce39e23c6d873',
-        'seed': 'admit push digital opinion system snap announce help gas business '
-                'trigger please',
-        'wif': '',
-        'xprivate_key': '',
-        'xpublic_key': ''}
-
-Consult the documentation for more information about the API.
-
-Create Child Wallet
--------------------
-
-You can create child-wallets (BIP32 wallets) from the HD wallet's
-**Extended Public Key** to generate new public addresses without
-revealing your private key.
-
-Example:
-
-.. code-block:: python
-
-    # create_child_wallet.py
-
-    from zpywallet import wallet
-    from zpywallet.utils.bip32 import Wallet
-
-    w = Wallet.from_mnemonic(wallet.generate_mnemonic())
-
-    # generate address for specific user (id = 10)
-    child_w = w.get_child_for_path("m/10")
-    user_addr = child_w.address()
-
-    print(f"User Address: {user_addr}")
-
-Output looks like this:
-
-.. code:: bash
-
-    $ python create_child_wallet.py
-
-    User Address: bc1qdwfh4duva4hvzva9cdyguh9c9k2hez3r7taerg
-
-
-CONTRIBUTING
+Contributing
 ============
 
 Bugfixes and enhancements are welcome. Please read CONTRIBUTING.md for contributing instructions.
 
 At the moment, I'm not accepting pull requests for new coins unless they are big and historic coins such as Tether (ERC20), BNB and XMR.
 
-SECURITY
+Security
 ========
 
 This module has been hardened against various types of attacks:
