@@ -15,8 +15,7 @@ build:
     # golang: "1.19"
   jobs:
     pre_build:
-      - pwd
-      - sphinx-apidoc -o docs/source/ ../../zpywallet
+      - sphinx-apidoc -o docs/source/ zpywallet/
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
