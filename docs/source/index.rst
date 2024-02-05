@@ -13,7 +13,6 @@ Welcome to the documentation for ZPyWallet!
    security
    bugs
    contributing
-   api_reference
 
 Indices and Tables
 ==================
