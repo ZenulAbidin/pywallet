@@ -8,11 +8,15 @@ class UTXO:
         self,
         transaction: Transaction,
         index: int,
-        other_transactions=[],
-        addresses=[],
+        other_transactions=None,
+        addresses=None,
         only_mine=False,
         _unsafe_internal_testing_only=None,
     ):
+        if other_transactions is None:
+            other_transactions = []
+        if addresses is None:
+            addresses = []
         if _unsafe_internal_testing_only:
             self._output = _unsafe_internal_testing_only
             return

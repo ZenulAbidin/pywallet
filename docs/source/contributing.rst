@@ -8,25 +8,25 @@ How to Contribute
 
 1. Fork the repository to your own GitHub account.
 
-2. Clone the forked repository to your local machine::
+2. Clone the forked repository to your local machine:
 
 .. code-block:: bash
 
    git clone https://github.com/your-username/your-project.git
 
-3. Create a new branch for your feature or bug fix::
+3. Create a new branch for your feature or bug fix:
 
 .. code-block:: bash
 
    git checkout -b feature/your-feature
 
-4. Make the necessary changes and commit them::
+4. Make the necessary changes and commit them:
 
 .. code-block:: bash
 
    git commit -m "Add your commit message"
 
-5. Push your changes to your forked repository::
+5. Push your changes to your forked repository:
 
 .. code-block:: bash
 
