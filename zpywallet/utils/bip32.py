@@ -706,7 +706,7 @@ class HDWallet(object):
                 This should be a multiple of 32 between 128 and 256.
                 It directly affects the length of the mnemonic exported
                 (each additional 32 bits adds an extra three words at the end).
-            passphrase (str): An optional passphrase for the generated
+            :param passphrase (str): An optional passphrase for the generated
                mnemonic string.
             :param network: The network to use for things like defining key
                 key paths and supported address formats. Defaults to Bitcoin mainnet.

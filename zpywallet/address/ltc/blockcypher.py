@@ -16,21 +16,6 @@ class BlockcypherAddress:
     A class representing a Litecoin address.
 
     This class allows you to retrieve the balance and transaction history of a Litecoin address using the Blockcypher API.
-
-    Args:
-        address (str): The human-readable Litecoin address.
-        api_key (str): The API key for accessing the Blockcypher API.
-
-    Attributes:
-        address (str): The human-readable Litecoin address.
-        api_key (str): The API key for accessing the Blockcypher API.
-
-    Methods:
-        get_balance(): Retrieves the balance of the Litecoin address.
-        get_transaction_history(): Retrieves the transaction history of the Litecoin address.
-
-    Raises:
-        Exception: If the API request fails or the address balance/transaction history cannot be retrieved.
     """
 
     def _clean_tx(self, element):

@@ -17,3 +17,6 @@ Icon
 .benchmarks
 .pytest_cache
 .coverage
+docs/build
+docs/source/zpywallet*.rst
+docs/source/modules.rst

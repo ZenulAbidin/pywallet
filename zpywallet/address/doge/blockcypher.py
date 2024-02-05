@@ -17,21 +17,6 @@ class BlockcypherAddress:
     A class representing a Dogecoin address.
 
     This class allows you to retrieve the balance and transaction history of a Dogecoin address using the Blockcypher API.
-
-    Args:
-        address (str): The human-readable Dogecoin address.
-        api_key (str): The API key for accessing the Blockcypher API.
-
-    Attributes:
-        address (str): The human-readable Dogecoin address.
-        api_key (str): The API key for accessing the Blockcypher API.
-
-    Methods:
-        get_balance(): Retrieves the balance of the Dogecoin address.
-        get_transaction_history(): Retrieves the transaction history of the Dogecoin address.
-
-    Raises:
-        Exception: If the API request fails or the address balance/transaction history cannot be retrieved.
     """
 
     def _clean_tx(self, element):

@@ -285,35 +285,19 @@ class Script:
     script : list
         the list with all the script OP_CODES and data
 
-    Methods
-    -------
-    to_bytes()
-        returns a serialized byte version of the script
-
-    to_hex()
-        returns a serialized version of the script in hex
-
-    get_script()
-        returns the list of strings that makes up this script
-
-    copy()
-        creates a copy of the object (classmethod)
-
     Raises
     ------
     ValueError
-        If string data is too large or integer is negative
+        If string data is too large or integer is negative Methods
+
     """
 
     def __init__(self, script, network=BitcoinSegwitMainNet):
-        """See Script description"""
-
         self.script = script
         self.network = network
 
     @classmethod
     def copy(cls, script):
-        """Deep copy of Script"""
         scripts = copy.deepcopy(script.script)
         return cls(scripts)
 
@@ -380,7 +364,7 @@ class Script:
         return self._op_push_data(hexlify(integer_bytes))
 
     def to_bytes(self):
-        """Converts the script to bytes
+        """Returns a serialized byte version of the script
 
         If an OP code the appropriate byte is included according to:
         https://en.bitcoin.it/wiki/Script
@@ -408,8 +392,8 @@ class Script:
     def from_raw(scriptraw, has_segwit=False, network=BitcoinSegwitMainNet):
         """
         Imports a Script commands list from raw hexadecimal data
-            Attributes
-            ----------
+
+        Args:
             txinputraw : string (hex)
                 The hexadecimal raw string representing the Script commands
             has_segwit : boolean

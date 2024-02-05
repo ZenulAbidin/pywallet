@@ -10,19 +10,6 @@ class BTCDotComAddress:
     A class representing a Bitcoin address.
 
     This class allows you to retrieve the balance and transaction history of a Bitcoin address using the BTC.com API.
-
-    Args:
-        api_key (str): The API key for accessing the BTC.com API.
-
-    Attributes:
-        api_key (str): The API key for accessing the BTC.com API.
-
-    Methods:
-        get_balance(): Retrieves the balance of the Bitcoin address.
-        get_transaction_history(): Retrieves the transaction history of the Bitcoin address.
-
-    Raises:
-        Exception: If the API request fails or the address balance/transaction history cannot be retrieved.
     """
 
     def _clean_tx(self, element):

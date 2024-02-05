@@ -111,8 +111,8 @@ class PrivateKey:
         """Generates PrivateKey from the underlying bytes.
 
         Args:
-            :param b (bytes): A byte stream containing a 256-bit (32-byte) integer.
-            :param network: The network to use for things like defining key
+            b (bytes): A byte stream containing a 256-bit (32-byte) integer.
+            network: The network to use for things like defining key
                 key paths and supported address formats. Defaults to Bitcoin mainnet.
 
         Returns:
@@ -130,9 +130,9 @@ class PrivateKey:
         """Generates PrivateKey from a hex-encoded string.
 
         Args:
-            :param h (str): A hex-encoded string containing a 256-bit
+            h (str): A hex-encoded string containing a 256-bit
                  (32-byte) integer.
-            :param network: The network to use for things like defining key
+            network: The network to use for things like defining key
                 key paths and supported address formats. Defaults to Bitcoin mainnet.
 
         Returns:
@@ -145,8 +145,8 @@ class PrivateKey:
         """Initializes a private key from an integer.
 
         Args:
-            :param i (int): Integer that is the private key.
-            :param network: The network to use for things like defining key
+            i (int): Integer that is the private key.
+            network: The network to use for things like defining key
                 key paths and supported address formats. Defaults to Bitcoin mainnet.
 
         Returns:
@@ -160,8 +160,8 @@ class PrivateKey:
         """Decodes a Base58Check encoded private-key.
 
         Args:
-            :param private_key (str): A Base58Check encoded private key.
-            :param network: The network to use for things like defining key
+            private_key (str): A Base58Check encoded private key.
+            network: The network to use for things like defining key
                 key paths and supported address formats. Defaults to Bitcoin mainnet.
 
         Returns:
@@ -178,7 +178,7 @@ class PrivateKey:
         """Initializes a private key from a random integer.
 
         Args:
-            :param network: The network to use for things like defining key
+            network: The network to use for things like defining key
                 key paths and supported address formats. Defaults to Bitcoin mainnet.
 
         Returns:
@@ -202,10 +202,10 @@ class PrivateKey:
         brainwallet so you don't lose your private key.
 
         Args:
-            :param password(str): The password to generate a private key from.
-            :param salt(str): The salt to use. Unless you know what you're doing,
+            password (str): The password to generate a private key from.
+            salt (str): The salt to use. Unless you know what you're doing,
                 leave this as the default value.
-            :param network: The network to use for things like defining key
+            network: The network to use for things like defining key
                 key paths and supported address formats. Defaults to Bitcoin mainnet.
 
         Returns:
@@ -228,8 +228,8 @@ class PrivateKey:
         (specifically http://bitcoin.stackexchange.com/a/7958)
 
         Args:
-            :param wif (str): A base58-encoded string representing a private key.
-            :param network: The network to use for things like defining key
+            wif (str): A base58-encoded string representing a private key.
+            network: The network to use for things like defining key
                 key paths and supported address formats. Defaults to Bitcoin mainnet.
 
         Return:
@@ -422,11 +422,10 @@ class PrivateKey:
         """Export a key to WIF.
 
         Args:
-            :param compressed: False if you want a standard WIF export (the most
+            compressed (bool): False if you want a standard WIF export (the most
                 standard option). True if you want the compressed form (Note that
                 not all clients will accept this form). Defaults to None, which
                 in turn uses the self.compressed attribute.
-            :type compressed: bool
 
         Returns:
             str: THe WIF string
@@ -487,9 +486,9 @@ class PublicKey:
         containing x, y coordinates.
 
         Args:
-            :param p (Point): An object containing a two-dimensional, affine
+            p (Point): An object containing a two-dimensional, affine
                representation of a point on the secp256k1 curve.
-            :param network: The network to use for things like defining key
+            network: The network to use for things like defining key
                 key paths and supported address formats. Defaults to Bitcoin mainnet.
 
         Returns:
@@ -513,8 +512,8 @@ class PublicKey:
         the x component.
 
         Args:
-            :param key_bytes (bytes): A byte stream that conforms to the above.
-            :param network: The network to use for things like defining key
+            key_bytes (bytes): A byte stream that conforms to the above.
+            network: The network to use for things like defining key
                 key paths and supported address formats. Defaults to Bitcoin mainnet.
 
 
@@ -531,8 +530,8 @@ class PublicKey:
         See from_bytes() for requirements of the hex string.
 
         Args:
-            :param h (str): A hex-encoded string.
-            :param network: The network to use for things like defining key
+            h (str): A hex-encoded string.
+            network: The network to use for things like defining key
                 key paths and supported address formats. Defaults to Bitcoin mainnet.
 
         Returns:
@@ -719,7 +718,7 @@ class PublicKey:
         Args:
             compressed (bool): Whether or not the compressed key should
                be used. DO NOT change this value or you might make
-                a non-standard transaction.
+               a non-standard transaction.
         Returns:
             bytes: A P2WPKH script.
         """

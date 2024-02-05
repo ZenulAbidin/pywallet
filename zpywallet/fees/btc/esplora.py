@@ -7,20 +7,6 @@ class EsploraFeeEstimator:
     A class representing a Bitcoin fee rate estimator using Esplora API.
 
     This class allows you to retrieve the current fee rate for Bitcoin transactions using the Esplora API.
-
-    Args:
-        request_interval (tuple): A pair of integers indicating the number of requests allowed during
-            a particular amount of seconds. Set to (0, N) for no rate limiting, where N > 0.
-
-    Attributes:
-        requests (int): The number of requests allowed during a specific interval.
-        interval_sec (int): The interval in seconds for the specified number of requests.
-
-    Methods:
-        get_fee_rate(): Retrieves the current fee rate for Bitcoin transactions.
-
-    Raises:
-        Exception: If the API request fails or the fee rate cannot be retrieved.
     """
 
     def __init__(self, request_interval=(3, 1), **kwargs):
@@ -35,6 +21,12 @@ class EsploraFeeEstimator:
         self.endpoint = kwargs.get("url")
 
     def get_fee_rate(self):
+        """
+        Retrieves the current fee rate for Bitcoin transactions.
+
+        Raises:
+            Exception: If the API request fails or the fee rate cannot be retrieved
+        """
         # Define the default API URL within the method:
         api_url = f"{self.endpoint}/fee-estimates"
 

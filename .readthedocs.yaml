@@ -17,6 +17,7 @@ build:
     pre_build:
       - pip install -r requirements.txt
       - sphinx-apidoc -o docs/source/ zpywallet/
+      -  python docs/source/patch_module.py
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:

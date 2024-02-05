@@ -7,20 +7,6 @@ class BlockcypherFeeEstimator:
     A class representing a Dogecoin fee rate estimator using Blockcypher API.
 
     This class allows you to retrieve the current fee rate for Dogecoin transactions using the Blockcypher API.
-
-    Args:
-        request_interval (tuple): A pair of integers indicating the number of requests allowed during
-            a particular amount of seconds. Set to (0, N) for no rate limiting, where N > 0.
-
-    Attributes:
-        requests (int): The number of requests allowed during a specific interval.
-        interval_sec (int): The interval in seconds for the specified number of requests.
-
-    Methods:
-        get_fee_rate(): Retrieves the current fee rate for Dogecoin transactions.
-
-    Raises:
-        Exception: If the API request fails or the fee rate cannot be retrieved.
     """
 
     def __init__(self, request_interval=(3, 1), api_key=None):
@@ -36,6 +22,12 @@ class BlockcypherFeeEstimator:
         self.api_key = api_key
 
     def get_fee_rate(self):
+        """
+        Retrieves the current fee rate for Dogecoin transactions.
+
+        Raises:
+            Exception: If the API request fails or the fee rate cannot be retrieved
+        """
         # Define the default API URL within the method for Blockcypher Dogecoin:
         api_url = "https://api.blockcypher.com/v1/doge/main"  # Adjust the endpoint for Dogecoin
 

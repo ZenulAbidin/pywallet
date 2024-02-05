@@ -80,6 +80,7 @@ def create_wallet(
     """Generate a new wallet class from a mnemonic phrase, optionally randomly generated
 
     Args:
+
     :param mnemonic: The key to use to generate this wallet. It may be a long
         string. Do not use a phrase from a book or song, as that will
         be guessed and is not secure. My advice is to not supply this

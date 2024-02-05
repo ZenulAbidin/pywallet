@@ -19,19 +19,6 @@ class DogeChainAddress:
     A class representing a Dogecoin address.
 
     This class allows you to retrieve the balance and transaction history of a Dogecoin address using the DogeChain API.
-
-    Args:
-        address (str): The human-readable Dogecoin address.
-
-    Attributes:
-        address (str): The human-readable Dogecoin address.
-
-    Methods:
-        get_balance(): Retrieves the balance of the Dogecoin address.
-        get_transaction_history(): Retrieves the transaction history of the Dogecoin address.
-
-    Raises:
-        Exception: If the API request fails or the address balance/transaction history cannot be retrieved.
     """
 
     def _clean_tx(self, element):

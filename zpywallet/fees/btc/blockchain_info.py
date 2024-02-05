@@ -7,20 +7,6 @@ class BlockchainInfoFeeEstimator:
     A class representing a Bitcoin fee rate estimator using Blockchain.info API.
 
     This class allows you to retrieve the current fee rate for Bitcoin transactions using the Blockchain.info API.
-
-    Args:
-        request_interval (tuple): A pair of integers indicating the number of requests allowed during
-            a particular amount of seconds. Set to (0, N) for no rate limiting, where N > 0.
-
-    Attributes:
-        requests (int): The number of requests allowed during a specific interval.
-        interval_sec (int): The interval in seconds for the specified number of requests.
-
-    Methods:
-        get_fee_rate(): Retrieves the current fee rate for Bitcoin transactions.
-
-    Raises:
-        Exception: If the API request fails or the fee rate cannot be retrieved.
     """
 
     def __init__(self, request_interval=(1000, 1)):
@@ -34,6 +20,12 @@ class BlockchainInfoFeeEstimator:
         self.requests, self.interval_sec = request_interval
 
     def get_fee_rate(self):
+        """
+        Retrieves the current fee rate for Bitcoin transactions.
+
+        Raises:
+            Exception: If the API request fails or the fee rate cannot be retrieved
+        """
         # Define the default API URL within the method for Blockchain.info:
         api_url = "https://api.blockchain.info/mempool/fees"
 

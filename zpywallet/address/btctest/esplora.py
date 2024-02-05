@@ -17,24 +17,6 @@ class EsploraAddress:
 
     Note 2: This API will not return the Genesis block in transactions, unlike the other balances. This will affect
     balance displayed for Satoshi's first address 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa - but that output is unspendable anyway.
-
-    Args:
-        address (str): The human-readable Bitcoin address.
-
-    Attributes:
-        address (str): The human-readable Bitcoin address.
-        endpoint (str): The Esplora endpoint to use. Defaults to Blockstream's endpoint.
-        transaction_history (list): The cached list of transactions.
-        height (int): The last known block height.
-
-    Methods:
-        get_balance(): Retrieves the total and confirmed balances of the Bitcoin address.
-        get_utxos(): Retrieves the UTXO set for this address
-        get_block_height(): Retrieves the current block height.
-        get_transaction_history(): Retrieves the transaction history of the Bitcoin address.
-
-    Raises:
-        Exception: If the API request fails or the address balance/transaction history cannot be retrieved.
     """
 
     def _clean_tx(self, element):

@@ -17,21 +17,6 @@ class BlockcypherAddress:
     A class representing a Bitcoin address.
 
     This class allows you to retrieve the balance and transaction history of a Bitcoin address using the Blockcypher API.
-
-    Args:
-        address (str): The human-readable Bitcoin address.
-        api_key (str): The API key for accessing the Blockcypher API.
-
-    Attributes:
-        address (str): The human-readable Bitcoin address.
-        api_key (str): The API key for accessing the Blockcypher API.
-
-    Methods:
-        get_balance(): Retrieves the balance of the Bitcoin address.
-        get_transaction_history(): Retrieves the transaction history of the Bitcoin address.
-
-    Raises:
-        Exception: If the API request fails or the address balance/transaction history cannot be retrieved.
     """
 
     def _clean_tx(self, element):

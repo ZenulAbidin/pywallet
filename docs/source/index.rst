@@ -13,6 +13,7 @@ Welcome to the documentation for ZPyWallet!
    security
    bugs
    contributing
+   modules
 
 Indices and Tables
 ==================
