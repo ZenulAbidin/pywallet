@@ -1,8 +1,5 @@
-.. ZPyWallet Documentation Index
-   :orphan:
-
-Home
-====
+Home - ZPyWallet
+================
 
 Welcome to the documentation for ZPyWallet!
 
