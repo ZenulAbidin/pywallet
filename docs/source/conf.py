@@ -51,13 +51,13 @@ napoleon_use_param = True
 napoleon_use_rtype = True
 
 
-# Specify the path to your Python modules or packages
+# The following modules and packages must be mocked
 autodoc_mock_imports = ["coincurve"]
 
 # Additional configuration options for autodoc
 autodoc_default_options = {
     "members": True,
     "undoc-members": True,
-    "private-members": True,
-    "show-inheritance": True,
+    "private-members": False,
+    "show-inheritance": False,
 }
