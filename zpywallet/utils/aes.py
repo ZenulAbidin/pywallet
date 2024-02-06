@@ -50,14 +50,16 @@ def hash_password_pbkdf2(password, iterations=600000, key_length=128):
     return hashlib.pbkdf2_hmac("sha256", password, b"Salted__", iterations, key_length)
 
 
-def encrypt(raw, passphrase):
+def encrypt(raw: str, passphrase: str):
     """
     Encrypt text with the passphrase
-    @param raw: string Text to encrypt
-    @param passphrase: string Passphrase
-    @type raw: string
-    @type passphrase: string
-    @rtype: string
+
+    Args:
+        raw (str): Text to encrypt
+        passphrase (str): Encryption password. It is recommended to use a strong password.
+
+    Returns:
+        bytes: The encrypted text
     """
     salt = Random.new().read(8)
     key, iv = __derive_key_and_iv(passphrase, salt)
@@ -68,11 +70,14 @@ def encrypt(raw, passphrase):
 def decrypt(enc, passphrase):
     """
     Decrypt encrypted text with the passphrase
-    @param enc: string Text to decrypt
-    @param passphrase: string Passphrase
-    @type enc: string
-    @type passphrase: string
-    @rtype: string
+
+
+    Args:
+        enc (bytes): Text to decrypt
+        passphrase (str): Decryption password
+
+    Returns:
+        str: The original text
     """
     ct = base64.b64decode(enc)
     salted = ct[:8]
@@ -89,13 +94,18 @@ def decrypt(enc, passphrase):
 
 def __pkcs7_padding(s):
     """
-    Padding to blocksize according to PKCS #7
-    calculates the number of missing chars to BLOCK_SIZE and pads with
-    ord(number of missing chars)
-    @see: http://www.di-mgt.com.au/cryptopad.html
-    @param s: string Text to pad
-    @type s: string
-    @rtype: string
+    Padding to blocksize according to PKCS #7.
+
+    Calculates the number of missing characters to BLOCK_SIZE and pads with
+    ord(number of missing characters).
+
+    See: http://www.di-mgt.com.au/cryptopad.html
+
+    Args:
+        s (str): Text to pad.
+
+    Returns:
+        str: Padded text.
     """
     s_len = len(s if py2 else s.encode("utf-8"))
     s = s + (BLOCK_SIZE - s_len % BLOCK_SIZE) * chr(BLOCK_SIZE - s_len % BLOCK_SIZE)
@@ -104,24 +114,29 @@ def __pkcs7_padding(s):
 
 def __pkcs7_trimming(s):
     """
-    Trimming according to PKCS #7
-    @param s: string Text to unpad
-    @type s: string
-    @rtype: string
+    Trims padding according to PKCS #7.
+
+    Args:
+        s (str): Text to unpad.
+
+    Returns:
+        str: Unpadded text.
     """
     if sys.version_info[0] == 2:
         return s[0 : -ord(s[-1])]
-    return s[0 : -s[-1]]
+    return s[0 : -s[-1]].decode("utf-8")
 
 
 def __derive_key_and_iv(password, salt):
     """
-    Derive key and iv
-    @param password: string Password
-    @param salt: string Salt
-    @type password: string
-    @type salt: string
-    @rtype: string
+    Derives key and IV.
+
+    Args:
+        password (str): Password.
+        salt (str): Salt.
+
+    Returns:
+        str: Derived key and IV.
     """
     d = d_i = b""
     enc_pass = password if py2 else password.encode("utf-8")
