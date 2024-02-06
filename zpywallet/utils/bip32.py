@@ -196,7 +196,7 @@ class HDWallet(object):
 
         Which is the same as
 
-            self.get_child(0).get_child(-1).get_child(10)
+            self.get_child(0).get_child(1, is_prime=True).get_child(10)
 
         Or, in other words, the 10th publicly derived child of the 1st
         privately derived child of the 0th publicly derived child of master.
@@ -255,32 +255,21 @@ class HDWallet(object):
         """Equivalent to get_child(84, is_prime=True)"""
         return self.get_child(84, is_prime=True)
 
-    def get_child(self, child_number, is_prime=None, as_private=True):
+    def get_child(
+        self, child_number: int, is_prime: bool = False, as_private: bool = True
+    ):
         """Derive a child key.
 
-        :param child_number: The number of the child key to compute
-        :type child_number: int
-        :param is_prime: If True, the child is calculated via private
-            derivation. If False, then public derivation is used. If None,
-            then it is figured out from the value of child_number.
-        :type is_prime: bool, defaults to None
-        :param as_private: If True, strips private key from the result.
-            Defaults to False. If there is no private key present, this is
-            ignored.
-        :type as_private: bool
+        Args:
+            child_number (int): The number of the child key to compute
+            is_prime (book): If True, the child is calculated via private
+                derivation. If False, then public derivation is used. If None,
+                then it is figured out from the value of child_number.
+            as_private: If True, strips private key from the result.
+                Defaults to False. If there is no private key present, this is
+                ignored.
 
-        Positive child_numbers (less than 2,147,483,648) produce publicly
-        derived children.
-
-        Negative numbers (greater than -2,147,483,648) uses private derivation.
-
-        NOTE: Python can't do -0, so if you want the privately derived 0th
-        child you need to manually set is_prime=True.
-
-        NOTE: negative numbered children are provided as a convenience
-        because nobody wants to remember the above numbers. Negative numbers
-        are considered 'prime children', which is described in the BIP32 spec
-        as a leading 1 in a 32 bit unsigned int.
+        Child numbers should be less than 2,147,483,648 (2<<32).
 
         This derivation is fully described at
         https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#child-key-derivation-functions
@@ -289,24 +278,8 @@ class HDWallet(object):
 
         # Note: If this boundary check gets removed, then children above
         # the boundary should use private (prime) derivation.
-        if abs(child_number) >= boundary:
+        if child_number >= boundary or child_number < 0:
             raise InvalidPathError(f"Invalid child number {child_number}")
-
-        # If is_prime isn't set, then we can infer it from the child_number
-        if is_prime is None:
-            # Prime children are either < 0 or > 0x80000000
-            if child_number < 0:
-                child_number = abs(child_number)
-                is_prime = True
-            else:
-                is_prime = False
-        else:
-            # Otherwise is_prime is set so the child_number should be between
-            # 0 and 0x80000000
-            if child_number < 0 or child_number >= boundary:
-                raise ValueError(
-                    f"Invalid child number. Must be between 0 and {boundary}"
-                )
 
         if not self.private_key and is_prime:
             raise WatchOnlyWalletError(
@@ -434,19 +407,19 @@ class HDWallet(object):
             network=self.network,
         )
 
-    def serialize(self, private=True, segwit=False):
+    def serialize(self, private: bool = True, segwit: bool = False):
         """Serialize this key.
 
-        :param private: Whether or not the serialized key should contain
-            private information. Set to False for a public-only representation
-            that cannot spend funds but can create children. You want
-            private=False if you are, for example, running an e-commerce
-            website and want to accept bitcoin payments. See the README
-            for more information.
-        :param segwit: Whether to use segwit extended version bytes instead of
-            legacy extended version bytes. Only for networks which support Segwit,
-            therefore the default value is False.
-        :type private: bool, defaults to True
+        Args:
+            private (bool): Whether or not the serialized key should contain
+                private information. Set to False for a public-only representation
+                that cannot spend funds but can create children. You want
+                private=False if you are, for example, running an e-commerce
+                website and want to accept bitcoin payments. See the README
+                for more information. Default is True.
+            segwit (bool): Whether to use segwit extended version bytes instead of
+                legacy extended version bytes. Only for networks which support Segwit,
+                therefore the default value is False.
 
         See the spec in `deserialize` for more details.
         """
@@ -490,7 +463,7 @@ class HDWallet(object):
         """Encode the serialized node in base58."""
         return ensure_str(b58encode_check(unhexlify(self.serialize(private, segwit))))
 
-    def address(self, compressed=True, witness_version=0):
+    def address(self, compressed: bool = True, witness_version: int = 0):
         """Create a public address from this Wallet.
 
         Public addresses can accept payments.
@@ -517,6 +490,9 @@ class HDWallet(object):
     @classmethod
     def deserialize(cls, key, network=BitcoinSegwitMainNet):
         """Load an extended BIP32 private key from a hex string.
+
+        Args:
+            key: the extended private key to generate an HDWallet from.
 
         The key consists of
 
@@ -616,9 +592,10 @@ class HDWallet(object):
     def from_mnemonic(cls, mnemonic, passphrase="", network=BitcoinSegwitMainNet):
         """Generate a new PrivateKey from a secret key.
 
-        :param mnemonic: The key to use to generate this wallet.
-        :param passphrase: An optional passphrase for this mnemonic.
-        :param network: The network to use. Defaults to Bitcoin mainnet.
+        Args:
+            mnemonic: The key to use to generate this wallet.
+            passphrase: An optional passphrase for this mnemonic.
+            network: The network to use. Defaults to Bitcoin mainnet.
 
 
         See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Serialization_format
@@ -640,7 +617,7 @@ class HDWallet(object):
         )
 
     @classmethod
-    def from_brainwallet(cls, password, network=BitcoinSegwitMainNet):
+    def from_brainwallet(cls, password: str, network=BitcoinSegwitMainNet):
         """
         Generate a new key from a password using 50,000 rounds of HMAC-SHA256.
 
@@ -649,10 +626,10 @@ class HDWallet(object):
         WARNING: The security of this method has not been evaluated.
 
         Args:
-            :param password (str):  The value to hash for generating the wallet.
-            It may be a long string. Do not use a phrase from a book or song,
-            as that will be guessed and is not secure.
-            :param network: The network to use. Defaults to Bitcoin mainnet.
+            password (str):  The value to hash for generating the wallet.
+                It may be a long string. Do not use a phrase from a book or song,
+                as that will be guessed and is not secure.
+                network: The network to use. Defaults to Bitcoin mainnet.
 
         Returns:
             Wallet: A Wallet object.
@@ -674,12 +651,13 @@ class HDWallet(object):
         )
 
     @classmethod
-    def from_master_seed(cls, seed, network=BitcoinSegwitMainNet):
+    def from_master_seed(cls, seed: bytes, network=BitcoinSegwitMainNet):
         """Generate a new PrivateKey from a seed (byte string).
 
-        :param seed: The byte sequence to use to generate this wallet. The seed length
-            should be at least 128 bits, no longer than 256 bits, and be divisible by 32.
-        :param network: The network to use. Defaults to Bitcoin mainnet.
+        Args:
+            seed (bytes): The bytes sequence to use to generate this wallet. The seed length
+                should be at least 128 bits, no longer than 256 bits, and be divisible by 32.
+            network: The network to use. Defaults to Bitcoin mainnet.
 
 
         See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Serialization_format
@@ -698,17 +676,19 @@ class HDWallet(object):
         )
 
     @classmethod
-    def from_random(cls, passphrase="", strength=128, network=BitcoinSegwitMainNet):
+    def from_random(
+        cls, passphrase: str = "", strength: int = 128, network=BitcoinSegwitMainNet
+    ):
         """Generates a master key from system entropy.
 
         Args:
-            :param strength (int): Amount of entropy desired, in bits.
+            strength (int): Amount of entropy desired, in bits.
                 This should be a multiple of 32 between 128 and 256.
                 It directly affects the length of the mnemonic exported
                 (each additional 32 bits adds an extra three words at the end).
-            :param passphrase (str): An optional passphrase for the generated
+            passphrase (str): An optional passphrase for the generated
                mnemonic string.
-            :param network: The network to use for things like defining key
+            network: The network to use for things like defining key
                 key paths and supported address formats. Defaults to Bitcoin mainnet.
 
         Returns:
@@ -743,12 +723,14 @@ class HDWallet(object):
     __hash__ = object.__hash__
 
     @classmethod
-    def new_random_wallet(cls, user_entropy=None, network=BitcoinSegwitMainNet):
+    def new_random_wallet(
+        cls, user_entropy: bytes = None, network=BitcoinSegwitMainNet
+    ):
         """
         Generate a new wallet using a randomly generated 512 bit seed.
 
         Args:
-            user_entropy: Optional user-supplied entropy which is combined
+            user_entropy (bytes): Optional user-supplied entropy which is combined
                 combined with the random seed, to help counteract compromised
                 PRNGs.
 
