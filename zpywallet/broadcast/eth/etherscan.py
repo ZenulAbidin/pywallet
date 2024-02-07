@@ -3,7 +3,7 @@ from ...errors import NetworkException
 
 
 async def broadcast_transaction_eth_etherscan(raw_transaction_hex, api_key):
-    api_url = f"https://api.etherscan.io/api"
+    api_url = "https://api.etherscan.io/api"
     payload = {
         "module": "proxy",
         "action": "eth_sendRawTransaction",

@@ -20,5 +20,5 @@ async def broadcast_transaction_bcy(raw_transaction_hex):
 
     try:
         await asyncio.gather(*tasks, return_exceptions=True)
-    except Exception as e:
+    except Exception:
         pass

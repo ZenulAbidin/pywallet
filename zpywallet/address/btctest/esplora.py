@@ -9,14 +9,18 @@ class EsploraAddress:
     """
     A class representing a Bitcoin address.
 
-    This class allows you to retrieve the balance and transaction history of a Bitcoin address using the Esplora API.
-    Esplora is deployed on many popular websites, including mempool.space (Rate limited) and blockstream.info.
+    This class allows you to retrieve the balance and transaction history of a
+    Bitcoin address using the Esplora API. Esplora is deployed on many popular
+    websites, including mempool.space (Rate limited) and blockstream.info.
 
-    Note: Esplora has a built-in limitation of returning up to 50 unconfirmed transactions per address. While this should be
-    large enough for most use cases, if you run into problems, try using a different address provider.
+    Note: Esplora has a built-in limitation of returning up to 50 unconfirmed
+    transactions per address. While this should be large enough for most use
+    cases, if you run into problems, try using a different address provider.
 
-    Note 2: This API will not return the Genesis block in transactions, unlike the other balances. This will affect
-    balance displayed for Satoshi's first address 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa - but that output is unspendable anyway.
+    Note 2: This API will not return the Genesis block in transactions, unlike
+    the other balances. This will affect balance displayed for Satoshi's first
+    address 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa - but that output is unspendable
+    anyway.
     """
 
     def _clean_tx(self, element):

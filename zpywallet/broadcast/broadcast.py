@@ -9,7 +9,6 @@ from .dogetest.all import broadcast_transaction_dogetest, tx_hash_dogetest
 from .eth.all import broadcast_transaction_eth, tx_hash_eth
 from .ltc.all import broadcast_transaction_ltc, tx_hash_ltc
 from .ltctest.all import broadcast_transaction_ltctest, tx_hash_ltctest
-from ..network import *
 
 
 def broadcast_transaction(transaction, network, **kwargs):

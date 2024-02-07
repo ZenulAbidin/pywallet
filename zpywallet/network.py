@@ -38,13 +38,12 @@ class BitcoinCashMainNet(CryptoNetwork):
 class DashMainNet(CryptoNetwork):
     """Dash MainNet version bytes.
 
-    OK, time for a little drama - Dash's xpub/xprv were originally drkp/drkv.
+    Dash's xpub/xprv were originally drkp/drkv. But somehow, they were swapped
+    when inserted into the refernece client. So there are actually two possible
+    combinations of addresses in Dash (3, if you also count Bitcoin's xpub/xprv)
 
-    But somehow, they were swapped when inerted into the refernece client.
-    So there are actually two possible combinations of addresses in Dash
-    (3, if you also count Bitcoin's xpub/xprv)
-
-    See: https://www.dash.org/forum/index.php?threads/dash-bip32-serialization-values-dev-discussion-wont-apply-to-most.8092/
+    For more information, see the following link:
+    https://www.dash.org/forum/index.php?threads/dash-bip32-serialization-values-dev-discussion-wont-apply-to-most.8092/
     """
 
     NAME = "Dash"

@@ -73,7 +73,7 @@ class EthereumWeb3Client:
     def get_block_height(self):
         try:
             return self.web3.eth.block_number
-        except Exception as e:
+        except Exception:
             raise NetworkException("Failed to invoke Web3 method")
 
     def get_balance(self):
@@ -92,14 +92,15 @@ class EthereumWeb3Client:
         for address in self.addresses:
             try:
                 balance += self.web3.eth.get_balance(address)
-            except Exception as e:
+            except Exception:
                 raise NetworkException("Failed to invoke Web3 method")
 
         # Ethereum has no unconfirmed balances or transactions.
         # But for compatibility reasons, we still return it as a 2-tuple.
         return (balance, balance)
 
-    # In Ethereum, only one transaction per account can be included in a block at a time.
+    # In Ethereum, only one transaction per account can be included in a block
+    # at a time.
     def _get_transaction_history(self):
 
         addresses = [a.lower() for a in self.addresses]
@@ -108,7 +109,7 @@ class EthereumWeb3Client:
             # Retrieve block information
             try:
                 block = self.web3.eth.getBlock(block_number, full_transactions=True)
-            except Exception as e:
+            except Exception:
                 raise NetworkException("Failed to invoke Web3 method")
 
             # Check if the block contains transactions

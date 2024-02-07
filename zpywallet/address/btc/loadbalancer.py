@@ -43,8 +43,6 @@ class BitcoinAddress:
 
         self.transactions = transactions
 
-        # if provider_bitmask & 1 << wallet_pb2.BTC_BLOCKCHAIN_INFO + 1:
-        #    self.provider_list.append(BlockchainInfoAddress(addresses, transactions=transactions, fast_mode=self.fast_mode))
         if provider_bitmask & 1 << wallet_pb2.BTC_BLOCKCYPHER + 1:
             tokens = blockcypher_tokens
             if not tokens:

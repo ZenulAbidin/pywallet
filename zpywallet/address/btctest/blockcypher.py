@@ -15,7 +15,8 @@ class BlockcypherAddress:
     """
     A class representing a Bitcoin address.
 
-    This class allows you to retrieve the balance and transaction history of a Bitcoin address using the Blockcypher API.
+    This class allows you to retrieve the balance and transaction history of a
+    Bitcoin address using the Blockcypher API.
     """
 
     def _clean_tx(self, element):
@@ -240,7 +241,10 @@ class BlockcypherAddress:
                 block_height = data["txs"][-1]["block_height"]
 
             while "hasMore" in data.keys() and data["hasMore"]:
-                url = f"https://api.blockcypher.com/v1/btc/test/addrs/{address}/full?limit={interval}&before={block_height}&txlimit={txlimit}"
+                url = (
+                    f"https://api.blockcypher.com/v1/btc/test/addrs/{address}"
+                    + f"/full?limit={interval}&before={block_height}&txlimit={txlimit}"
+                )
             for attempt in range(3, -1, -1):
                 if attempt == 0:
                     raise NetworkException("Network request failure")

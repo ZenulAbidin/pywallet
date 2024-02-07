@@ -18,7 +18,8 @@ class DogeChainAddress:
     """
     A class representing a Dogecoin address.
 
-    This class allows you to retrieve the balance and transaction history of a Dogecoin address using the DogeChain API.
+    This class allows you to retrieve the balance and transaction history of a
+    Dogecoin address using the DogeChain API.
     """
 
     def _clean_tx(self, element):
@@ -29,7 +30,7 @@ class DogeChainAddress:
             try:
                 response = requests.get(url, timeout=60)
                 if response.status_code == 200:
-                    data = element
+                    # data = element
                     element = response.json()["transaction"]
                     break
                 else:

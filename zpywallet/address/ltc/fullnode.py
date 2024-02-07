@@ -218,8 +218,7 @@ class LitecoinRPCClient:
     def _get_transaction_history(self, txhash=None):
         self.get_block_height()
         self.txset = []  # Stores all of the output transactions in a temporary place
-        found_it = txhash == None
-        found_it = txhash == None
+        found_it = txhash is None
         if not [*range(self.min_height, self.height + 1)]:
             return
         try:
