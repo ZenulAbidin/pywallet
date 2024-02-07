@@ -2,9 +2,11 @@ bump2version==1.0.1
 wheel==0.40.0
 watchdog==3.0.0
 flake8==6.0.0
+flake8-bugbear==24.1.17
 tox==4.5.1
 coverage==7.2.5
 Sphinx==7.0.0
+sphinx-rtd-theme==2.0.0
 twine==4.0.2
 pytest==7.3.1
 tox-gh-actions==3.1.0
