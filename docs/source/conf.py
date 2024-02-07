@@ -61,3 +61,5 @@ autodoc_default_options = {
     "private-members": False,
     "show-inheritance": False,
 }
+
+add_module_names = False
