@@ -1,5 +1,5 @@
 Bugs and Limitations
---------------------
+====================
 While we strive to keep ZPyWallet as bug-free as possible, sometimes errors do slip in. Here are a list of things that are currently not supported by ZPywallet:
 
 **Bugs:**
