@@ -14,7 +14,7 @@ async def broadcast_transaction_doge_full_node(raw_transaction_hex, **kwargs):
 
     payload = {
         "jsonrpc": "2.0",
-        "id": f"{random.randint(1, (2<<31) - 1)}",
+        "id": f"{random.randint(1, 0xFFFFFFFF)}",
         "method": "sendrawtransaction",
         "params": [raw_transaction_hex],
     }
