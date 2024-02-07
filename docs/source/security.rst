@@ -37,5 +37,6 @@ Tips For Creating Secure Applications
 Indices and Tables
 ==================
 * :ref:`genindex`
+* :ref:`modindex`
 * :ref:`search`
 
