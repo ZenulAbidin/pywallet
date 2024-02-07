@@ -23,7 +23,8 @@ To save the wallet into a file, use the ``serialize()`` method. This returns a b
 ``Wallet.deserialize(data, password)`` method.
 
 Networks
-========
+--------
+
 Blockchains can be imported from `zpywallet.network`. For example:
 
 .. code-block:: python
@@ -65,7 +66,7 @@ Here are the supported networks:
   There is also an inverted version of Dash's network because the Dash specifications and implementation differ on which pair is canonical.
 
 Addresses
-=========
+---------
 
 To generate a random address within the gap limit, you can use the ``Wallet.random_adress()`` method. Note that ZPyWallet does not currently make use of change
 addresses nor does it automatically increase the gap limit.
@@ -76,7 +77,7 @@ The type of addresses created depend on the network used by the wallet. For exam
 will make Bech32 P2WPKH addresses.
 
 Transactions
-============
+------------
 
 ZPyWallet has built-in support for fetching transaction history of addresses:
 
@@ -132,7 +133,7 @@ ZPyWallet has built-in support for fetching transaction history of addresses:
 
 
 Key Generation
-==============
+--------------
 
 Arbitrary private keys can be generated as well:
 

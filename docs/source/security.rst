@@ -8,7 +8,7 @@ a wallet implementaiton safe for production use. Should you find any security vu
 `Security Policy <https://github.com/ZenulAbidin/zpywallet/tree/master/SECURITY.md>`_ to report it safely.
 
 Keys
-====
+----
 
 ZPyWallet uses the industry-standard libsecp256k1 library to generate private keys. This library has been audited by many researchers and independent
 firms, and is resistant to make different kinds of key sniffing attacks.
@@ -18,14 +18,14 @@ it use the ``CryptAcquireContextA`` and ``CryptGenRandom`` functions to get entr
 Nevertheless, if you do not trust the strength of the entropy sources on your system, you also have the option to supply your own entropy.
 
 Auditing
-========
+--------
 
 ZPyWallet has not been audited by a security organization or researcher. However, we have taken steps to ensure that it is both easy to use and save
 for production use. Sensitive data inside the library is wiped after it is used. Additionally, all private keys and seed phrases inside the wallet
 are in an encrypted state when they are not needed.
 
 Tips For Creating Secure Applications
-=====================================
+-------------------------------------
 
 - Never put private keys or seed phrases directly in source code. Store them in environment variables or another secure solution.
 - Always use the library methods for generating private keys, seeds, and wallets. These have high entropy. Avoid using your own entropy
