@@ -63,3 +63,5 @@ autodoc_default_options = {
 }
 
 add_module_names = False
+
+copyright = "© 2023-2024 Ali Sherief"
