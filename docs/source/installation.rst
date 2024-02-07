@@ -1,11 +1,6 @@
-.. ZPyWallet Installation
-
-==============================
-ZPyWallet - Installation Guide
-==============================
-
 Installation
 ============
+
 To start using ZPyWallet, you can choose to install it either from PyPI using `pip` or from source using `setup.py`.
 
 Installing from PyPI
