@@ -15,7 +15,8 @@ build:
     # golang: "1.19"
   jobs:
     pre_build:
-      - pip install --no-deps zpywallet
+      #- pip install --no-deps zpywallet
+      - python setup.py develop --no-deps
       - sphinx-apidoc -o docs/source/ zpywallet/
       - python docs/source/patch_modules.py
 
