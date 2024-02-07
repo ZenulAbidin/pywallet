@@ -429,10 +429,14 @@ class KeccakHash(object):
 
 
 # SHA3 parameter presets
-# Keccak224: Creates a KeccakHash object with a bitrate of 1152 bits, a capacity of 448 bits, and an output length of 224 bits.
-# Keccak256: Creates a KeccakHash object with a bitrate of 1088 bits, a capacity of 512 bits, and an output length of 256 bits.
-# Keccak384: Creates a KeccakHash object with a bitrate of 832 bits, a capacity of 768 bits, and an output length of 384 bits.
-# Keccak512: Creates a KeccakHash object with a bitrate of 576 bits, a capacity of 1024 bits, and an output length of 512 bits.
+# Keccak224: Creates a KeccakHash object with a bitrate of 1152 bits, a capacity of 448 bits,
+# and an output length of 224 bits.
+# Keccak256: Creates a KeccakHash object with a bitrate of 1088 bits, a capacity of 512 bits,
+# and an output length of 256 bits.
+# Keccak384: Creates a KeccakHash object with a bitrate of 832 bits, a capacity of 768 bits,
+# and an output length of 384 bits.
+# Keccak512: Creates a KeccakHash object with a bitrate of 576 bits, a capacity of 1024 bits,
+# and an output length of 512 bits.
 Keccak224 = KeccakHash.preset(1152, 448, 224)
 Keccak256 = KeccakHash.preset(1088, 512, 256)
 Keccak384 = KeccakHash.preset(832, 768, 384)

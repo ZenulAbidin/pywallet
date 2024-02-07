@@ -777,7 +777,7 @@ class PublicKey:
                     return b"\x76\xa9\x14" + b[1:] + b"\x88\xac"
                 else:
                     raise ValueError("Unknown address type")
-            except ValueError as e:
+            except ValueError:
                 b = bech32_decode(network.BECH32_PREFIX, address)[1]
                 if len(b) == 20:
                     return b"\x00\x14" + bytes(b)

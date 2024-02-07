@@ -9,61 +9,12 @@ from ..utxo import UTXO
 from ..destination import Destination
 
 from ..utils.base58 import b58decode_check
-from ..utils.bech32 import bech32_decode
 from ..utils.keccak import to_checksum_address
 
 # Should really use list[] annotation directly but we still support Python 3.8 which does not have such syntax yet.
 from typing import List
 
 SIGHASH_ALL = 1
-
-# def address_is_p2pkh(address, network=BitcoinSegwitMainNet):
-#     """Checks whether the address is P2PKH"""
-#     if "BASE58" not in network.ADDRESS_MODE:
-#         return False
-#     try:
-#         b = b58decode_check(address)
-#         return b[0] == network.PUBKEY_ADDRESS
-#     except KeyError:
-#         return False
-#     except ValueError:
-#         return False
-
-# def address_is_p2sh(address, network=BitcoinSegwitMainNet):
-#     """Checks whether the address is P2SH"""
-#     if "BASE58" not in network.ADDRESS_MODE:
-#         return False
-#     try:
-#         b = b58decode_check(address)
-#         return b[0] == network.SCRIPT_ADDRESS
-#     except KeyError:
-#         return False
-#     except ValueError:
-#         return False
-
-# def address_is_p2wpkh(address, network=BitcoinSegwitMainNet):
-#     """Checks whether the address is P2WPKH"""
-#     if "BECH32" not in network.ADDRESS_MODE:
-#         return False
-#     try:
-#         b = bech32_decode(network.BECH32_PREFIX, address)
-#         return len(b[1]) == 20
-#     except KeyError:
-#         return False
-#     except ValueError:
-#         return False
-
-# def address_is_p2wsh(address, network=BitcoinSegwitMainNet):
-#     """Checks whether the address is P2WSH"""
-#     if "BECH32" not in network.ADDRESS_MODE:
-#         return False
-#     try:
-#         b = bech32_decode(network.BECH32_PREFIX, address)
-#         return len(b[1]) == 32
-#     except KeyError:
-#         return False
-#     except ValueError:
-#         return False
 
 
 def script_is_p2pkh(script):
@@ -231,9 +182,10 @@ def create_transaction(
     **kwargs
 ):
     """
-    Creates a signed transaction, given a network an array of UTXOs, and an array of address/amount
-    destination tuples.
-    Never call this function directly, it does not automatically calculate change or fees. Instead, use Wallet.create_transaction().
+    Creates a signed transaction, given a network an array of UTXOs, and an
+    array of address/amount destination tuples.
+    Never call this function directly, it does not automatically calculate
+    change or fees. Instead, use Wallet.create_transaction().
     """
 
     # First, construct the raw transacation
@@ -262,7 +214,7 @@ def create_transaction(
                         "You must use a segwit network to use bech32 inputs"
                     )
                 break
-        tx_bytes_1 = tx_bytes_2 = tx_bytes_3 = tx_bytes_4 = b""
+        tx_bytes_1 = tx_bytes_3 = tx_bytes_4 = b""
         tx_bytes_1 += int_to_hex(1, 4)  # Version 1 transaction
         if network.SUPPORTS_SEGWIT and not all_legacy:
             tx_bytes_1 += b"\x00\x01"  # Signal segwit support
@@ -287,7 +239,7 @@ def create_transaction(
         tx_bytes_1 += create_varint(len(inputs))
         tx_bytes_2_inputs = []
         for i in inputs:
-            input_bytes_1 = input_bytes_2 = input_bytes_3 = input_bytes_4 = b""
+            input_bytes_1 = input_bytes_2 = input_bytes_3 = b""
             input_bytes_1 += binascii.unhexlify(i.txid().encode())[::-1]
             input_bytes_1 += int_to_hex(i.index(), 4)
 
@@ -408,10 +360,10 @@ def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, gas, c
                 "nonce": nonce,
                 "to": to_checksum_address(receiver_address),
                 "value": w3.toWei(amount, "ether"),  # Sending 1 ether, adjust as needed
-                #'gas': gas,#21000,  # Gas limit
+                # 'gas': gas,#21000,  # Gas limit
                 # Since the London hard work (EIP-1559), nobody uses gasPrice anymore. They use max<Priority>FeePerGas
                 # Which is automatically specified (somehow) in Web3.
-                #'gasPrice': w3.toWei(gasPrice, 'gwei'),  # Gas price in Gwei, adjust as needed
+                # 'gasPrice': w3.toWei(gasPrice, 'gwei'),  # Gas price in Gwei, adjust as needed
                 "chainId": chainId,  # 1 for Mainnet, change to 3 for Ropsten, 4 for Rinkeby, etc.
             }
 

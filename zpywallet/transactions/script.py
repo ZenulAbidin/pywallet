@@ -119,35 +119,35 @@ OP_CODES = {
     "OP_2OVER": b"\x70",
     "OP_2ROT": b"\x71",
     "OP_2SWAP": b"\x72",
-    # splice
-    #'OP_CAT'                : b'\x7e',
-    #'OP_SUBSTR'             : b'\x7f',
-    #'OP_LEFT'               : b'\x80',
-    #'OP_RIGHT'              : b'\x81',
+    #  splice
+    # 'OP_CAT'                : b'\x7e',
+    # 'OP_SUBSTR'             : b'\x7f',
+    # 'OP_LEFT'               : b'\x80',
+    # 'OP_RIGHT'              : b'\x81',
     "OP_SIZE": b"\x82",
-    # bitwise logic
-    #'OP_INVERT'             : b'\x83',
-    #'OP_AND'                : b'\x84',
-    #'OP_OR'                 : b'\x85',
-    #'OP_XOR'                : b'\x86',
+    #  bitwise logic
+    # 'OP_INVERT'             : b'\x83',
+    # 'OP_AND'                : b'\x84',
+    # 'OP_OR'                 : b'\x85',
+    # 'OP_XOR'                : b'\x86',
     "OP_EQUAL": b"\x87",
     "OP_EQUALVERIFY": b"\x88",
     # arithmetic
     "OP_1ADD": b"\x8b",
     "OP_1SUB": b"\x8c",
-    #'OP_2MUL'               : b'\x8d',
-    #'OP_2DIV'               : b'\x8e',
+    # 'OP_2MUL'               : b'\x8d',
+    # 'OP_2DIV'               : b'\x8e',
     "OP_NEGATE": b"\x8f",
     "OP_ABS": b"\x90",
     "OP_NOT": b"\x91",
     "OP_0NOTEQUAL": b"\x92",
     "OP_ADD": b"\x93",
     "OP_SUB": b"\x94",
-    #'OP_MUL'                : b'\x95',
-    #'OP_DIV'                : b'\x96',
-    #'OP_MOD'                : b'\x97',
-    #'OP_LSHIFT'             : b'\x98',
-    #'OP_RSHIFT'             : b'\x99',
+    # 'OP_MUL'                : b'\x95',
+    # 'OP_DIV'                : b'\x96',
+    # 'OP_MOD'                : b'\x97',
+    # 'OP_LSHIFT'             : b'\x98',
+    # 'OP_RSHIFT'             : b'\x99',
     "OP_BOOLAND": b"\x9a",
     "OP_BOOLOR": b"\x9b",
     "OP_NUMEQUAL": b"\x9c",
@@ -407,18 +407,19 @@ class Script:
             if bytes([byte]) in CODE_OPS:
                 commands.append(CODE_OPS[bytes([byte])])
                 index = index + 1
-                # handle the 3 special bytes 0x4c,0x4d,0x4e if the transaction is not segwit type
-            elif has_segwit == False and bytes([byte]) == b"\x4c":
+                # handle the 3 special bytes 0x4c,0x4d,0x4e if the transaction
+                # is not segwit type
+            elif has_segwit is False and bytes([byte]) == b"\x4c":
                 bytes_to_read = int.from_bytes(scriptraw[index + 1], "little")
                 index = index + 1
                 commands.append(scriptraw[index : index + bytes_to_read].hex())
                 index = index + bytes_to_read
-            elif has_segwit == False and bytes([byte]) == b"\x4d":
+            elif has_segwit is False and bytes([byte]) == b"\x4d":
                 bytes_to_read = int.from_bytes(scriptraw[index : index + 2], "little")
                 index = index + 2
                 commands.append(scriptraw[index : index + bytes_to_read].hex())
                 index = index + bytes_to_read
-            elif has_segwit == False and bytes([byte]) == b"\x4e":
+            elif has_segwit is False and bytes([byte]) == b"\x4e":
                 bytes_to_read = int.from_bytes(scriptraw[index : index + 4], "little")
                 index = index + 4
                 commands.append(scriptraw[index : index + bytes_to_read].hex())

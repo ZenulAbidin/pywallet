@@ -1,7 +1,7 @@
 import asyncio
 import binascii
 import hashlib
-from .fullnode import *
+from .fullnode import broadcast_transaction_dogetest_full_node
 
 
 def tx_hash_dogetest(raw_transaction_hex):
