@@ -1,5 +1,5 @@
 Usage
------
+=====
 
 The main class for generating wallets, fetching address balances, and creating transactions is `zpywallet.Wallet`. It is the most important class in the library and represents
 a wallet on a particular blockchain.

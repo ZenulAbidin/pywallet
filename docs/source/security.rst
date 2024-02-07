@@ -1,5 +1,5 @@
 Security
---------
+========
 
 When you create cryptocurrency applications, there are a few basic procedures you need to perform to ensure that your code runs safely and securely.
 Additionally, it is important to use a library that does not leak private keys and other secret data for potential attackers to use. Unfortunately,
