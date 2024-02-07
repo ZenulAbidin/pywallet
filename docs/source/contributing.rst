@@ -64,7 +64,7 @@ If you have any questions or need help with anything related to the project or y
 Thank you for your interest in contributing to ZPyWallet! We appreciate your time and effort in making our project better.
 
 Indices and Tables
-==================
+------------------
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`

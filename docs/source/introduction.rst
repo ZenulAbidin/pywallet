@@ -37,7 +37,7 @@ wallet creation, key derivation, address generation, transaction signing, and mo
 mnemonic phrase generation, message signing and verification, fee estimation, and other common wallet-related tasks.
 
 Indices and Tables
-==================
+------------------
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`

@@ -35,7 +35,7 @@ Tips For Creating Secure Applications
 - Regularly review and update the dependencies in your project to mitigate security vulnerabilities.
 
 Indices and Tables
-==================
+------------------
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`

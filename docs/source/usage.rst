@@ -155,8 +155,7 @@ Arbitrary private keys can be generated as well:
 
   
 Indices and Tables
-==================
+------------------
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

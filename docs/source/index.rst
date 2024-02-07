@@ -16,8 +16,7 @@ Welcome to the documentation for ZPyWallet!
    modules
 
 Indices and Tables
-==================
-
+------------------
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`

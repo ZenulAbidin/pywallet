@@ -36,8 +36,7 @@ While we strive to keep ZPyWallet as bug-free as possible, sometimes errors do s
 - In the case of Ethereum, contract addresses are not officially supported. Interaction may not work.
 
 Indices and Tables
-==================
+------------------
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

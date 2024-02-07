@@ -131,8 +131,7 @@ If you encounter any issues during the installation process or have specific req
 or create a Github issue.
 
 Indices and Tables
-==================
+------------------
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
