@@ -77,7 +77,10 @@ def generate_mnemonic(strength=128):
 def create_wallet(
     mnemonic=None, network=BitcoinSegwitMainNet, strength=128
 ) -> HDWallet:
-    """Generate a new wallet class from a mnemonic phrase, optionally randomly generated
+    """Deprecated: This function will be removed in v1.0
+
+    Generate a new wallet class from a mnemonic phrase, optionally
+    randomly generated
 
     Args:
 
@@ -167,8 +170,9 @@ class Wallet:
             # Generate addresses and keys
             hdwallet = HDWallet.from_mnemonic(mnemonic=seed_phrase, network=network)
 
-            # We do not save the password. Instead, we are going to generate a base64-encrypted
-            # serialization of this wallet file using the password.
+            # We do not save the password. Instead, we are going to
+            # generate a base64-encrypted serialization of this wallet file
+            # using the password.
             self.wallet.encrypted_seed_phrase = encrypt(
                 seed_phrase, password
             )  # AES-256-CBC encryption
@@ -239,24 +243,12 @@ class Wallet:
                 address = self.wallet.addresses.add()
                 address.address = pubkey.address()
                 address.pubkey = pubkey.to_hex()
-                # address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif() # Security risk
                 self.encrypted_private_keys.append(
                     privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
                 )
             self.encrypted_private_keys = encrypt(
                 json.dumps(self.encrypted_private_keys), password
             )
-
-            # for i in range(0, change_gap_limit):
-            #     privkey = hdwallet.get_child_for_path(f"{derivation_path}/1/{i}").private_key
-            #     pubkey = privkey.public_key
-
-            #     # Add an Address
-            #     address = self.wallet.addresses.add()
-            #     address.address = pubkey.address()
-            #     address.pubkey = pubkey.to_hex()
-            #     #address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
-            #   self.encrypted_private_keys.append(privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif())
 
             self._setup_client(max_cycles=max_cycles)
 
@@ -329,7 +321,6 @@ class Wallet:
             address = self.wallet.addresses.add()
             address.address = pubkey.address()
             address.pubkey = pubkey.to_hex()
-            # address.privkey = privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
         self.encrypted_private_keys = encrypt(
             json.dumps(self.encrypted_private_keys), password
         )
@@ -490,7 +481,7 @@ class Wallet:
                         privkey.public_key.base58_address(False),
                         privkey.public_key.bech32_address(),
                     ]
-                except Exception as e:
+                except Exception:
                     a = [
                         privkey.public_key.base58_address(True),
                         privkey.public_key.base58_address(False),
@@ -503,7 +494,7 @@ class Wallet:
                 )
                 del privkey
                 del private_key
-                if u._output["private_key"] == None:
+                if u._output["private_key"] is None:
                     continue
                 new_inputs.append(u)
                 break
@@ -511,8 +502,9 @@ class Wallet:
 
     def get_balance(self, in_standard_units=True):
         if self._network.SUPPORTS_EVM:
-            # We must use the Web3 network to get the balance as UTXOs are not available and getting transaction history
-            # of an address is impractically slow.
+            # We must use the Web3 network to get the balance as UTXOs are not
+            # available and getting transaction history of an address is
+            # impractically slow.
             balance = self.client.get_balance()
             if in_standard_units:
                 return balance[0] / 1e18, balance[1] / 1e18
@@ -545,10 +537,10 @@ class Wallet:
         private_keys = []
         try:
             private_keys = json.loads(decrypt(self.encrypted_private_keys, password))
+            return private_keys
         except ValueError as e:
             del private_keys
             raise e
-        return private_keys
 
     def _add_stock_nodes(self):
         fullnode_endpoints = []
@@ -589,12 +581,14 @@ class Wallet:
                 raise ValueError("Not enough balance for this transaction")
 
         # If after applying proportional fee scaling we STILL don't have
-        # enough balance, then that means the outputs are greater than the inputs (possibly a dust input set)
-        # In this case, the total_outputs is most likely negative.
+        # enough balance, then that means the outputs are greater than the
+        # inputs (possibly a dust input set). In this case, the total_outputs
+        # is most likely negative.
         total_outputs = sum([o.amount(in_standard_units=False) for o in destinations])
         if total_inputs < total_outputs + size * fee_rate:
             raise ValueError(
-                "Not enough balance for this transaction (are you trying to send dust amounts?)"
+                "Not enough balance for this transaction "
+                "(are you trying to send dust amounts?)"
             )
 
         change = total_inputs - total_outputs - size * fee_rate
@@ -629,7 +623,8 @@ class Wallet:
         fullnode_endpoints = self._add_stock_nodes()
 
         if self._network.SUPPORTS_EVM:
-            # Note: On EVM chains we do NOT need to estimate the fee. Web3.py does all the heavy lifting for us.
+            # Note: On EVM chains we do NOT need to estimate the fee.
+            # Web3.py does all the heavy lifting for us.
             create_transaction(
                 inputs,
                 destinations,
@@ -638,9 +633,10 @@ class Wallet:
                 **kwargs,
             )
 
-        # Depending on the size of the transactions, we may need to add a change output. Otherwise,
-        # the remaining balance is going to the miner.
-        # This is not the real change input, we need to find the size of the transaction first.
+        # Depending on the size of the transactions, we may need to add a
+        # change output. Otherwise, the remaining balance is going to the miner.
+        # This is not the real change input, we need to find the size of the
+        # transaction first.
         change = Destination(self.random_address(), 0, self._network)
         destinations_without_change = destinations[:]
         destinations_without_change.append(change)

@@ -9,6 +9,5 @@ __all__ = [
     "keys",
     "descriptors",
     "ripemd160",
-    "scrypt",
     "utils",
 ]

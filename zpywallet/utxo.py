@@ -1,8 +1,8 @@
 from .transaction import Transaction
 
 
-# NOTE: Currently, UTXO can only detect compressed/uncompressed P2PKH (legacy "1")
-# and compressed P2WPKH (bech32 "bc1q") addresses.
+# NOTE: Currently, UTXO can only detect compressed/uncompressed P2PKH
+# (legacy "1") and compressed P2WPKH (bech32 "bc1q") addresses.
 class UTXO:
     def __init__(
         self,
@@ -28,7 +28,8 @@ class UTXO:
         outputs = transaction.sat_outputs(only_unspent=True)
         try:
             output = outputs[index]
-            # Do not change the index superfluously since we only have the unspent UTXO subset
+            # Do not change the index superfluously since we only have the
+            # unspent UTXO subset
             output["txid"] = transaction.txid()
             output["height"] = transaction.height()
 
@@ -42,10 +43,8 @@ class UTXO:
             if not only_mine or output["address"] in addresses:
                 self._output = output
             else:
-                raise ValueError(
-                    "only_mine is specified and UTXO does not belong to this wallet"
-                )
-        except IndexError as e:
+                raise ValueError("UTXO does not belong to this wallet")
+        except IndexError:
             raise IndexError(f"Transaction output {index} does not exist")
 
     def network(self):
