@@ -6,7 +6,8 @@ class BlockcypherFeeEstimator:
     """
     A class representing a Litecoin fee rate estimator using Blockcypher API.
 
-    This class allows you to retrieve the current fee rate for Litecoin transactions using the Blockcypher API.
+    This class allows you to retrieve the current fee rate for Litecoin
+    transactions using the Blockcypher API.
     """
 
     def __init__(self, request_interval=(3, 1), api_key=None):
@@ -14,8 +15,9 @@ class BlockcypherFeeEstimator:
         Initializes an instance of the BlockcypherFeeEstimator class.
 
         Args:
-            request_interval (tuple): A pair of integers indicating the number of requests allowed during
-                a particular amount of seconds. Set to (0, N) for no rate limiting, where N > 0.
+            request_interval (tuple): A pair of integers indicating the number
+                of requests allowed during a particular amount of seconds.
+                Set to (0, N) for no rate limiting, where N > 0.
             api_key (str): The API key for accessing the Blockcypher API.
         """
         self.requests, self.interval_sec = request_interval

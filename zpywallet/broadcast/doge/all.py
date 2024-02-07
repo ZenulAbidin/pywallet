@@ -39,5 +39,5 @@ async def broadcast_transaction_doge(raw_transaction_hex, **kwargs):
 
     try:
         await asyncio.gather(*tasks, return_exceptions=True)
-    except Exception as e:
+    except Exception:
         pass

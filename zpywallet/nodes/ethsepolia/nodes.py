@@ -1,4 +1,4 @@
-eth_nodes = [
+ethsepolia_nodes = [
     {"url": "https://sepolia.gateway.tenderly.co"},
     {"url": "https://gateway.tenderly.co/public/sepolia"},
     {"url": "https://rpc.notadegen.com/eth/sepolia"},

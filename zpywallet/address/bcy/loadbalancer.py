@@ -30,12 +30,6 @@ class BCYAddress:
         # transactions and to avoid exceptions in loops later in this method.
         if not transactions:
             transactions = []
-        if not esplora_endpoints:
-            esplora_endpoints = []
-        if not fullnode_endpoints:
-            fullnode_endpoints = []
-        if not fullnode_passprotected_endpoints:
-            fullnode_passprotected_endpoints = []
 
         self.transactions = transactions
 
