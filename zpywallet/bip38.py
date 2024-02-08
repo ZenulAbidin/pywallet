@@ -1,6 +1,7 @@
 import hashlib
 import binascii
-import scrypt
+
+from hashlib import scrypt
 
 from Cryptodome.Cipher import AES
 
@@ -67,7 +68,9 @@ class Bip38PrivateKey:
         addresshash = hashlib.sha256(hashlib.sha256(addr.encode()).digest()).digest()[
             0:4
         ]
-        key = scrypt.hash(passphrase, addresshash, 16384, 8, 8)
+        key = scrypt(
+            passphrase.encode("utf-8"), salt=addresshash, n=16384, r=8, p=8, dklen=64
+        )
         derivedhalf1 = key[0:32]
         derivedhalf2 = key[32:64]
         encryptedhalf1 = encrypt(
@@ -125,7 +128,9 @@ class Bip38PrivateKey:
         #    compressed = True
         addresshash = d[0:4]
         d = d[4:-4]
-        key = scrypt.hash(passphrase, addresshash, 16384, 8, 8)
+        key = scrypt(
+            passphrase.encode("utf-8"), salt=addresshash, n=16384, r=8, p=8, dklen=64
+        )
         derivedhalf1 = key[0:32]
         derivedhalf2 = key[32:64]
         encryptedhalf1 = d[0:16]

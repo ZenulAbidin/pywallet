@@ -5,9 +5,6 @@ sphinx-rtd-theme==2.0.0
 # but that version has been yanked from PyPI because it doesn't work on Windows (yet).
 #coincurve>=18.0.0
 
-# scrypt <0.8.20 fails to build on Windows.
-scrypt>=0.8.20
-
 # Requests 2.20.1 fixes Auth stripping and <2.20.0 fails in certain Windows environments
 requests>=2.20.1
 
