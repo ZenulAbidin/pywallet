@@ -2,8 +2,6 @@ from hashlib import sha256
 import re
 import datetime
 
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
 from .ripemd160 import ripemd160
 from .keccak import Keccak256
 
@@ -42,40 +40,6 @@ def long_to_hex(l, size):
     long size should be 64 (two hex characters per byte"."""
     f_str = "{0:0%sx}" % size
     return ensure_bytes(f_str.format(l).lower())
-
-
-def encrypt(raw, passphrase):
-    """
-    Encrypt text with the passphrase
-    @param raw: string Text to encrypt
-    @param passphrase: string Passphrase
-    @type raw: string
-    @type passphrase: string
-    @rtype: bytes
-    """
-    backend = default_backend()
-    cipher = Cipher(
-        algorithms.AES(passphrase), modes.CBC(b"\x00" * 16), backend=backend
-    )
-    encryptor = cipher.encryptor()
-    return encryptor.update(raw) + encryptor.finalize()
-
-
-def decrypt(enc, passphrase):
-    """
-    Decrypt encrypted text with the passphrase
-    @param enc: bytes Text to decrypt
-    @param passphrase: string Passphrase
-    @type enc: bytes
-    @type passphrase: string
-    @rtype: bytes
-    """
-    backend = default_backend()
-    cipher = Cipher(
-        algorithms.AES(passphrase), modes.CBC(b"\x00" * 16), backend=backend
-    )
-    decryptor = cipher.decryptor()
-    return decryptor.update(enc) + decryptor.finalize()
 
 
 def convert_to_utc_timestamp(date_string, format_string="%Y-%m-%dT%H:%M:%SZ"):

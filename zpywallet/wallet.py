@@ -57,7 +57,7 @@ from .address.ltc import LitecoinAddress
 
 from .nodes.eth import eth_nodes
 
-from .utils.aes import decrypt, encrypt
+from .utils.aes import encrypt_str, decrypt_str
 
 from .transaction import Transaction
 
@@ -173,7 +173,7 @@ class Wallet:
             # We do not save the password. Instead, we are going to
             # generate a base64-encrypted serialization of this wallet file
             # using the password.
-            self.wallet.encrypted_seed_phrase = encrypt(
+            self.wallet.encrypted_seed_phrase = encrypt_str(
                 seed_phrase, password
             )  # AES-256-CBC encryption
 
@@ -246,7 +246,7 @@ class Wallet:
                 self.encrypted_private_keys.append(
                     privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
                 )
-            self.encrypted_private_keys = encrypt(
+            self.encrypted_private_keys = encrypt_str(
                 json.dumps(self.encrypted_private_keys), password
             )
 
@@ -256,7 +256,7 @@ class Wallet:
     def deserialize(cls, data: bytes, password, max_cycles=100):
         wallet = wallet_pb2.Wallet()
         wallet.ParseFromString(data)
-        seed_phrase = decrypt(wallet.encrypted_seed_phrase, password)
+        seed_phrase = decrypt_str(wallet.encrypted_seed_phrase, password)
 
         if wallet.network == wallet_pb2.BITCOIN_SEGWIT_MAINNET:
             network = BitcoinSegwitMainNet
@@ -321,7 +321,7 @@ class Wallet:
             address = self.wallet.addresses.add()
             address.address = pubkey.address()
             address.pubkey = pubkey.to_hex()
-        self.encrypted_private_keys = encrypt(
+        self.encrypted_private_keys = encrypt_str(
             json.dumps(self.encrypted_private_keys), password
         )
 
@@ -536,7 +536,7 @@ class Wallet:
     def private_keys(self, password):
         private_keys = []
         try:
-            private_keys = json.loads(decrypt(self.encrypted_private_keys, password))
+            private_keys = json.loads(decrypt_str(self.encrypted_private_keys, password))
             return private_keys
         except ValueError as e:
             del private_keys

@@ -2,9 +2,41 @@ import hashlib
 import binascii
 import scrypt
 
+from Cryptodome.Cipher import AES
+
 from .utils.keys import PrivateKey
-from .utils.utils import encrypt, decrypt
 from .utils import base58
+
+
+# We don't use our custom AES encryption functions because BIP38
+# has specific requirements for the encryption.
+def encrypt(raw, passphrase):
+    """
+    Encrypt text with the passphrase
+    @param raw: string Text to encrypt
+    @param passphrase: string Passphrase
+    @type raw: string
+    @type passphrase: string
+    @rtype: bytes
+    """
+    cipher = AES.new(passphrase, AES.MODE_CBC, b"\x00" * 16)
+    ciphertext = cipher.encrypt(raw)
+    return ciphertext
+
+
+def decrypt(enc, passphrase):
+    """
+    Decrypt encrypted text with the passphrase
+    @param enc: bytes Text to decrypt
+    @param passphrase: string Passphrase
+    @type enc: bytes
+    @type passphrase: string
+    @rtype: bytes
+    """
+    ciphertext = enc
+    cipher = AES.new(passphrase, AES.MODE_CBC, b"\x00" * 16)
+    plaintext = cipher.decrypt(ciphertext)
+    return plaintext.rstrip(b"\0")
 
 
 class Bip38PrivateKey:

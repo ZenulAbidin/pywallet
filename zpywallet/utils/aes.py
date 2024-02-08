@@ -50,13 +50,13 @@ def hash_password_pbkdf2(password, iterations=600000, key_length=128):
     return hashlib.pbkdf2_hmac("sha256", password, b"Salted__", iterations, key_length)
 
 
-def encrypt(raw: str, passphrase: str):
+def encrypt(raw: bytes, passphrase: bytes) -> bytes:
     """
     Encrypt text with the passphrase
 
     Args:
-        raw (str): Text to encrypt
-        passphrase (str): Encryption password. It is recommended to use a strong password.
+        raw (bytes): Text to encrypt
+        passphrase (bytes): Encryption password. It is recommended to use a strong password.
 
     Returns:
         bytes: The encrypted text
@@ -67,17 +67,22 @@ def encrypt(raw: str, passphrase: str):
     return base64.b64encode(b"Salted__" + salt + cipher.encrypt(__pkcs7_padding(raw)))
 
 
-def decrypt(enc, passphrase):
+def encrypt_str(raw: str, passphrase: str) -> str:
+    """Like encrypt(), but for str objects"""
+    return encrypt(raw.encode("utf-8"), passphrase.encode("utf-8"))
+
+
+def decrypt(enc: bytes, passphrase: bytes) -> bytes:
     """
     Decrypt encrypted text with the passphrase
 
 
     Args:
         enc (bytes): Text to decrypt
-        passphrase (str): Decryption password
+        passphrase (bytes): Decryption password
 
     Returns:
-        str: The original text
+        bytes: The original text
     """
     ct = base64.b64decode(enc)
     salted = ct[:8]
@@ -92,6 +97,11 @@ def decrypt(enc, passphrase):
     return d
 
 
+def decrypt_str(enc: bytes, passphrase: str) -> str:
+    """Like decrypt(), but for str objects"""
+    return decrypt(enc, passphrase.encode("utf-8")).decode("utf-8")
+
+
 def __pkcs7_padding(s):
     """
     Padding to blocksize according to PKCS #7.
@@ -102,14 +112,16 @@ def __pkcs7_padding(s):
     See: http://www.di-mgt.com.au/cryptopad.html
 
     Args:
-        s (str): Text to pad.
+        s (bytes): Text to pad.
 
     Returns:
-        str: Padded text.
+        bytes: Padded text.
     """
-    s_len = len(s if py2 else s.encode("utf-8"))
-    s = s + (BLOCK_SIZE - s_len % BLOCK_SIZE) * chr(BLOCK_SIZE - s_len % BLOCK_SIZE)
-    return s if py2 else bytes(s, "utf-8")
+    s_len = len(s)
+    s = s + (BLOCK_SIZE - s_len % BLOCK_SIZE) * bytes(
+        chr(BLOCK_SIZE - s_len % BLOCK_SIZE), "utf-8"
+    )
+    return s
 
 
 def __pkcs7_trimming(s):
@@ -122,9 +134,7 @@ def __pkcs7_trimming(s):
     Returns:
         str: Unpadded text.
     """
-    if sys.version_info[0] == 2:
-        return s[0 : -ord(s[-1])]
-    return s[0 : -s[-1]].decode("utf-8")
+    return s[0 : -s[-1]]
 
 
 def __derive_key_and_iv(password, salt):
@@ -139,7 +149,7 @@ def __derive_key_and_iv(password, salt):
         str: Derived key and IV.
     """
     d = d_i = b""
-    enc_pass = password if py2 else password.encode("utf-8")
+    enc_pass = password
     while len(d) < KEY_LEN + IV_LEN:
         d_i = hash_password_pbkdf2(d_i + enc_pass + salt)
         d += d_i
@@ -147,4 +157,4 @@ def __derive_key_and_iv(password, salt):
 
 
 if __name__ == "__main__":  # code to execute if called from command-line
-    print(decrypt(encrypt("text", "pass"), "pass"))
+    print(decrypt_str(encrypt_str("text", "pass"), "pass"))

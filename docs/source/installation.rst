@@ -108,7 +108,6 @@ Dependencies
 ZPyWallet has the following dependencies, which will be automatically installed when you install ZPyWallet via `pip` or `setup.py`:
 
 - coincurve
-- cryptography
 - scrypt
 - requests
 - protobuf

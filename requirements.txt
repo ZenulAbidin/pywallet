@@ -2,9 +2,6 @@
 # but that version has been yanked from PyPI because it doesn't work on Windows (yet).
 coincurve>=18.0.0
 
-# Cryptography 29.0.1 fixes a critical security issue affecting ciphers.
-cryptography>=39.0.1
-
 # scrypt <0.8.20 fails to build on Windows.
 scrypt>=0.8.20
 
