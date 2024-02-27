@@ -114,6 +114,7 @@ message BTCLikeInput {
   uint32 index = 2;                // Index of the output in the referenced transaction
   uint64 amount = 3;               // Value of the input in the smallest unit of Bitcoin
   repeated bytes witness_data = 4; // Witness data (for SegWit inputs)
+  string address = 5;              // (New zpywallet 2024-02-20): Address of input
 }
 
 // Output for Bitcoin transaction
