@@ -105,7 +105,10 @@ class EthereumWeb3Client:
 
         addresses = [a.lower() for a in self.addresses]
 
-        for block_number in range(self.block_height, self.get_block_height() + 1):
+        # Web3.py stores unconfirmed ETH transactions in "pending".
+        for block_number in list(
+            range(self.block_height, self.get_block_height() + 1)
+        ) + ["pending"]:
             # Retrieve block information
             try:
                 block = self.web3.eth.getBlock(block_number, full_transactions=True)
