@@ -157,7 +157,7 @@ class BitcoinMempool:
         # to your own node and not to a public one, for this reason.
         try:
             j = response.json()
-        except json.decoder.JSONDecodeError as e:
+        except json.decoder.JSONDecodeError:
             raise NetworkException("Internal RPC node error - expected JSON output")
 
         if "result" not in j.keys():
@@ -200,7 +200,7 @@ class BitcoinMempool:
         # to your own node and not to a public one, for this reason.
         try:
             jj = response.json()
-        except json.decoder.JSONDecodeError as e:
+        except json.decoder.JSONDecodeError:
             print(response.text)
             raise NetworkException("Internal RPC node error - expected JSON output")
 
