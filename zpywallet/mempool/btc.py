@@ -124,6 +124,7 @@ class BitcoinMempool:
         self.future_blocks_min = kwargs.get("future_blocks_min") or 0
         self.future_blocks_max = kwargs.get("future_blocks_max") or 1
         self.full_transactions = kwargs.get("full_transactions") or True
+        self.sql_transaction_storage = kwargs.get("dbcache") or None
         self.transactions = []
         self.in_mempool = []
         self.txos = []
@@ -363,6 +364,41 @@ class BitcoinMempool:
 
         return temp_transactions
 
-    def get_raw_mempool(self):
-        self.transactions = [*self._get_raw_mempool()]
-        return self.transactions
+    def update_mempool(self):
+        if not self.sql_transaction_storage:
+            self.transactions = [*self._get_raw_mempool()]
+            return self.transactions
+
+        try:
+            # Start a transaction
+            self.sql_transaction_storage.begin_transaction()
+
+            # Retrieve raw mempool transactions
+            mempool_transactions = self._get_raw_mempool()
+
+            # Clear existing transactions from the table
+            self.sql_transaction_storage.clear_transactions()
+
+            # Insert new transactions into the database
+            for transaction in mempool_transactions:
+                self.sql_transaction_storage.insert_transaction(transaction)
+
+            # Commit the transaction
+            self.sql_transaction_storage.commit_transaction()
+        except Exception:
+            # Rollback the transaction if an error occurs
+            self.sql_transaction_storage.rollback_transaction()
+
+    def find_in_mempool(self, address):
+        if self.sql_transaction_storage:
+            return self.sql_transaction_storage.get_transaction_by_address(address)
+        else:
+            found_transactions = []
+            for transaction in self.transacions:
+                for address in [
+                    i.address for i in transaction.btclike_transaction.inputs
+                ] or address in [
+                    o.address for o in transaction.btclike_transaction.outputs
+                ]:
+                    found_transactions.append(transaction)
+            return found_transactions
