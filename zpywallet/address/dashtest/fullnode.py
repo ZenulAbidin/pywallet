@@ -157,7 +157,8 @@ class DashRPCClient:
             float: The balance of the Dash address in DASH.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance
+            cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -202,14 +203,16 @@ class DashRPCClient:
 
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Dash address from cached data augmented with network data.
+        Retrieves the transaction history of the Dash address from cached data
+        augmented with network data.
         Does not include Genesis blocks.
 
         Returns:
             list: A list of transaction objects.
 
         Raises:
-            NetworkException: If the RPC request fails or the transaction history cannot be retrieved.
+            NetworkException: If the RPC request fails or the transaction
+            history cannot be retrieved.
         """
         if len(self.transactions) == 0:
             self.transactions = [*self._get_transaction_history()]

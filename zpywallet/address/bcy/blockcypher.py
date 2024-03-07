@@ -113,7 +113,7 @@ class BlockcypherAddress:
             float: The balance of the Bitcoin address in BTC.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -143,7 +143,16 @@ class BlockcypherAddress:
         return utxos
 
     def get_block_height(self):
-        """Returns the current block height."""
+        """
+        Retrieves the current block height.
+
+        Returns:
+            int: The current block height.
+
+        Raises:
+            NetworkException: If the API request fails or the block height
+            cannot be retrieved.
+        """
 
         url = "https://api.blockcypher.com/v1/bcy/test"
         for attempt in range(3, -1, -1):
@@ -169,13 +178,15 @@ class BlockcypherAddress:
 
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Bitcoin address from cached data augmented with network data.
+        Retrieves the transaction history of the Bitcoin address from cached
+        data augmented with network data.
 
         Returns:
             list: A list of dictionaries representing the transaction history.
 
         Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
+            NetworkException: If the API request fails or the transaction
+            history cannot be retrieved.
         """
         if len(self.transactions) == 0:
             self.transactions = deduplicate([*self._get_transaction_history()])
@@ -190,19 +201,6 @@ class BlockcypherAddress:
         return self.transactions
 
     def _get_transaction_history(self, txhash=None):
-        """
-        Retrieves the transaction history of the Bitcoin address. (internal method that makes the network query)
-
-        Parameters:
-            txhash (str): Get all transactions before (and not including) txhash.
-                Defaults to None, which disables this behavior.
-
-        Returns:
-            list: A list of dictionaries representing the transaction history.
-
-        Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
-        """
         params = None
         if self.api_key:
             params = {"token", self.api_key}

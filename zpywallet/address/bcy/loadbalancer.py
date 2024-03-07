@@ -68,7 +68,8 @@ class BCYAddress:
             float: The balance of the Blockcypher address in BCY.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance
+            cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -97,7 +98,7 @@ class BCYAddress:
                     utxos.append(utxo)
         return utxos
 
-    def advance_to_next_provider(self):
+    def _advance_to_next_provider(self):
         if not self.provider_list:
             return
 
@@ -112,11 +113,13 @@ class BCYAddress:
         Retrieves the current block height.
 
         Returns:
-            float: The current block height.
+            int: The current block height.
 
         Raises:
-            Exception: If the API request fails or the block height cannot be retrieved.
+            NetworkException: If the API request fails or the block height
+            cannot be retrieved.
         """
+
         cycle = 1
         while cycle <= self.max_cycles:
             self.provider_list[self.current_index].transactions = self.transactions
@@ -126,7 +129,7 @@ class BCYAddress:
                     return h
             except NetworkException:
                 self.transactions = self.provider_list[self.current_index].transactions
-                self.advance_to_next_provider()
+                self._advance_to_next_provider()
                 cycle += 1
         raise NetworkException(
             f"None of the address providers are working after {self.max_cycles} tries"
@@ -151,7 +154,7 @@ class BCYAddress:
                     break
                 except NetworkException:
                     txs = self.provider_list[self.current_index].transactions
-                    self.advance_to_next_provider()
+                    self._advance_to_next_provider()
                     cycle += 1
             self.transactions.extend(txs)
         return self.transactions

@@ -150,6 +150,17 @@ class BitcoinRPCClient:
             raise NetworkException(f"RPC call failed: {str(e)}")
 
     def get_block_height(self):
+        """
+        Retrieves the current block height.
+
+        Returns:
+            int: The current block height.
+
+        Raises:
+            NetworkException: If the API request fails or the block height
+            cannot be retrieved.
+        """
+
         response = self._send_rpc_request("getblockchaininfo")
         try:
             self.height = response["result"]["blocks"]
@@ -165,7 +176,8 @@ class BitcoinRPCClient:
             float: The balance of the Bitcoin address in BTC.
 
         Raises:
-            NetworkException: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance
+            cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -210,14 +222,16 @@ class BitcoinRPCClient:
 
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Bitcoin address from cached data augmented with network data.
+        Retrieves the transaction history of the Bitcoin address from cached
+        data augmented with network data.
         Does not include Genesis blocks.
 
         Returns:
             list: A list of transaction objects.
 
         Raises:
-            NetworkException: If the RPC request fails or the transaction history cannot be retrieved.
+            NetworkException: If the RPC request fails or the transaction
+            history cannot be retrieved.
         """
         if len(self.transactions) == 0:
             self.transactions = [*self._get_transaction_history()]

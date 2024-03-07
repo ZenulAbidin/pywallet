@@ -148,10 +148,15 @@ class BlockcypherAddress:
         return utxos
 
     def get_block_height(self):
-        """Fetches and sets the current block height.
+        """
+        Retrieves the current block height.
 
         Returns:
-            int: The current block height
+            int: The current block height.
+
+        Raises:
+            NetworkException: If the API request fails or the block height
+            cannot be retrieved.
         """
 
         url = "https://api.blockcypher.com/v1/btc/main"
@@ -178,13 +183,15 @@ class BlockcypherAddress:
 
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Bitcoin address from cached data augmented with network data.
+        Retrieves the transaction history of the Bitcoin address from cached
+        data augmented with network data.
 
         Returns:
             list: A list of transaction objects.
 
         Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
+            NetworkException: If the API request fails or the transaction
+            history cannot be retrieved.
         """
         if len(self.transactions) == 0:
             self.transactions = deduplicate([*self._get_transaction_history()])

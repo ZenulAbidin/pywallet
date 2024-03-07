@@ -84,8 +84,9 @@ class BlockcypherAddress:
         Args:
             addresses (list): A list of human-readable Litecoin addresses.
             api_key (str): The API key for accessing the Blockcypher API.
-            request_interval (tuple): A pair of integers indicating the number of requests allowed during
-                a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
+            request_interval (tuple): A pair of integers indicating the number
+                of requests allowed during a particular amount of seconds.
+                Set to (0,N) for no rate limiting, where N>0.
         """
         self.addresses = addresses
         self.api_key = api_key
@@ -112,7 +113,8 @@ class BlockcypherAddress:
             float: The balance of the Litecoin address in LTC.
 
         Raises:
-            NetworkException: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance
+            cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -156,7 +158,16 @@ class BlockcypherAddress:
         return utxos
 
     def get_block_height(self):
-        """Returns the current block height."""
+        """
+        Retrieves the current block height.
+
+        Returns:
+            int: The current block height.
+
+        Raises:
+            NetworkException: If the API request fails or the block height
+            cannot be retrieved.
+        """
 
         url = "https://api.blockcypher.com/v1/ltc/main"
         params = None
@@ -182,13 +193,15 @@ class BlockcypherAddress:
 
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Litecoin address from cached data augmented with network data.
+        Retrieves the transaction history of the Litecoin address from cached
+        data augmented with network data.
 
         Returns:
             list: A list of transaction objects.
 
         Raises:
-            NetworkException: If the API request fails or the transaction history cannot be retrieved.
+            NetworkException: If the API request fails or the transaction
+            history cannot be retrieved.
         """
         if len(self.transactions) == 0:
             self.transactions = deduplicate([*self._get_transaction_history()])

@@ -1,7 +1,6 @@
 from statistics import median
 
 
-from .blockchain_info import BlockchainInfoFeeEstimator
 from .blockcypher import BlockcypherFeeEstimator
 from .blockstream import BlockstreamFeeEstimator
 from .earndotcom import EarnDotComFeeEstimator
@@ -28,7 +27,6 @@ class BitcoinFeeEstimator:
         if not fullnode_endpoints:
             fullnode_endpoints = [] + btc_nodes
 
-        self.provider_list.append(BlockchainInfoFeeEstimator())
         tokens = blockcypher_tokens
         if not tokens:
             tokens = []
