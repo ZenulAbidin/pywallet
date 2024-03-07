@@ -102,7 +102,7 @@ class EsploraAddress:
 
         Raises:
             NetworkException: If the API request fails or the address balance
-            cannot be retrieved.
+                cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -146,7 +146,7 @@ class EsploraAddress:
 
         Raises:
             NetworkException: If the API request fails or the block height
-            cannot be retrieved.
+                cannot be retrieved.
         """
 
         url = f"{self.endpoint}/blocks/tip/height"

@@ -133,7 +133,7 @@ class BlockcypherAddress:
 
         Raises:
             NetworkException: If the API request fails or the block height
-            cannot be retrieved.
+                cannot be retrieved.
         """
 
         # Transactions are generated in reverse order
@@ -162,7 +162,7 @@ class BlockcypherAddress:
 
         Raises:
             NetworkException: If the API request fails or the block height
-            cannot be retrieved.
+                cannot be retrieved.
         """
 
         url = "https://api.blockcypher.com/v1/bcy/test"

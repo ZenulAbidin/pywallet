@@ -115,7 +115,7 @@ class DashTestAddress:
 
         Raises:
             NetworkException: If the API request fails or the block height
-            cannot be retrieved.
+                cannot be retrieved.
         """
         cycle = 1
         while cycle <= self.max_cycles:

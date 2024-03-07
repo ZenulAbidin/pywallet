@@ -90,7 +90,7 @@ class EthereumWeb3Client:
 
         Raises:
             NetworkException: If the API request fails or the block height
-            cannot be retrieved.
+                cannot be retrieved.
         """
         try:
             return self.web3.eth.block_number
@@ -109,7 +109,7 @@ class EthereumWeb3Client:
 
         Raises:
             NetworkException: If the API request fails or the address balance
-            cannot be retrieved.
+                cannot be retrieved.
         """
         balance = 0
         for address in self.addresses:

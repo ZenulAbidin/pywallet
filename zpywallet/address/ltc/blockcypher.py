@@ -114,7 +114,7 @@ class BlockcypherAddress:
 
         Raises:
             NetworkException: If the API request fails or the address balance
-            cannot be retrieved.
+                cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -166,7 +166,7 @@ class BlockcypherAddress:
 
         Raises:
             NetworkException: If the API request fails or the block height
-            cannot be retrieved.
+                cannot be retrieved.
         """
 
         url = "https://api.blockcypher.com/v1/ltc/main"

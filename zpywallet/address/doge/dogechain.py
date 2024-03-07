@@ -132,7 +132,7 @@ class DogeChainAddress:
 
         Raises:
             NetworkException: If the API request fails or the address balance
-            cannot be retrieved.
+                cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -176,7 +176,7 @@ class DogeChainAddress:
 
         Raises:
             NetworkException: If the API request fails or the block height
-            cannot be retrieved.
+                cannot be retrieved.
         """
 
         # Dogechain gives us the block height through a web socket

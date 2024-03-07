@@ -110,7 +110,7 @@ class BitcoinTestAddress:
 
         Raises:
             NetworkException: If the API request fails or the address balance
-            cannot be retrieved.
+                cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0

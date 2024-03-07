@@ -15,7 +15,8 @@ class BlockcypherAddress:
     """
     A class representing a Dash address.
 
-    This class allows you to retrieve the balance and transaction history of a Dash address using the Blockcypher API.
+    This class allows you to retrieve the balance and transaction history of a
+    Dash address using the Blockcypher API.
     """
 
     def _clean_tx(self, element):
@@ -83,8 +84,9 @@ class BlockcypherAddress:
         Args:
             addresses (list): A list of human-readable Dash addresses.
             api_key (str): The API key for accessing the Blockcypher API.
-            request_interval (tuple): A pair of integers indicating the number of requests allowed during
-                a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
+            request_interval (tuple): A pair of integers indicating the number
+                of requests allowed during a particular amount of seconds.
+                Set to (0,N) for no rate limiting, where N>0.
         """
         self.addresses = addresses
         self.api_key = api_key
@@ -112,7 +114,7 @@ class BlockcypherAddress:
 
         Raises:
             NetworkException: If the API request fails or the address balance
-            cannot be retrieved.
+                cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -156,7 +158,7 @@ class BlockcypherAddress:
 
         Raises:
             NetworkException: If the API request fails or the block height
-            cannot be retrieved.
+                cannot be retrieved.
         """
 
         url = "https://api.blockcypher.com/v1/dash/main"
