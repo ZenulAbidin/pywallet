@@ -168,7 +168,7 @@ class BTCDotComAddress:
 
         Raises:
             NetworkException: If the API request fails or the transaction
-            history cannot be retrieved.
+                history cannot be retrieved.
         """
         if len(self.transactions) == 0:
             self.transactions = [*self._get_transaction_history()]
@@ -182,7 +182,6 @@ class BTCDotComAddress:
         return self.transactions
 
     def _get_transaction_history(self, txhash=None):
-
         for address in self.addresses:
             page = 1
             pagesize = 50

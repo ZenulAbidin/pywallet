@@ -162,7 +162,7 @@ class DashAddress:
 
         Raises:
             NetworkException: If the API request fails or the transaction
-            history cannot be retrieved.
+                history cannot be retrieved.
         """
 
         for address in self.addresses:

@@ -81,6 +81,17 @@ class BCYAddress:
         return total_balance, confirmed_balance
 
     def get_utxos(self):
+        """
+        Retrieves the current block height.
+
+        Returns:
+            int: The current block height.
+
+        Raises:
+            NetworkException: If the API request fails or the block height
+            cannot be retrieved.
+        """
+
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions) - 1, -1, -1):
@@ -136,6 +147,17 @@ class BCYAddress:
         )
 
     def get_transaction_history(self):
+        """
+        Retrieves the transaction history of the Bitcoin address from cached
+        data augmented with network data.
+
+        Returns:
+            list: A list of dictionaries representing the transaction history.
+
+        Raises:
+            NetworkException: If the API request fails or the transaction
+                history cannot be retrieved.
+        """
         for address in self.addresses:
             txs = []
             ntransactions = -1  # Set to invalid value for the first iteration

@@ -183,7 +183,7 @@ class EsploraAddress:
 
         Raises:
             NetworkException: If the API request fails or the transaction
-            history cannot be retrieved.
+                history cannot be retrieved.
         """
         if len(self.transactions) == 0:
             self.transactions = [*self._get_transaction_history()]

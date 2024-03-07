@@ -76,7 +76,7 @@ class EthereumWeb3Client:
 
         Raises:
             NetworkException: If the API request fails or the transaction
-            history cannot be retrieved.
+                history cannot be retrieved.
         """
         self.transactions = [*self._get_transaction_history()]
         return self.transactions
