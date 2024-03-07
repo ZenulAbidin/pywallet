@@ -87,8 +87,9 @@ class BTCDotComAddress:
             float: The balance of the Bitcoin address in BTC.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance cannot be retrieved.
         """
+
         utxos = self.get_utxos()
         total_balance = 0
         confirmed_balance = 0
@@ -99,6 +100,12 @@ class BTCDotComAddress:
         return total_balance, confirmed_balance
 
     def get_utxos(self):
+        """Fetches the UTXO set for the addresses.
+
+        Returns:
+            list: A list of UTXOs
+        """
+
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions) - 1, -1, -1):
@@ -117,7 +124,12 @@ class BTCDotComAddress:
         return utxos
 
     def get_block_height(self):
-        # Get the current block height now:
+        """Fetches and sets the current block height.
+
+        Returns:
+            int: The current block height
+        """
+
         url = "https://chain.api.btc.com/v3/block/latest"
         for attempt in range(3, -1, -1):
             if attempt == 0:

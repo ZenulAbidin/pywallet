@@ -112,7 +112,7 @@ class BlockcypherAddress:
             float: The balance of the Bitcoin address in BTC.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -124,6 +124,12 @@ class BlockcypherAddress:
         return total_balance, confirmed_balance
 
     def get_utxos(self):
+        """Fetches the UTXO set for the addresses.
+
+        Returns:
+            list: A list of UTXOs
+        """
+
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions) - 1, -1, -1):
@@ -171,10 +177,10 @@ class BlockcypherAddress:
         Retrieves the transaction history of the Bitcoin address from cached data augmented with network data.
 
         Returns:
-            list: A list of dictionaries representing the transaction history.
+            list: A list of transaction objects.
 
         Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
+            NetworkException: If the API request fails or the transaction history cannot be retrieved.
         """
         if len(self.transactions) == 0:
             self.transactions = deduplicate([*self._get_transaction_history()])
@@ -189,19 +195,6 @@ class BlockcypherAddress:
         return self.transactions
 
     def _get_transaction_history(self, txhash=None):
-        """
-        Retrieves the transaction history of the Bitcoin address. (internal method that makes the network query)
-
-        Parameters:
-            txhash (str): Get all transactions before (and not including) txhash.
-                Defaults to None, which disables this behavior.
-
-        Returns:
-            list: A list of dictionaries representing the transaction history.
-
-        Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
-        """
         params = None
         if self.api_key:
             params = {"token", self.api_key}

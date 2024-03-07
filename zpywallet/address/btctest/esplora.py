@@ -101,7 +101,7 @@ class EsploraAddress:
             float: The balance of the Bitcoin address in BTC.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -113,6 +113,12 @@ class EsploraAddress:
         return total_balance, confirmed_balance
 
     def get_utxos(self):
+        """Fetches the UTXO set for the addresses.
+
+        Returns:
+            list: A list of UTXOs
+        """
+
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions) - 1, -1, -1):
@@ -160,10 +166,10 @@ class EsploraAddress:
         Retrieves the transaction history of the Bitcoin address from cached data augmented with network data.
 
         Returns:
-            list: A list of dictionaries representing the transaction history.
+            list: A list of transaction objects.
 
         Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
+            NetworkException: If the API request fails or the transaction history cannot be retrieved.
         """
         if len(self.transactions) == 0:
             self.transactions = [*self._get_transaction_history()]
@@ -177,15 +183,6 @@ class EsploraAddress:
         return self.transactions
 
     def _get_transaction_history(self, txhash=None):
-        """
-        Retrieves the transaction history of the Bitcoin address.
-
-        Returns:
-            list: A list of dictionaries representing the transaction history.
-
-        Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
-        """
         for address in self.addresses:
             # This gets up to 50 mempool transactions + up to 25 confirmed transactions
             url = f"{self.endpoint}/address/{address}/txs"

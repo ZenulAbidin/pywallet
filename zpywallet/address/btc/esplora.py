@@ -101,8 +101,9 @@ class EsploraAddress:
             float: The balance of the Bitcoin address in BTC.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance cannot be retrieved.
         """
+
         utxos = self.get_utxos()
         total_balance = 0
         confirmed_balance = 0
@@ -113,6 +114,12 @@ class EsploraAddress:
         return total_balance, confirmed_balance
 
     def get_utxos(self):
+        """Fetches the UTXO set for the addresses.
+
+        Returns:
+            list: A list of UTXOs
+        """
+
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions) - 1, -1, -1):
@@ -131,7 +138,12 @@ class EsploraAddress:
         return utxos
 
     def get_block_height(self):
-        # Get the current block height now:
+        """Fetches and sets the current block height.
+
+        Returns:
+            int: The current block height
+        """
+
         url = f"{self.endpoint}/blocks/tip/height"
         for attempt in range(3, -1, -1):
             if attempt == 0:
@@ -163,7 +175,7 @@ class EsploraAddress:
             list: A list of dictionaries representing the transaction history.
 
         Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
+            NetworkException: If the API request fails or the transaction history cannot be retrieved.
         """
         if len(self.transactions) == 0:
             self.transactions = [*self._get_transaction_history()]
@@ -181,10 +193,10 @@ class EsploraAddress:
         Retrieves the transaction history of the Bitcoin address.
 
         Returns:
-            list: A list of dictionaries representing the transaction history.
+            list: A list of transaction objects.
 
         Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
+            NetworkException: If the API request fails or the transaction history cannot be retrieved.
         """
         for address in self.addresses:
             # This gets up to 50 mempool transactions + up to 25 confirmed transactions

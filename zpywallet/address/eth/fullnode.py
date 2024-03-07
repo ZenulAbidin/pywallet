@@ -67,6 +67,15 @@ class EthereumWeb3Client:
                 self.min_height = 0
 
     def get_transaction_history(self):
+        """
+        Retrieves the transaction history of the Ethereum address from cached data augmented with network data.
+
+        Returns:
+            list: A list of transaction objects.
+
+        Raises:
+            NetworkException: If the API request fails or the transaction history cannot be retrieved.
+        """
         self.transactions = [*self._get_transaction_history()]
         return self.transactions
 
@@ -86,7 +95,7 @@ class EthereumWeb3Client:
             int: The balance of the Ethereum address in Gwei.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance cannot be retrieved.
         """
         balance = 0
         for address in self.addresses:
@@ -102,7 +111,6 @@ class EthereumWeb3Client:
     # In Ethereum, only one transaction per account can be included in a block
     # at a time.
     def _get_transaction_history(self):
-
         addresses = [a.lower() for a in self.addresses]
 
         # Web3.py stores unconfirmed ETH transactions in "pending".
