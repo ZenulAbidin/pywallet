@@ -12,8 +12,11 @@ from ...nodes.btc import btc_nodes, btc_esplora_nodes
 
 
 class BitcoinFeeEstimator:
-    """Load balancer for all BTC fee providers provided to an instance of this class,
-    using the round robin scheduling algorithm.
+    """
+    A class representing a Bitcoin fee rate estimator.
+
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(self, **kwargs):

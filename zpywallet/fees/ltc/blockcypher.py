@@ -4,10 +4,7 @@ from ...errors import NetworkException
 
 class BlockcypherFeeEstimator:
     """
-    A class representing a Litecoin fee rate estimator using Blockcypher API.
-
-    This class allows you to retrieve the current fee rate for Litecoin
-    transactions using the Blockcypher API.
+    A class representing a Litecoin fee rate estimator using Blockcypher.
     """
 
     def __init__(self, request_interval=(3, 1), api_key=None):

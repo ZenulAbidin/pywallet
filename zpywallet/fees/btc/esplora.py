@@ -4,9 +4,7 @@ from ...errors import NetworkException
 
 class EsploraFeeEstimator:
     """
-    A class representing a Bitcoin fee rate estimator using Esplora API.
-
-    This class allows you to retrieve the current fee rate for Bitcoin transactions using the Esplora API.
+    A class representing a Bitcoin fee rate estimator using Esplora.
     """
 
     def __init__(self, request_interval=(3, 1), **kwargs):

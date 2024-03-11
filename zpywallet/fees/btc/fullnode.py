@@ -5,7 +5,9 @@ from ...errors import NetworkException
 
 
 class BitcoinRPCClient:
-    """Fee estimation class using Bitcoin full nodes."""
+    """
+    A class representing a Bitcoin fee rate estimator using full nodes.
+    """
 
     def __init__(self, **kwargs):
         self.rpc_url = kwargs.get("url")

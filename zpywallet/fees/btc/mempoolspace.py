@@ -3,7 +3,7 @@ from .esplora import EsploraFeeEstimator
 
 class MempoolSpaceFeeEstimator(EsploraFeeEstimator):
     """
-    A class representing a Mempool.space Bitcoin fee rate estimator.
+    A class representing a Bitcoin fee rate estimator using Mempool.space.
     """
 
     def __init__(self, request_interval=(3, 1), transactions=None):

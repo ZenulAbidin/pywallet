@@ -5,8 +5,11 @@ from ...nodes.eth import eth_nodes
 
 
 class EthereumFeeEstimator:
-    """Load balancer for all ETH gas providers provided to an instance of this class,
-    using the round robin scheduling algorithm.
+    """
+    A class representing a Ethereum gas estimator.
+
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(self, **kwargs):

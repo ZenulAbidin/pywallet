@@ -3,11 +3,10 @@ from web3.gas_strategies.time_based import fast_gas_price_strategy
 
 
 class EthereumWeb3FeeEstimator:
-    """Fee estimation class for Ethereum full nodes and Web3 clients.
-    Most 3rd party providers e.g. Infura, QuickNode will also work here.
+    """Fee estimation class for Ethereum full nodes.
 
-    Note: Ethereum calls fees "gas". So returned units are gas. There is
-    also another function that returns the gas price
+    Note: Ethereum calls fees "gas". So returned units are in gas. There is
+    also another function that returns the gas price.
     """
 
     def __init__(self, **kwargs):

@@ -6,8 +6,11 @@ from ...nodes.ltc import ltc_nodes
 
 
 class LitecoinFeeEstimator:
-    """Load balancer for all Litecoin fee providers provided to an instance of this class,
-    using the round robin scheduling algorithm.
+    """
+    A class representing a Litecoin fee rate estimator.
+
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(self, **kwargs):

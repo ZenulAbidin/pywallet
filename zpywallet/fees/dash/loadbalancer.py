@@ -6,8 +6,11 @@ from ...nodes.dash import dash_nodes
 
 
 class DashFeeEstimator:
-    """Load balancer for all DASH fee providers provided to an instance of this class,
-    using the round robin scheduling algorithm.
+    """
+    A class representing a Dash fee rate estimator.
+
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(self, **kwargs):
