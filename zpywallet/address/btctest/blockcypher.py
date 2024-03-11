@@ -13,10 +13,10 @@ def deduplicate(elements):
 
 class BlockcypherAddress:
     """
-    A class representing a Bitcoin address.
+    A class representing a list of Bitcoin testnet addresses.
 
     This class allows you to retrieve the balance and transaction history of a
-    Bitcoin address using the Blockcypher API.
+    Bitcoin address using Blockcypher.
     """
 
     def _clean_tx(self, element):

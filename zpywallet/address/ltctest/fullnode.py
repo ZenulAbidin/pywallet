@@ -6,8 +6,12 @@ from ...generated import wallet_pb2
 
 
 class LitecoinRPCClient:
-    """Address querying class for Litecoin full nodes utilizing descriptors.
-    Requires node running with -txindex.
+    """
+    A class representing a list of Litecoin testnet addresses.
+
+    This class allows you to retrieve the balance, UTXO set, and transaction
+    history of a Litecoin testnet address using a full node.
+    Requires a node running with -txindex.
     """
 
     # Not static because we need to make calls to fetch input transactions.

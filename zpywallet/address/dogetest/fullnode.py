@@ -6,7 +6,11 @@ from ...generated import wallet_pb2
 
 
 class DogecoinRPCClient:
-    """Address querying class for Dogecoin full nodes utilizing descriptors.
+    """
+    A class representing a list of Dogecoin testnet addresses.
+
+    This class allows you to retrieve the balance, UTXO set, and transaction
+    history of a Dogecoin testnet address using a full node.
     Requires a node running with -txindex.
     """
 

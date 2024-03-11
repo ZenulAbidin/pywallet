@@ -6,7 +6,11 @@ from ...generated import wallet_pb2
 
 
 class BitcoinRPCClient:
-    """Address querying class for Bitcoin full nodes utilizing descriptors.
+    """
+    A class representing a list of Bitcoin testnet addresses.
+
+    This class allows you to retrieve the balance, UTXO set, and transaction
+    history of a Bitcoin testnet address using a full node.
     Requires a node running with -txindex.
     """
 

@@ -14,10 +14,10 @@ def deduplicate(elements):
 
 class BlockcypherAddress:
     """
-    A class representing a Bitcoin address.
+    A class representing a list of Blockcypher Testnet addresses.
 
     This class allows you to retrieve the balance and transaction history of a
-    Bitcoin address using the Blockcypher API.
+    Blockcypher Testnet address using the Blockcypher API.
     """
 
     def _clean_tx(self, element):
@@ -83,7 +83,7 @@ class BlockcypherAddress:
         Initializes an instance of the BlockcypherAddress class.
 
         Args:
-            addresses (list): A list of human-readable Bitcoin addresses.
+            addresses (list): A list of human-readable Blockcypher Testnet addresses.
             api_key (str): The API key for accessing the Blockcypher API.
             request_interval (tuple): A pair of integers indicating the number of requests allowed during
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
@@ -107,10 +107,10 @@ class BlockcypherAddress:
 
     def get_balance(self):
         """
-        Retrieves the balance of the Bitcoin address.
+        Retrieves the balance of the Blockcypher Testnet address.
 
         Returns:
-            float: The balance of the Bitcoin address in BTC.
+            float: The balance of the Blockcypher Testnet address in BCY.
 
         Raises:
             NetworkException: If the API request fails or the address balance cannot be retrieved.
@@ -189,7 +189,7 @@ class BlockcypherAddress:
 
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Bitcoin address from cached
+        Retrieves the transaction history of the Blockcypher Testnet address from cached
         data augmented with network data.
 
         Returns:

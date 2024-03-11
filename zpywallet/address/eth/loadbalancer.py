@@ -5,8 +5,10 @@ from ...nodes.eth import eth_nodes
 
 
 class EthereumAddress:
-    """Load balancer for all ETH address providers provided to an instance of
-    this class, using the round robin scheduling algorithm.
+    """Represents a list of Ethereum addresses.
+
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(

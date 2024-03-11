@@ -13,7 +13,7 @@ def deduplicate(elements):
 
 class BlockcypherAddress:
     """
-    A class representing a Dash address.
+    A class representing a list of Dash addresses.
 
     This class allows you to retrieve the balance and transaction history of a
     Dash address using the Blockcypher API.

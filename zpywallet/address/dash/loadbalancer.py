@@ -6,8 +6,10 @@ from ...nodes.dash import dash_nodes
 
 
 class DashAddress:
-    """Load balancer for all DASH address providers provided to an instance of this class,
-    using the round robin scheduling algorithm.
+    """Represents a list of Bitcoin testnet addresses.
+
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(

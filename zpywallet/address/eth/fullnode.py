@@ -7,12 +7,17 @@ from ...utils.keccak import to_checksum_address
 
 
 class EthereumWeb3Client:
-    """Address querying class for Ethereum full nodes and Web3 clients.
-    Most 3rd party providers e.g. Infura, QuickNode will also work here.
+    """A class representing a list of Ethereum addresses.
 
-    WARNING: Ethereum nodes have a --txlookuplimit and maintain the last N transactions only,
-    unless this option is turned off. 3rd party providers should have this switched off, but
-    ensure it is turned off if you are running your own node.
+    This class allows you to retrieve the balance and transaction history of an
+    Etherum address using a full node.
+
+    You can run a private node with many 3rd party providers such as Alchemy,
+    Infura, QuickNode, and GetBlock.
+
+    WARNING: Ethereum nodes have a --txlookuplimit and keep only recent transactions,
+    unless this option is turned off. 3rd party providers should have this disabled,
+    but ensure it is turned off if you are running your own node.
     """
 
     def _clean_tx(self, element, block):

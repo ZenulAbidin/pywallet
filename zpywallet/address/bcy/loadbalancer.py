@@ -4,10 +4,10 @@ from ...errors import NetworkException
 
 
 class BCYAddress:
-    """Load balancer for all BCY address providers provided to an instance of this class,
-    using the round robin scheduling algorithm.
+    """Represents a list of Blockcypher testnet addresses.
 
-    Note: Some web-based providers use API keys. You can speficy an array
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(

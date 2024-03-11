@@ -4,8 +4,10 @@ from ...errors import NetworkException
 
 
 class DashTestAddress:
-    """Load balancer for all DASH address providers provided to an instance of this class,
-    using the round robin scheduling algorithm.
+    """Represents a list of Dash testnet addresses.
+
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(

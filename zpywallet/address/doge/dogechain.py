@@ -16,10 +16,10 @@ def deduplicate(elements):
 
 class DogeChainAddress:
     """
-    A class representing a Dogecoin address.
+    A class representing a list of Dogecoin addresses.
 
     This class allows you to retrieve the balance and transaction history of a
-    Dogecoin address using the DogeChain API.
+    Dogecoin address using DogeChain.
     """
 
     def _clean_tx(self, element):

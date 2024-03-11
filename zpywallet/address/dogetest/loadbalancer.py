@@ -4,8 +4,10 @@ from ...errors import NetworkException
 
 
 class DogecoinTestAddress:
-    """Load balancer for all DOGE address providers provided to an instance of this class,
-    using the round robin scheduling algorithm.
+    """Represents a list of Dogecoin testnet addresses.
+
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(

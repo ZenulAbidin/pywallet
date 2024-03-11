@@ -6,8 +6,10 @@ from ...nodes.ltc import ltc_nodes
 
 
 class LitecoinAddress:
-    """Load balancer for all LTC address providers provided to an instance of this class,
-    using the round robin scheduling algorithm.
+    """Represents a list of Litecoin addresses.
+
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(

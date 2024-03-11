@@ -9,8 +9,10 @@ from ...nodes.btctest import btctest_nodes, btctest_esplora_nodes
 
 
 class BitcoinTestAddress:
-    """Load balancer for all BTC address providers provided to an instance of this class,
-    using the round robin scheduling algorithm.
+    """Represents a list of Bitcoin testnet addresses.
+
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(

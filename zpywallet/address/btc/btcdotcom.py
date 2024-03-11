@@ -7,9 +7,10 @@ from ...generated import wallet_pb2
 
 class BTCDotComAddress:
     """
-    A class representing a Bitcoin address.
+    A class representing a list of Bitcoin addresses.
 
-    This class allows you to retrieve the balance and transaction history of a Bitcoin address using the BTC.com API.
+    This class allows you to retrieve the balance, UTXO set, and transaction
+    history of a Bitcoin address using BTC.com.
     """
 
     def _clean_tx(self, element):

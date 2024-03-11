@@ -6,7 +6,11 @@ from ...generated import wallet_pb2
 
 
 class DashRPCClient:
-    """Address querying class for Dash full nodes utilizing descriptors.
+    """
+    A class representing a list of Dash testnet addresses.
+
+    This class allows you to retrieve the balance, UTXO set, and transaction
+    history of a Dash testnet address using a full node.
     Requires a node running with -txindex.
     """
 
