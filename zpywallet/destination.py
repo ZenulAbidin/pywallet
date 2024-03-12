@@ -10,6 +10,8 @@ class FeePolicy(Enum):
     FeePolicy.PROPORTIONAL: Indicates a proportional fee policy.
     """
 
+    pass
+
 
 class Destination:
     """
