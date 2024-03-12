@@ -22,7 +22,8 @@ from ..errors import (
     SegwitError,
     unsupported_feature_exception_factory,
 )
-from .utils import ensure_bytes, ensure_str, hash160, is_hex_string, long_to_hex
+from .utils import ensure_bytes, ensure_str, is_hex_string, long_to_hex
+from .ripemd160 import ripemd160
 
 # import all the networks
 from ..network import BitcoinSegwitMainNet
@@ -158,7 +159,7 @@ class HDWallet(object):
         key itself).
         """
         key = self.get_public_key_hex()
-        return ensure_bytes(hexlify(hash160(unhexlify(key))))
+        return ensure_bytes(hexlify(ripemd160(sha256(unhexlify(key)).digest())))
 
     @property
     def mnemonic_phrase(self):

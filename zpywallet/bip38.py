@@ -53,25 +53,6 @@ def decrypt(enc, passphrase):
 class Bip38PrivateKey:
     """
     Represents a BIP38 encrypted private key for Bitcoin.
-
-    Attributes:
-        BLOCK_SIZE (int): The block size used for encryption (constant).
-        KEY_LEN (int): The length of the encryption key in bytes (constant).
-        IV_LEN (int): The length of the initialization vector in bytes (constant).
-
-    Methods:
-        __init__(privkey, passphrase, compressed=True, segwit=False, witness_version=0):
-            Initializes a Bip38PrivateKey object with the given private key and passphrase.
-            Encrypts the private key using the BIP38 encryption algorithm.
-
-        base58():
-            Returns the Base58 representation of the encrypted private key.
-
-        private_key(passphrase, compressed=True, segwit=False, witness_version=0):
-            Decrypts the encrypted private key using the given passphrase and returns the corresponding WIF private key.
-
-    Raises:
-        ValueError: If BIP38 encryption is attempted with unsupported address modes or if the passphrase is incorrect during decryption.
     """
 
     BLOCK_SIZE = 16
@@ -86,6 +67,18 @@ class Bip38PrivateKey:
         segwit=False,
         witness_version=0,
     ):
+        """Creates a BIP0038 private key with non-ec-multiply encryption.
+
+        Args:
+            privkey (PrivateKey): The private key.
+            passphrase (_type_): The encryption passphrase
+            compressed (bool, optional): Whether to use compressed public keys. Defaults to True.
+            segwit (bool, optional): Whether to use segwit address. Defaults to False.
+            witness_version (int, optional): The witness version for generating the segwit address. Defaults to 0.
+
+        Raises:
+            ValueError: If the private key object does not support Base58 or Bech32.
+        """
         # BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted privkey.
         if (
             "BASE58" not in privkey.network.ADDRESS_MODE
@@ -146,9 +139,25 @@ class Bip38PrivateKey:
 
     @property
     def base58(self):
+        """Returns the Base58 representation of the encrypted private key."""
         return self._encrypted_privkey.decode()
 
     def private_key(self, passphrase, compressed=True, segwit=False, witness_version=0):
+        """Decrypts the encrypted private key using the given passphrase and returns the corresponding WIF private key.
+
+        Args:
+            passphrase (_type_): The passphrase to decrypt the key.
+            compressed (bool, optional): Whether to use compressed public keys. Defaults to True.
+            segwit (bool, optional): Whether to use segwit address. Defaults to False.
+            witness_version (int, optional): The witness version for generating the segwit address. Defaults to 0.
+
+
+        Raises:
+            ValueError: If the wrong decryption passphrase was supplied.
+
+        Returns:
+            PrivateKey: a Bitcoin private key.
+        """
         # BIP0038 non-ec-multiply decryption. Returns WIF privkey.
         d = base58.b58decode(self._encrypted_privkey)
         d = d[2:]
