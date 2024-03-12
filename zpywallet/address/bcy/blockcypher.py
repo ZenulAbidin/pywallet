@@ -1,8 +1,8 @@
 import requests
 import time
+import datetime
 
 from ...errors import NetworkException
-from ...utils.utils import convert_to_utc_timestamp
 from ...generated import wallet_pb2
 
 from functools import reduce
@@ -10,6 +10,12 @@ from functools import reduce
 
 def deduplicate(elements):
     return reduce(lambda re, x: re + [x] if x not in re else re, elements, [])
+
+
+def convert_to_utc_timestamp(date_string, format_string="%Y-%m-%dT%H:%M:%SZ"):
+    date_object = datetime.datetime.strptime(date_string, format_string)
+    utc_date = date_object.astimezone(datetime.timezone.utc)
+    return int(utc_date.timestamp())
 
 
 class BlockcypherAddress:

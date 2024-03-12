@@ -21,7 +21,6 @@ from .keccak import Keccak256
 from .base58 import b58encode_check, b58decode_check
 from .bech32 import bech32_decode, bech32_encode
 from .ripemd160 import ripemd160
-from .utils import ensure_bytes, ensure_str
 from ..network import BitcoinSegwitMainNet
 from ..errors import (
     incompatible_network_bytes_exception_factory,
@@ -174,7 +173,7 @@ class PrivateKey:
 
     @classmethod
     def from_brainwallet(
-        cls, password, salt=b"zpywallet", network=BitcoinSegwitMainNet
+        cls, password: bytes, salt=b"zpywallet", network=BitcoinSegwitMainNet
     ):
         """Generate a new key from a master password, and an optional salt.
 
@@ -197,12 +196,11 @@ class PrivateKey:
         Returns:
             PrivateKey: The object representing the private key.
         """
-        password = ensure_bytes(password) + ensure_bytes(salt)
-        key = sha256(password).hexdigest()
+        key = sha256(password + salt).hexdigest()
         return PrivateKey.from_int(int(key, 16), network)
 
     @classmethod
-    def from_wif(cls, wif, network=BitcoinSegwitMainNet):
+    def from_wif(cls, wif: str, network=BitcoinSegwitMainNet):
         """Import a key in WIF format.
 
         WIF is Wallet Import Format. It is a base58 encoded checksummed key.
@@ -222,7 +220,6 @@ class PrivateKey:
             PrivateKey: An object representing a private key.
         """
         # Decode the base58 string and ensure the checksum is valid
-        wif = ensure_str(wif)
         try:
             extended_key_bytes = b58decode_check(wif)
         except ValueError as e:
@@ -432,7 +429,7 @@ class PrivateKey:
         # And return the base58-encoded result with a checksum
         return b58encode_check(extended_key_bytes).decode()
 
-    def to_hex(self):
+    def to_hex(self) -> str:
         "Returns the private key in hexadecimal form."
         return self._key.to_hex()
 
@@ -443,7 +440,7 @@ class PrivateKey:
         key.
         """
         network_hex_chars = binascii.hexlify(bytes([network.SECRET_KEY]))
-        return ensure_bytes(network_hex_chars) + ensure_bytes(self.to_hex())
+        return network_hex_chars + self.to_hex().encode("utf-8")
 
     def __bytes__(self):
         return binascii.unhexlify(self._key.to_hex())
@@ -611,7 +608,7 @@ class PublicKey:
         """Returns the network for this public key."""
         return self._network
 
-    def to_bytes(self, compressed=True):
+    def to_bytes(self, compressed=True) -> bytes:
         """Converts the public key into bytes.
 
         Args:
@@ -621,7 +618,7 @@ class PublicKey:
         """
         return self._key.format(compressed)
 
-    def to_hex(self, compressed=True):
+    def to_hex(self, compressed=True) -> str:
         """Converts the public key into a hex string.
 
         Args:
@@ -629,7 +626,7 @@ class PublicKey:
         Returns:
             b (str): A hexadecimal string.
         """
-        return ensure_str(binascii.hexlify(self.to_bytes(compressed)))
+        return binascii.hexlify(self.to_bytes(compressed)).decode("utf-8")
 
     def __bytes__(self):
         return self.to_bytes(compressed=True)
@@ -803,7 +800,7 @@ class PublicKey:
 
         # Put the version byte in front, 0x00 for Mainnet, 0x6F for testnet
         version = bytes([self.network.PUBKEY_ADDRESS])
-        return ensure_str(b58encode_check(version + self.hash160(compressed)))
+        return b58encode_check(version + self.hash160(compressed)).decode("utf-8")
 
     def bech32_address(self, compressed=True, witness_version=0):
         """Address property that returns a bech32 encoding of the public key.
