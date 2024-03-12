@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 The keccak module provides an implementation of the Keccak hash function, including various parameter presets
 such as Keccak224, Keccak256, Keccak384, and Keccak512. The module offers a hashlib-compatible interface for
@@ -82,35 +83,30 @@ Masks = [(1 << i) - 1 for i in range(65)]
 
 
 def bits2bytes(x):
-    """Converts the given number of bits to the corresponding number of bytes, rounding up if necessary."""
+    # Converts the given number of bits to the corresponding number of bytes, rounding up if necessary.
     return (int(x) + 7) // 8
 
 
 def rol(value, left, bits):
-    """
-    Circularly rotate 'value' to the left,
-    treating it as a quantity of the given size in bits.
-    """
+    # Circularly rotate 'value' to the left,
+    # treating it as a quantity of the given size in bits.
     top = value >> (bits - left)
     bot = (value & Masks[bits - left]) << left
     return bot | top
 
 
 def ror(value, right, bits):
-    """
-    Circularly rotate 'value' to the right,
-    treating it as a quantity of the given size in bits.
-    """
+    # Circularly rotate 'value' to the right,
+    # treating it as a quantity of the given size in bits.
     top = value >> right
     bot = (value & Masks[right]) << (bits - right)
     return bot | top
 
 
 def multirate_padding(used_bytes, align_bytes):
-    """
-    Generates padding bytes according to the Keccak padding scheme,
-    ensuring alignment to the specified number of bytes.
-    """
+    # Generates padding bytes according to the Keccak padding scheme,
+    # ensuring alignment to the specified number of bytes.
+
     padlen = align_bytes - used_bytes
     if padlen == 0:
         padlen = align_bytes
@@ -122,11 +118,9 @@ def multirate_padding(used_bytes, align_bytes):
 
 
 def keccak_f(state):
-    """
-    Performs the Keccak-f permutation on the given Keccak state. It applies multiple
-    rounds of theta, rho, pi, chi, and iota operations to mutate the state. It operates
-    on and mutates the passed-in KeccakState.  It returns nothing.
-    """
+    # Performs the Keccak-f permutation on the given Keccak state. It applies multiple
+    # rounds of theta, rho, pi, chi, and iota operations to mutate the state. It operates
+    # on and mutates the passed-in KeccakState.
 
     def f_round(A, RC):
         W, H = state.W, state.H
@@ -428,22 +422,46 @@ class KeccakHash(object):
         return create
 
 
-# SHA3 parameter presets
-# Keccak224: Creates a KeccakHash object with a bitrate of 1152 bits, a capacity of 448 bits,
-# and an output length of 224 bits.
-# Keccak256: Creates a KeccakHash object with a bitrate of 1088 bits, a capacity of 512 bits,
-# and an output length of 256 bits.
-# Keccak384: Creates a KeccakHash object with a bitrate of 832 bits, a capacity of 768 bits,
-# and an output length of 384 bits.
-# Keccak512: Creates a KeccakHash object with a bitrate of 576 bits, a capacity of 1024 bits,
-# and an output length of 512 bits.
+"""
+SHA3 parameter preset with a bitrate of 1152 bits, a capacity of 448 bits,
+    and an output length of 224 bits.
+"""
 Keccak224 = KeccakHash.preset(1152, 448, 224)
+
+"""
+SHA3 parameter preset with a bitrate of 1088 bits, a capacity of 512 bits,
+    and an output length of 256 bits.
+"""
 Keccak256 = KeccakHash.preset(1088, 512, 256)
+
+"""
+SHA3 parameter preset with a bitrate of 832 bits, a capacity of 768 bits,
+    and an output length of 384 bits.
+"""
 Keccak384 = KeccakHash.preset(832, 768, 384)
+
+"""
+SHA3 parameter preset with a bitrate of 576 bits, a capacity of 1024 bits,
+    and an output length of 512 bits."""
 Keccak512 = KeccakHash.preset(576, 1024, 512)
 
 
 def to_checksum_address(address):
+    """Converts a hexadecimal Ethereum address to its checksum format.
+
+    This function takes a hexadecimal Ethereum address as input and returns the checksum format of the address.
+
+    Args:
+        address (str): The hexadecimal Ethereum address to be converted.
+
+    Returns:
+        str: The checksum format of the Ethereum address.
+
+    Example:
+        >>> to_checksum_address("0x123abc")
+        '0x123aBc'
+    """
+
     address = address.lower().replace("0x", "")
     keccak_hash = Keccak256(address.encode("utf-8")).hexdigest()
     checksum_address = "0x"
@@ -457,6 +475,22 @@ def to_checksum_address(address):
 
 
 def is_checksum_address(address):
+    """
+    Checks if a hexadecimal Ethereum address is in checksum format.
+
+    This function verifies whether a given hexadecimal Ethereum address is in checksum format.
+
+    Args:
+        address (str): The hexadecimal Ethereum address to be checked.
+
+    Returns:
+        bool: True if the address is in checksum format, False otherwise.
+
+    Example:
+        >>> is_checksum_address("0x123aBc")
+        True
+    """
+
     address = address.replace("0x", "")
     address_hash = Keccak256(address.lower().encode("utf-8")).hexdigest()
 

@@ -1,8 +1,6 @@
-from hashlib import sha256
 import re
 import datetime
 
-from .ripemd160 import ripemd160
 from .keccak import Keccak256
 
 
@@ -18,11 +16,6 @@ def ensure_str(data):
     elif not isinstance(data, str):
         raise ValueError("Invalid value for string")
     return data
-
-
-def hash160(data):
-    """Return ripemd160(sha256(data))"""
-    return ripemd160(sha256(data).digest())
 
 
 def is_hex_string(string):

@@ -27,18 +27,9 @@
 
 
 import hashlib
-import sys
 import base64
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
-
-__author__ = "Andrey Izman"
-__email__ = "izmanw@gmail.com"
-__copyright__ = "Copyright 2018-2019 Andrey Izman"
-__license__ = "MIT"
-
-
-py2 = sys.version_info[0] == 2
 
 BLOCK_SIZE = 16
 KEY_LEN = 32
@@ -52,10 +43,10 @@ def hash_password_pbkdf2(password, iterations=600000, key_length=128):
 
 def encrypt(raw: bytes, passphrase: bytes) -> bytes:
     """
-    Encrypt text with the passphrase
+    Encrypt binary data with the passphrase
 
     Args:
-        raw (bytes): Text to encrypt
+        raw (bytes): data to encrypt
         passphrase (bytes): Encryption password. It is recommended to use a strong password.
 
     Returns:
@@ -68,17 +59,17 @@ def encrypt(raw: bytes, passphrase: bytes) -> bytes:
 
 
 def encrypt_str(raw: str, passphrase: str) -> str:
-    """Like encrypt(), but for str objects"""
+    """A wrapper around encyrpt() for str objects"""
     return encrypt(raw.encode("utf-8"), passphrase.encode("utf-8"))
 
 
 def decrypt(enc: bytes, passphrase: bytes) -> bytes:
     """
-    Decrypt encrypted text with the passphrase
+    Decrypt encrypted binary data with the passphrase
 
 
     Args:
-        enc (bytes): Text to decrypt
+        enc (bytes): data to decrypt
         passphrase (bytes): Decryption password
 
     Returns:
@@ -98,25 +89,18 @@ def decrypt(enc: bytes, passphrase: bytes) -> bytes:
 
 
 def decrypt_str(enc: bytes, passphrase: str) -> str:
-    """Like decrypt(), but for str objects"""
+    """A wrapper around decrypt() for str objects"""
     return decrypt(enc, passphrase.encode("utf-8")).decode("utf-8")
 
 
 def __pkcs7_padding(s):
-    """
-    Padding to blocksize according to PKCS #7.
+    # Padding to blocksize according to PKCS #7.
+    #
+    # Calculates the number of missing characters to BLOCK_SIZE and pads with
+    # ord(number of missing characters).
+    #
+    # See: http://www.di-mgt.com.au/cryptopad.html
 
-    Calculates the number of missing characters to BLOCK_SIZE and pads with
-    ord(number of missing characters).
-
-    See: http://www.di-mgt.com.au/cryptopad.html
-
-    Args:
-        s (bytes): Text to pad.
-
-    Returns:
-        bytes: Padded text.
-    """
     s_len = len(s)
     s = s + (BLOCK_SIZE - s_len % BLOCK_SIZE) * bytes(
         chr(BLOCK_SIZE - s_len % BLOCK_SIZE), "utf-8"
@@ -125,36 +109,14 @@ def __pkcs7_padding(s):
 
 
 def __pkcs7_trimming(s):
-    """
-    Trims padding according to PKCS #7.
-
-    Args:
-        s (str): Text to unpad.
-
-    Returns:
-        str: Unpadded text.
-    """
+    # Trims padding (unpads) according to PKCS #7.
     return s[0 : -s[-1]]
 
 
 def __derive_key_and_iv(password, salt):
-    """
-    Derives key and IV.
-
-    Args:
-        password (str): Password.
-        salt (str): Salt.
-
-    Returns:
-        str: Derived key and IV.
-    """
     d = d_i = b""
     enc_pass = password
     while len(d) < KEY_LEN + IV_LEN:
         d_i = hash_password_pbkdf2(d_i + enc_pass + salt)
         d += d_i
     return d[:KEY_LEN], d[KEY_LEN : KEY_LEN + IV_LEN]
-
-
-if __name__ == "__main__":  # code to execute if called from command-line
-    print(decrypt_str(encrypt_str("text", "pass"), "pass"))

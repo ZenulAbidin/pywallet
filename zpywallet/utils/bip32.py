@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Module for generating Heirarchical Deterministic (HD) keys for supported networks.
 """

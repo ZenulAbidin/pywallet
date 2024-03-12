@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
@@ -73,21 +72,6 @@ def decode_der_signature(signature):
     s = signature[s_start:s_end]
 
     return r, s
-
-
-def address_to_key_hash(s):
-    """Given a Bitcoin address decodes the version and
-    RIPEMD-160 hash of the public key.
-    Args:
-        s (bytes): The Bitcoin address to decode
-    Returns:
-        (version, h160) (tuple): A tuple containing the version and
-        RIPEMD-160 hash of the public key.
-    """
-    n = b58decode_check(s)
-    version = n[0]
-    h160 = n[1:]
-    return version, h160
 
 
 class PrivateKey:
@@ -189,7 +173,9 @@ class PrivateKey:
         )
 
     @classmethod
-    def from_brainwallet(cls, password, salt="zpywallet", network=BitcoinSegwitMainNet):
+    def from_brainwallet(
+        cls, password, salt=b"zpywallet", network=BitcoinSegwitMainNet
+    ):
         """Generate a new key from a master password, and an optional salt.
 
         This password is hashed via a single round of sha256 and is highly
@@ -401,7 +387,7 @@ class PrivateKey:
                 appropriately and pass in the bytes.
 
         Returns:
-                A tuple or R, S, and Z (message hash) values.
+                A tuple of R, S, and Z (message hash) values.
         """
         if isinstance(message, str):
             msg = bytes(message, "utf-8")
@@ -595,6 +581,8 @@ class PublicKey:
         else:
             message = "\n".join(text_lines[1:-4])
         return self.verify(message, signature, address)
+
+    # TODO RSZ verify and DER verify
 
     def __init__(self, ckey, network=BitcoinSegwitMainNet):
         self._key = ckey

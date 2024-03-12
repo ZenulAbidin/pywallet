@@ -3,6 +3,13 @@ from .script import Script
 
 
 class InvalidTransactionError(Exception):
+    """
+    Exception raised for invalid Bitcoin transactions.
+
+    Attributes:
+        message (str): Explanation of the error.
+    """
+
     pass
 
 
@@ -11,6 +18,20 @@ def hex_to_int(string):
 
 
 def parse_transaction(raw_transaction_hex, segwit=False):
+    """
+    Parse a raw Bitcoin-like transaction in hexadecimal format.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction data in hexadecimal format.
+        segwit (bool, optional): Whether the transaction follows SegWit rules. Defaults to False.
+
+    Returns:
+        tuple: A tuple containing the parsed transaction dictionary and the witness size.
+
+    Raises:
+        InvalidTransactionError: If the transaction data is invalid or incomplete.
+    """
+
     transaction = {}
     witness_start = 0
     witness_end = 0
@@ -162,6 +183,20 @@ def parse_varint_hex(data):
 
 
 def transaction_size(raw_transaction_hex, segwit=False):
+    """
+    Calculate the size of a Bitcoin-like transaction.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction data in hexadecimal format.
+        segwit (bool, optional): Whether the transaction follows SegWit rules. Defaults to False.
+
+    Returns:
+        int: The size of the transaction in virtual bytes (vbytes) if SegWit, otherwise bytes.
+
+    Raises:
+        InvalidTransactionError: If the transaction data is invalid or incomplete.
+    """
+
     _, witness_size = parse_transaction(raw_transaction_hex, segwit)
     if not segwit:
         # Pre-segwit transaction is just the transaction length (in bytes).
@@ -180,7 +215,7 @@ def transaction_size(raw_transaction_hex, segwit=False):
 
 
 def transaction_size_simple(raw_transaction_hex):
-    """Returns the transaction size without throwing exceptions for valid & modern Segwit transactions"""
+    """Convenience wrapper around transaction_size that auto-detects the transaction type."""
     try:
         return transaction_size(raw_transaction_hex, False)
     except InvalidTransactionError:
@@ -188,7 +223,7 @@ def transaction_size_simple(raw_transaction_hex):
 
 
 def parse_transaction_simple(raw_transaction_hex):
-    """Returns the parsed raw transaction without throwing exceptions for valid & modern Segwit transactions"""
+    """Convenience wrapper around parse_transaction that auto-detects the transaction type."""
     try:
         return parse_transaction(raw_transaction_hex, False)
     except InvalidTransactionError:
