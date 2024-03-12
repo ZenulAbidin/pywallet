@@ -4,6 +4,12 @@ from ...errors import NetworkException
 
 
 async def broadcast_transaction_btc_blockstream(raw_transaction_hex):
+    """Broadcast a Bitcoin transaction using Blockstream.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+    """
+
     api_url = "https://blockstream.info/api/tx"
     payload = {"tx": raw_transaction_hex}
 

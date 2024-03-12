@@ -3,6 +3,12 @@ from ...errors import NetworkException
 
 
 async def broadcast_transaction_eth_mew(raw_transaction_hex):
+    """Broadcast an Ethereum testnet transaction using MyEtherWallet (MEW).
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+    """
+
     api_url = "https://api.mewapi.io/v1/transaction/sendRaw"
 
     payload = {

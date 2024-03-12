@@ -4,6 +4,12 @@ from ...errors import NetworkException
 
 
 async def broadcast_transaction_ltctest_blockchair(raw_transaction_hex):
+    """Broadcast a Litecoin testnet transaction using Blockchair.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+    """
+
     api_url = "https://api.blockchair.com/litecoin/testnet/push/transaction"
     payload = {"data": raw_transaction_hex}
 

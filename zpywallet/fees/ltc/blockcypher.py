@@ -25,7 +25,7 @@ class BlockcypherFeeEstimator:
         Retrieves the current fee rate for Litecoin transactions.
 
         Raises:
-            Exception: If the API request fails or the fee rate cannot be retrieved
+            NetworkException: If the API request fails or the fee rate cannot be retrieved
         """
         # Define the default API URL within the method for Blockcypher Litecoin:
         api_url = "https://api.blockcypher.com/v1/ltc/main"  # Adjust the endpoint for Litecoin

@@ -165,7 +165,7 @@ class BitcoinTestAddress:
             int: The current block height.
 
         Raises:
-            Network Exception: If the API request fails or the block height
+            NetworkException: If the API request fails or the block height
             cannot be retrieved.
         """
         cycle = 1

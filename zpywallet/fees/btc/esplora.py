@@ -23,7 +23,7 @@ class EsploraFeeEstimator:
         Retrieves the current fee rate for Bitcoin transactions.
 
         Raises:
-            Exception: If the API request fails or the fee rate cannot be retrieved
+            NetworkException: If the API request fails or the fee rate cannot be retrieved
         """
         # Define the default API URL within the method:
         api_url = f"{self.endpoint}/fee-estimates"

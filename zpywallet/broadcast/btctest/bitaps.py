@@ -4,6 +4,12 @@ from ...errors import NetworkException
 
 
 async def broadcast_transaction_btctest_bitaps(raw_transaction_hex):
+    """Broadcast a Bitcoin testnet transaction using Bitaps.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+    """
+
     api_url = "https://api.bitaps.com/btc/testnet/v1/create/tx/push"
     payload = {"hex": raw_transaction_hex}
 

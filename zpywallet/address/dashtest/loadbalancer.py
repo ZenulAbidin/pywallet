@@ -62,7 +62,7 @@ class DashTestAddress:
             float: The balance of the Dash address in DASH.
 
         Raises:
-            Network Exception: If the API request fails or the address balance
+            NetworkException: If the API request fails or the address balance
             cannot be retrieved.
         """
         utxos = self.get_utxos()

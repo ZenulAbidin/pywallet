@@ -2,7 +2,16 @@ import requests
 from ...errors import NetworkException
 
 
-async def broadcast_transaction_eth_etherscan(raw_transaction_hex, api_key):
+async def broadcast_transaction_eth_etherscan(raw_transaction_hex, **kwargs):
+    """Broadcast an Ethereum transaction using Etherscan.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+        api_key (str):
+    """
+
+    api_key = kwargs["api_key"]
+
     api_url = "https://api.etherscan.io/api"
     payload = {
         "module": "proxy",

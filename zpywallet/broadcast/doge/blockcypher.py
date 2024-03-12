@@ -4,6 +4,12 @@ from ...errors import NetworkException
 
 
 async def broadcast_transaction_doge_blockcypher(raw_transaction_hex):
+    """Broadcast a Dogecoin transaction using Blockcypher.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+    """
+
     api_url = "https://api.blockcypher.com/v1/doge/main/txs/push"
     payload = {"tx": raw_transaction_hex}
 

@@ -24,7 +24,7 @@ class BlockcypherFeeEstimator:
         Retrieves the current fee rate for Dogecoin transactions.
 
         Raises:
-            Exception: If the API request fails or the fee rate cannot be retrieved
+            NetworkException: If the API request fails or the fee rate cannot be retrieved
         """
         # Define the default API URL within the method for Blockcypher Dogecoin:
         api_url = "https://api.blockcypher.com/v1/doge/main"  # Adjust the endpoint for Dogecoin

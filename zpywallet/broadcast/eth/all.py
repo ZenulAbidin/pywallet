@@ -8,12 +8,31 @@ from ...nodes.eth import eth_nodes
 
 
 def tx_hash_eth(raw_transaction_hex):
+    """Calculate the hash of an Ethereum transaction.
+
+    This function can also be used to calculate the hash of any kind of EVM token.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+    """
+
     return b"0x" + binascii.hexlify(
         hashlib.sha256(hashlib.sha256(raw_transaction_hex.decode()).digest()).digest()
     )
 
 
 async def broadcast_transaction_eth(raw_transaction_hex, **kwargs):
+    """Broadcast a Ethereum transaction.
+
+    This function attempts to asynchronously broadcast a signed transaction to
+    several propagators that relay the transaction across the network.
+
+    It can also be used to broadcast the transaction of any kind of EVM token.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+    """
+
     rpc_nodes = kwargs.get("rpc_nodes") or []
 
     tasks = []

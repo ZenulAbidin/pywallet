@@ -30,7 +30,7 @@ class EthereumFeeEstimator:
             int: The gas required for the transaction.
 
         Raises:
-            Exception: If the API request fails or the gas cannot be retrieved.
+            NetworkException: If the API request fails or the gas cannot be retrieved.
         """
         fee_rates = []
 

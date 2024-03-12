@@ -3,6 +3,12 @@ from ...errors import NetworkException
 
 
 async def broadcast_transaction_btc_blockchair(raw_transaction_hex):
+    """Broadcast a Bitcoin transaction using Blockchair.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+    """
+
     api_url = "https://api.blockchair.com/bitcoin/push/transaction"
 
     payload = {"data": raw_transaction_hex}
