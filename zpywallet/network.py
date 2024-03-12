@@ -7,6 +7,11 @@ from .generated import wallet_pb2
 
 # Internal base class: Do not use.
 class CryptoNetwork(object):
+    """Represents a cryptocurrency blockchain.
+
+    Don't use this class - use one of the subclasses instead.
+    """
+
     pass
 
 

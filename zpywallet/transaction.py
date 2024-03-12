@@ -2,7 +2,18 @@ from .generated import wallet_pb2
 
 
 class Transaction:
+    """
+    Represents a transaction with associated metadata.
+    """
+
     def __init__(self, transaction: wallet_pb2.Transaction, network):
+        """
+        Initializes a Transaction object.
+
+        Args:
+            transaction (wallet_pb2.Transaction): The transaction protobuf message.
+            network: The network associated with the transaction.
+        """
         self._network = network
         self._txid = transaction.txid
         self._timestamp = transaction.timestamp
@@ -49,21 +60,42 @@ class Transaction:
                 self._sat_metadata["outputs"].append(o_)
 
     def network(self):
+        """
+        Returns the network associated with the transaction.
+        """
         return self._network
 
     def txid(self):
+        """
+        Returns the transaction ID.
+        """
         return self._txid
 
     def timestamp(self):
+        """
+        Returns the timestamp of the transaction.
+        """
         return self._timestamp
 
     def confirmed(self):
+        """
+        Returns a boolean indicating if the transaction is confirmed.
+        """
         return self._confirmed
 
     def height(self):
+        """
+        Returns the block height of the transaction.
+        """
         return self._height
 
     def total_fee(self, in_standard_units=True):
+        """
+        Returns the total fee of the transaction.
+
+        Args:
+            in_standard_units (bool, optional): If True, returns the fee in standard units. If False, returns the fee in the lowest denomination. Defaults to True.
+        """
         if in_standard_units:
             if self._network.SUPPORTS_EVM:
                 fee = self._total_fee / 1e18
@@ -74,16 +106,28 @@ class Transaction:
         return (fee, self._fee_metric)
 
     def evm_from(self):
+        """
+        Returns the sender address of the transaction (EVM).
+        """
         if not self._network.SUPPORTS_EVM:
             raise ValueError("Blockchain does not support this property")
         return self._evm_metadata["from"]
 
     def evm_to(self):
+        """
+        Returns the recipient address of the transaction (EVM).
+        """
         if not self._network.SUPPORTS_EVM:
             raise ValueError("Blockchain does not support this property")
         return self._evm_metadata["to"]
 
     def evm_amount(self, in_standard_units=True):
+        """
+        Returns the amount transferred in the transaction (EVM).
+
+        Args:
+            in_standard_units (bool, optional): If True, returns the amount in standard units. If False, returns the amount in the lowest denomination. Defaults to True.
+        """
         if not self._network.SUPPORTS_EVM:
             raise ValueError("Blockchain does not support this property")
         if in_standard_units:
@@ -92,21 +136,36 @@ class Transaction:
             return self._evm_metadata["amount"]
 
     def evm_gas(self):
+        """
+        Returns the gas used in the transaction (EVM).
+        """
         if not self._network.SUPPORTS_EVM:
             raise ValueError("Blockchain does not support this property")
         return self._evm_metadata["gasUsed"]  # always in WEI
 
     def evm_data(self):
+        """
+        Returns the data associated with the transaction (EVM).
+        """
         if not self._network.SUPPORTS_EVM:
             raise ValueError("Blockchain does not support this property")
         return self._evm_metadata["data"]
 
     def sat_feerate(self):
+        """
+        Returns the fee rate of the transaction (Bitcoin-like).
+        """
         if self._network.SUPPORTS_EVM:
             raise ValueError("Blockchain does not support this property")
         return self._sat_metadata["feeRate"]  # always in sats per byte or vbyte
 
     def sat_inputs(self, include_witness=False):
+        """
+        Returns the inputs of the transaction (Bitcoin-like).
+
+        Args:
+            include_witness (bool, optional): If True, includes witness data. Defaults to False.
+        """
         if self._network.SUPPORTS_EVM:
             raise ValueError("Blockchain does not support this property")
         inputs = []
@@ -117,6 +176,12 @@ class Transaction:
         return inputs
 
     def sat_outputs(self, only_unspent=False):
+        """
+        Returns the outputs of the transaction (Bitcoin-like).
+
+        Args:
+            only_unspent (bool, optional): If True, returns only unspent outputs. Defaults to False.
+        """
         if self._network.SUPPORTS_EVM:
             raise ValueError("Blockchain does not support this property")
         outputs = []
