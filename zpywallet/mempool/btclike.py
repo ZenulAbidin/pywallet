@@ -3,8 +3,6 @@ import random
 import requests
 from concurrent.futures import ThreadPoolExecutor
 
-from .cache import SQLTransactionStorage
-
 from ..errors import NetworkException
 from ..generated import wallet_pb2
 
@@ -19,11 +17,12 @@ def transform_and_sort_transactions(data):
     return sorted_data
 
 
-class BitcoinMempool:
-    """Holds the transactions inside the mempool. There should only be one
-    mempool class for each coin running in the entire application.
+class BTCLikeMempool:
+    """Holds the transactions of Bitcoin-like blockchains inside the mempool.
+    There should only be one mempool class for each coin running in the entire
+    application.
 
-    Note: The performance of this class heavily depends on the network speed and CPU
+    The performance of this class heavily depends on the network speed and CPU
     speed of the node as well as the number of threads available, the size of the RPC
     batch work queue specified in the constructor, and the amount of transactions in
     megabytes you are trying to fetch at once.
@@ -116,7 +115,7 @@ class BitcoinMempool:
 
         return new_element
 
-    def __init__(self, sqltxstorage: SQLTransactionStorage = None, **kwargs):
+    def __init__(self, **kwargs):
         self.rpc_url = kwargs.get("url")
         self.rpc_user = kwargs.get("user")
         self.rpc_password = kwargs.get("password")
@@ -126,14 +125,11 @@ class BitcoinMempool:
         self.future_blocks_min = kwargs.get("future_blocks_min") or 0
         self.future_blocks_max = kwargs.get("future_blocks_max") or 1
         self.full_transactions = kwargs.get("full_transactions") or True
-        self.sql_transaction_storage = sqltxstorage
+        self.sql_transaction_storage = kwargs.get("sql_transaction_storage")
         self.transactions = []
         self.in_mempool = []
         self.txos = []
         self.raw_txos = {}
-
-        if self.sql_transaction_storage:
-            self.sql_transaction_storage.create_table()
 
     def _send_rpc_request(self, method, params=None):
         payload = {
@@ -369,48 +365,30 @@ class BitcoinMempool:
 
         return temp_transactions
 
-    def update_mempool(self):
-        """Refreshes the local state with the lastest mempool transactions.
-        If a database is attached to the mempool then it will save the
-        transactions there.
-        """
-
-        if not self.sql_transaction_storage:
-            self.transactions = [*self._get_raw_mempool()]
-
-        try:
-            self.sql_transaction_storage.begin_transaction()
-
-            mempool_transactions = self._get_raw_mempool()
-
-            self.sql_transaction_storage.clear_transactions()
-
-            for transaction in mempool_transactions:
-                self.sql_transaction_storage.store_transaction(transaction)
-
-            self.sql_transaction_storage.commit_transaction()
-        except Exception:
-            self.sql_transaction_storage.rollback_transaction()
-
-    def find_in_mempool(self, address):
-        """Attempts to find transactions inside the saved mempool containing
-        an address.
-
-        Args:
-            address (str): The bitcoin address
-
-        Returns:
-            list: a list of transactions
-        """
+    def get_raw_mempool(self):
         if self.sql_transaction_storage:
-            return self.sql_transaction_storage.get_transaction_by_address(address)
+            try:
+                # Start a transaction
+                self.sql_transaction_storage.begin_transaction()
+
+                # Retrieve raw mempool transactions
+                mempool_transactions = self._get_raw_mempool()
+
+                # Clear existing transactions from the table
+                self.sql_transaction_storage.clear_transactions()
+
+                # Insert new transactions into the database
+                for transaction in mempool_transactions:
+                    self.sql_transaction_storage.insert_transaction(transaction)
+
+                # Commit the transaction
+                self.sql_transaction_storage.commit_transaction()
+
+                return mempool_transactions
+            except Exception as e:
+                # Rollback the transaction if an error occurs
+                self.sql_transaction_storage.rollback_transaction()
+                raise e
         else:
-            found_transactions = []
-            for transaction in self.transacions:
-                for address in [
-                    i.address for i in transaction.btclike_transaction.inputs
-                ] or address in [
-                    o.address for o in transaction.btclike_transaction.outputs
-                ]:
-                    found_transactions.append(transaction)
-            return found_transactions
+            self.transactions = [*self._get_raw_mempool()]
+            return self.transactions
