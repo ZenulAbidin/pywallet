@@ -7,12 +7,17 @@ from ...utils.keccak import to_checksum_address
 
 
 class EthereumWeb3Client:
-    """Address querying class for Ethereum full nodes and Web3 clients.
-    Most 3rd party providers e.g. Infura, QuickNode will also work here.
+    """A class representing a list of Ethereum addresses.
 
-    WARNING: Ethereum nodes have a --txlookuplimit and maintain the last N transactions only,
-    unless this option is turned off. 3rd party providers should have this switched off, but
-    ensure it is turned off if you are running your own node.
+    This class allows you to retrieve the balance and transaction history of an
+    Etherum address using a full node.
+
+    You can run a private node with many 3rd party providers such as Alchemy,
+    Infura, QuickNode, and GetBlock.
+
+    WARNING: Ethereum nodes have a --txlookuplimit and keep only recent transactions,
+    unless this option is turned off. 3rd party providers should have this disabled,
+    but ensure it is turned off if you are running your own node.
     """
 
     def _clean_tx(self, element, block):
@@ -67,10 +72,31 @@ class EthereumWeb3Client:
                 self.min_height = 0
 
     def get_transaction_history(self):
+        """
+        Retrieves the transaction history of the Ethereum address from cached
+        data augmented with network data.
+
+        Returns:
+            list: A list of transaction objects.
+
+        Raises:
+            NetworkException: If the API request fails or the transaction
+                history cannot be retrieved.
+        """
         self.transactions = [*self._get_transaction_history()]
         return self.transactions
 
     def get_block_height(self):
+        """
+        Retrieves the current block height.
+
+        Returns:
+            int: The current block height.
+
+        Raises:
+            NetworkException: If the API request fails or the block height
+                cannot be retrieved.
+        """
         try:
             return self.web3.eth.block_number
         except Exception:
@@ -80,13 +106,15 @@ class EthereumWeb3Client:
         """
         Retrieves the balance of the Ethereum address.
 
-        The ETH balance can be obtained without fetching the Ethereum transactions first.
+        The ETH balance can be obtained without fetching the Ethereum
+        transactions first.
 
         Returns:
             int: The balance of the Ethereum address in Gwei.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance
+                cannot be retrieved.
         """
         balance = 0
         for address in self.addresses:
@@ -102,10 +130,12 @@ class EthereumWeb3Client:
     # In Ethereum, only one transaction per account can be included in a block
     # at a time.
     def _get_transaction_history(self):
-
         addresses = [a.lower() for a in self.addresses]
 
-        for block_number in range(self.block_height, self.get_block_height() + 1):
+        # Web3.py stores unconfirmed ETH transactions in "pending".
+        for block_number in list(
+            range(self.block_height, self.get_block_height() + 1)
+        ) + ["pending"]:
             # Retrieve block information
             try:
                 block = self.web3.eth.getBlock(block_number, full_transactions=True)

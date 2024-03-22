@@ -1,5 +1,4 @@
 __all__ = [
-    "blockchain_info",
     "blockcypher",
     "blockstream",
     "btcdotcom",

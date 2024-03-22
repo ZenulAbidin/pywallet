@@ -5,8 +5,10 @@ from ...nodes.eth import eth_nodes
 
 
 class EthereumAddress:
-    """Load balancer for all ETH address providers provided to an instance of this class,
-    using the round robin scheduling algorithm.
+    """Represents a list of Ethereum addresses.
+
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(
@@ -64,7 +66,8 @@ class EthereumAddress:
             float: The balance of the Ethereum address in ETH.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance
+                cannot be retrieved.
         """
         cycle = 1
         while cycle <= self.max_cycles:
@@ -73,13 +76,13 @@ class EthereumAddress:
                 return self.provider_list[self.current_index].get_balance()
             except NetworkException:
                 self.transactions = self.provider_list[self.current_index].transactions
-                self.advance_to_next_provider()
+                self._advance_to_next_provider()
                 cycle += 1
         raise NetworkException(
             f"None of the address providers are working after {self.max_cycles} tries"
         )
 
-    def advance_to_next_provider(self):
+    def _advance_to_next_provider(self):
         if not self.provider_list:
             return
 
@@ -94,10 +97,11 @@ class EthereumAddress:
         Retrieves the current block height.
 
         Returns:
-            float: The current block height.
+            int: The current block height.
 
         Raises:
-            Exception: If the API request fails or the block height cannot be retrieved.
+            NetworkException: If the API request fails or the block height
+                cannot be retrieved.
         """
         cycle = 1
         while cycle <= self.max_cycles:
@@ -108,7 +112,7 @@ class EthereumAddress:
                     return h
             except NetworkException:
                 self.transactions = self.provider_list[self.current_index].transactions
-                self.advance_to_next_provider()
+                self._advance_to_next_provider()
                 cycle += 1
         raise NetworkException(
             f"None of the address providers are working after {self.max_cycles} tries"
@@ -133,7 +137,7 @@ class EthereumAddress:
                     break
                 except NetworkException:
                     txs = self.provider_list[self.current_index].transactions
-                    self.advance_to_next_provider()
+                    self._advance_to_next_provider()
                     cycle += 1
             self.transactions.extend(txs)
         return self.transactions

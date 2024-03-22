@@ -5,6 +5,12 @@ from ...errors import NetworkException
 
 
 async def broadcast_transaction_eth_blockcypher(raw_transaction_hex):
+    """Broadcast an Ethereum transaction using Blockcypher.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+    """
+
     api_url = "https://api.blockcypher.com/v1/eth/main/txs/push"
     payload = {"tx": raw_transaction_hex}
 

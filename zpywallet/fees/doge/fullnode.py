@@ -5,7 +5,9 @@ from ...errors import NetworkException
 
 
 class DogecoinRPCClient:
-    """Fee estimation class using Dogecoin full nodes."""
+    """
+    Fee estimation class using Dogecoin full nodes.
+    """
 
     def __init__(self, **kwargs):
         self.rpc_url = kwargs.get("url")

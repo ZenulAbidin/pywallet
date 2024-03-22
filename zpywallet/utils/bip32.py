@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Module for generating Heirarchical Deterministic (HD) keys for supported networks.
 """
@@ -7,6 +8,7 @@ from hashlib import sha256, sha512
 import hmac
 from os import urandom
 import time
+import re
 
 import coincurve
 
@@ -21,10 +23,27 @@ from ..errors import (
     SegwitError,
     unsupported_feature_exception_factory,
 )
-from .utils import ensure_bytes, ensure_str, hash160, is_hex_string, long_to_hex
+from .ripemd160 import ripemd160
 
 # import all the networks
 from ..network import BitcoinSegwitMainNet
+
+
+def is_hex_string(string):
+    """Check if the string is only composed of hex characters."""
+    pattern = re.compile(r"[A-Fa-f0-9]+")
+    if isinstance(string, bytes):
+        string = str(string)
+    return pattern.match(string) is not None
+
+
+def long_to_hex(l, size):
+    """Encode a long value as a hex string, 0-padding to size.
+
+    Note that size is the size of the resulting hex string. So, for a 32Byte
+    long size should be 64 (two hex characters per byte"."""
+    f_str = "{0:0%sx}" % size
+    return f_str.format(l).lower().encode("utf-8")
 
 
 class HDWallet(object):
@@ -105,7 +124,8 @@ class HDWallet(object):
             elif (isinstance(val, str) or isinstance(val, bytes)) and is_hex_string(
                 val
             ):
-                val = ensure_bytes(val)
+                if isinstance(val, str):
+                    val = val.encode("utf-8")
                 if len(val) != hex_len:
                     raise ValueError("Invalid parameter length")
                 return val
@@ -116,7 +136,8 @@ class HDWallet(object):
             if isinstance(val, int):
                 return int(val)
             elif isinstance(val, str) or isinstance(val, bytes):
-                val = ensure_bytes(val)
+                if isinstance(val, str):
+                    val = val.encode("utf-8")
                 if not is_hex_string(val):
                     val = hexlify(val)
                 return int(val, 16)
@@ -126,7 +147,10 @@ class HDWallet(object):
         self.network = network
         self.depth = hex_int(depth)
         if isinstance(parent_fingerprint, str) or isinstance(parent_fingerprint, bytes):
-            val = ensure_bytes(parent_fingerprint)
+            if isinstance(parent_fingerprint, str):
+                val = parent_fingerprint.encode("utf-8")
+            else:
+                val = parent_fingerprint
             if val.startswith(b"0x"):
                 parent_fingerprint = val[2:]
         self.parent_fingerprint = b"0x" + hex_check_length(parent_fingerprint, 8)
@@ -139,11 +163,11 @@ class HDWallet(object):
 
         DO NOT share this private key with anyone.
         """
-        return ensure_bytes(self.private_key.to_hex())
+        return self.private_key.to_hex().encode("utf-8")
 
-    def get_public_key_hex(self, compressed=True):
+    def get_public_key_hex(self, compressed=True) -> bytes:
         """Get the sec1 representation of the public key."""
-        return ensure_bytes(self.public_key.to_hex(compressed))
+        return self.public_key.to_hex(compressed).encode("utf-8")
 
     @property
     def identifier(self):
@@ -157,7 +181,7 @@ class HDWallet(object):
         key itself).
         """
         key = self.get_public_key_hex()
-        return ensure_bytes(hexlify(hash160(unhexlify(key))))
+        return hexlify(ripemd160(sha256(unhexlify(key)).digest()))
 
     @property
     def mnemonic_phrase(self):
@@ -186,7 +210,7 @@ class HDWallet(object):
             raise ValueError(f"Invalid UserID. Must be between 0 and {max_id}")
         return self.get_child(user_id, is_prime=False, as_private=False)
 
-    def get_child_for_path(self, path):
+    def get_child_for_path(self, path: str):
         """Get a child for a given path.
 
         Rather than repeated calls to get_child, children can be found
@@ -213,7 +237,6 @@ class HDWallet(object):
             m/0/1.pub
             M/0/1.pub
         """
-        path = ensure_str(path)
 
         if not path:
             raise InvalidPathError(f"{path} is not a valid path")
@@ -294,7 +317,7 @@ class HDWallet(object):
 
         if is_prime:
             # Let data = concat(0x00, self.key, child_number)
-            data = b"00" + ensure_bytes(self.private_key.to_hex())
+            data = b"00" + self.private_key.to_hex().encode("utf-8")
         else:
             data = self.get_public_key_hex()
         data += child_number_hex
@@ -302,8 +325,8 @@ class HDWallet(object):
         # Compute a 64 Byte I that is the HMAC-SHA512, using self.chain_code
         # as the seed, and data as the message.
         ichild = hmac.new(
-            unhexlify(ensure_bytes(self.chain_code)),
-            msg=unhexlify(ensure_bytes(data)),
+            unhexlify(self.chain_code),
+            msg=unhexlify(data),
             digestmod=sha512,
         ).digest()
         # Split I into its 32 Byte components.
@@ -321,7 +344,7 @@ class HDWallet(object):
             # n is the order of the ECDSA curve in use.
             private_exponent = (
                 int(hexlify(ichild_left), 16)
-                + int(ensure_bytes(self.private_key.to_hex()), 16)
+                + int(self.private_key.to_hex().encode("utf-8"), 16)
             ) % secp256k1.N
             # I_R is the child's chain code
         else:
@@ -454,14 +477,16 @@ class HDWallet(object):
         ret = network_version + depth + parent_fingerprint + child_number + chain_code
         # Private and public serializations are slightly different
         if private:
-            ret += b"00" + ensure_bytes(self.private_key.to_hex())
+            ret += b"00" + self.private_key.to_hex().encode("utf-8")
         else:
             ret += self.get_public_key_hex(compressed=True)
-        return ensure_bytes(ret.lower())
+        return ret.lower()
 
     def serialize_b58(self, private=True, segwit=False):
         """Encode the serialized node in base58."""
-        return ensure_str(b58encode_check(unhexlify(self.serialize(private, segwit))))
+        return b58encode_check(unhexlify(self.serialize(private, segwit))).decode(
+            "utf-8"
+        )
 
     def address(self, compressed: bool = True, witness_version: int = 0):
         """Create a public address from this Wallet.
@@ -483,12 +508,10 @@ class HDWallet(object):
         key = PublicKey.from_bytes(
             unhexlify(self.get_public_key_hex()), network=self.network
         )
-        return ensure_str(
-            key.address(compressed=compressed, witness_version=witness_version)
-        )
+        return key.address(compressed=compressed, witness_version=witness_version)
 
     @classmethod
-    def deserialize(cls, key, network=BitcoinSegwitMainNet):
+    def deserialize(cls, key: str, network=BitcoinSegwitMainNet):
         """Load an extended BIP32 private key from a hex string.
 
         Args:
@@ -516,7 +539,7 @@ class HDWallet(object):
             # we have a byte array, so pass
             pass
         else:
-            key = ensure_bytes(key)
+            key = key.encode("utf-8")
             if len(key) in [78 * 2, (78 + 32) * 2]:
                 # we have a hexlified non-base58 key, continue!
                 key = unhexlify(key)
@@ -601,7 +624,7 @@ class HDWallet(object):
         See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Serialization_format
         """
         mne = Mnemonic(language="english")
-        seed = ensure_bytes(mne.to_seed(mnemonic, passphrase))
+        seed = mne.to_seed(mnemonic, passphrase)
 
         # Given a seed S of at least 128 bits, but 256 is advised
         # Calculate I = HMAC-SHA512(key="Bitcoin seed", msg=S)
@@ -635,10 +658,11 @@ class HDWallet(object):
             Wallet: A Wallet object.
         """
         # Make sure the password string is bytes
-        key = ensure_bytes(password)
         data = unhexlify(b"0" * 64)  # 256-bit 0
         for _ in range(50000):
-            data = hmac.new(key, msg=data, digestmod=sha256).digest()
+            data = hmac.new(
+                password.encode("utf-8"), msg=data, digestmod=sha256
+            ).digest()
 
         I = hmac.new(b"Bitcoin seed", msg=data, digestmod=sha512).digest()
         # Split I into two 32-byte sequences, IL and IR.

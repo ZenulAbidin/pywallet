@@ -5,7 +5,9 @@ from ...errors import NetworkException
 
 
 class LitecoinRPCClient:
-    """Fee estimation class using Litecoin full nodes."""
+    """
+    Fee estimation class using Litecoin full nodes.
+    """
 
     def __init__(self, **kwargs):
         self.rpc_url = kwargs.get("url")

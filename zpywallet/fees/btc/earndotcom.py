@@ -4,9 +4,7 @@ from ...errors import NetworkException
 
 class EarnDotComFeeEstimator:
     """
-    A class representing a Bitcoin fee rate estimator using Earn.com API.
-
-    This class allows you to retrieve the current fee rate for Bitcoin transactions using the Earn.com API.
+    A class representing a Bitcoin fee rate estimator using Earn.com.
     """
 
     def __init__(self, request_interval=(1000, 1)):
@@ -24,7 +22,7 @@ class EarnDotComFeeEstimator:
         Retrieves the current fee rate for Bitcoin transactions.
 
         Raises:
-            Exception: If the API request fails or the fee rate cannot be retrieved
+            NetworkException: If the API request fails or the fee rate cannot be retrieved
         """
         # Define the default API URL within the method for Earn.com:
         api_url = "https://bitcoinfees.earn.com/api/v1/fees/recommended"

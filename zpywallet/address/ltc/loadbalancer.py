@@ -6,8 +6,10 @@ from ...nodes.ltc import ltc_nodes
 
 
 class LitecoinAddress:
-    """Load balancer for all LTC address providers provided to an instance of this class,
-    using the round robin scheduling algorithm.
+    """Represents a list of Litecoin addresses.
+
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(
@@ -76,7 +78,8 @@ class LitecoinAddress:
             float: The balance of the Litecoin address in LTC.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance
+                cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -88,6 +91,12 @@ class LitecoinAddress:
         return total_balance, confirmed_balance
 
     def get_utxos(self):
+        """Fetches the UTXO set for the addresses.
+
+        Returns:
+            list: A list of UTXOs
+        """
+
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions) - 1, -1, -1):
@@ -105,7 +114,7 @@ class LitecoinAddress:
                     utxos.append(utxo)
         return utxos
 
-    def advance_to_next_provider(self):
+    def _advance_to_next_provider(self):
         if not self.provider_list:
             return
 
@@ -120,10 +129,11 @@ class LitecoinAddress:
         Retrieves the current block height.
 
         Returns:
-            float: The current block height.
+            int: The current block height.
 
         Raises:
-            Exception: If the API request fails or the block height cannot be retrieved.
+            NetworkException: If the API request fails or the block height
+                cannot be retrieved.
         """
         cycle = 1
         while cycle <= self.max_cycles:
@@ -134,13 +144,25 @@ class LitecoinAddress:
                     return h
             except NetworkException:
                 self.transactions = self.provider_list[self.current_index].transactions
-                self.advance_to_next_provider()
+                self._advance_to_next_provider()
                 cycle += 1
         raise NetworkException(
             f"None of the address providers are working after {self.max_cycles} tries"
         )
 
     def get_transaction_history(self):
+        """
+        Retrieves the transaction history of the Litecoin address from cached
+        data augmented with network data.
+
+        Returns:
+            list: A list of transaction objects.
+
+        Raises:
+            NetworkException: If the API request fails or the transaction
+                history cannot be retrieved.
+        """
+
         for address in self.addresses:
             txs = []
             ntransactions = -1  # Set to invalid value for the first iteration
@@ -159,7 +181,7 @@ class LitecoinAddress:
                     break
                 except NetworkException:
                     txs = self.provider_list[self.current_index].transactions
-                    self.advance_to_next_provider()
+                    self._advance_to_next_provider()
                     cycle += 1
             self.transactions.extend(txs)
         return self.transactions

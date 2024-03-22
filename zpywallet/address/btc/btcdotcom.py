@@ -7,9 +7,10 @@ from ...generated import wallet_pb2
 
 class BTCDotComAddress:
     """
-    A class representing a Bitcoin address.
+    A class representing a list of Bitcoin addresses.
 
-    This class allows you to retrieve the balance and transaction history of a Bitcoin address using the BTC.com API.
+    This class allows you to retrieve the balance, UTXO set, and transaction
+    history of a Bitcoin address using BTC.com.
     """
 
     def _clean_tx(self, element):
@@ -87,8 +88,10 @@ class BTCDotComAddress:
             float: The balance of the Bitcoin address in BTC.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance
+                cannot be retrieved.
         """
+
         utxos = self.get_utxos()
         total_balance = 0
         confirmed_balance = 0
@@ -99,6 +102,12 @@ class BTCDotComAddress:
         return total_balance, confirmed_balance
 
     def get_utxos(self):
+        """Fetches the UTXO set for the addresses.
+
+        Returns:
+            list: A list of UTXOs
+        """
+
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions) - 1, -1, -1):
@@ -117,7 +126,17 @@ class BTCDotComAddress:
         return utxos
 
     def get_block_height(self):
-        # Get the current block height now:
+        """
+        Retrieves the current block height.
+
+        Returns:
+            int: The current block height.
+
+        Raises:
+            NetworkException: If the API request fails or the block height
+                cannot be retrieved.
+        """
+
         url = "https://chain.api.btc.com/v3/block/latest"
         for attempt in range(3, -1, -1):
             if attempt == 0:
@@ -142,13 +161,15 @@ class BTCDotComAddress:
 
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Bitcoin address from cached data augmented with network data.
+        Retrieves the transaction history of the Bitcoin address from cached
+        data augmented with network data.
 
         Returns:
             list: A list of dictionaries representing the transaction history.
 
         Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
+            NetworkException: If the API request fails or the transaction
+                history cannot be retrieved.
         """
         if len(self.transactions) == 0:
             self.transactions = [*self._get_transaction_history()]
@@ -162,19 +183,6 @@ class BTCDotComAddress:
         return self.transactions
 
     def _get_transaction_history(self, txhash=None):
-        """
-        Retrieves the transaction history of the Bitcoin address. (internal method that makes the network query)
-
-        Parameters:
-            txhash (str): Get all transactions before (and not including) txhash.
-                Defaults to None, which disables this behavior.
-
-        Returns:
-            list: A list of dictionaries representing the transaction history.
-
-        Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
-        """
         for address in self.addresses:
             page = 1
             pagesize = 50

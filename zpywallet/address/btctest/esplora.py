@@ -7,20 +7,22 @@ from ...generated import wallet_pb2
 
 class EsploraAddress:
     """
-    A class representing a Bitcoin address.
+    A class representing a list of Bitcoin testnet addresses.
 
-    This class allows you to retrieve the balance and transaction history of a
-    Bitcoin address using the Esplora API. Esplora is deployed on many popular
-    websites, including mempool.space (Rate limited) and blockstream.info.
+    This class allows you to retrieve the balance, UTXO set, and transaction
+    history of a Bitcoin address using an Esplora instance.
+
+    Esplora is a block explorer software used by a few websites,
+    including mempool.space (rate limited) and blockstream.info.
 
     Note: Esplora has a built-in limitation of returning up to 50 unconfirmed
     transactions per address. While this should be large enough for most use
     cases, if you run into problems, try using a different address provider.
 
-    Note 2: This API will not return the Genesis block in transactions, unlike
-    the other balances. This will affect balance displayed for Satoshi's first
-    address 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa - but that output is unspendable
-    anyway.
+    Note 2: This API will not return the transaction inside the Genesis block.
+    This will affect balance displayed for Satoshi's first address
+    1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa - but that output is unspendable
+    for unrelated reasons.
     """
 
     def _clean_tx(self, element):
@@ -101,7 +103,8 @@ class EsploraAddress:
             float: The balance of the Bitcoin address in BTC.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance
+                cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -113,6 +116,12 @@ class EsploraAddress:
         return total_balance, confirmed_balance
 
     def get_utxos(self):
+        """Fetches the UTXO set for the addresses.
+
+        Returns:
+            list: A list of UTXOs
+        """
+
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions) - 1, -1, -1):
@@ -131,7 +140,17 @@ class EsploraAddress:
         return utxos
 
     def get_block_height(self):
-        # Get the current block height now:
+        """
+        Retrieves the current block height.
+
+        Returns:
+            int: The current block height.
+
+        Raises:
+            NetworkException: If the API request fails or the block height
+                cannot be retrieved.
+        """
+
         url = f"{self.endpoint}/blocks/tip/height"
         for attempt in range(3, -1, -1):
             if attempt == 0:
@@ -157,13 +176,15 @@ class EsploraAddress:
 
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Bitcoin address from cached data augmented with network data.
+        Retrieves the transaction history of the Bitcoin address from cached
+        data augmented with network data.
 
         Returns:
-            list: A list of dictionaries representing the transaction history.
+            list: A list of transaction objects.
 
         Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
+            NetworkException: If the API request fails or the transaction
+                history cannot be retrieved.
         """
         if len(self.transactions) == 0:
             self.transactions = [*self._get_transaction_history()]
@@ -177,15 +198,6 @@ class EsploraAddress:
         return self.transactions
 
     def _get_transaction_history(self, txhash=None):
-        """
-        Retrieves the transaction history of the Bitcoin address.
-
-        Returns:
-            list: A list of dictionaries representing the transaction history.
-
-        Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
-        """
         for address in self.addresses:
             # This gets up to 50 mempool transactions + up to 25 confirmed transactions
             url = f"{self.endpoint}/address/{address}/txs"

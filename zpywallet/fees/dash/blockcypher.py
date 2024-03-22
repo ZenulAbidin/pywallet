@@ -4,9 +4,7 @@ from ...errors import NetworkException
 
 class BlockcypherFeeEstimator:
     """
-    A class representing a Dash fee rate estimator using Blockcypher API.
-
-    This class allows you to retrieve the current fee rate for Dash transactions using the Blockcypher API.
+    A class representing a Dash fee rate estimator using Blockcypher.
     """
 
     def __init__(self, request_interval=(3, 1), api_key=None):
@@ -26,7 +24,7 @@ class BlockcypherFeeEstimator:
         Retrieves the current fee rate for Dash transactions.
 
         Raises:
-            Exception: If the API request fails or the fee rate cannot be retrieved
+            NetworkException: If the API request fails or the fee rate cannot be retrieved
         """
         # Define the default API URL within the method for Blockcypher Dash:
         api_url = (

@@ -139,6 +139,24 @@ class Wallet:
         max_cycles=100,
         **kwargs,
     ):
+        """
+        Initializes a Wallet object.
+
+        Args:
+            network: The network associated with the wallet.
+            seed_phrase: The seed phrase for the wallet.
+            password: The password to encrypt the wallet.
+            receive_gap_limit (int, optional): The maximum gap limit for receive addresses. Defaults to 1000.
+            change_gap_limit (int, optional): The maximum gap limit for change addresses. Defaults to 1000.
+            derivation_path (str, optional): The derivation path for the wallet. Defaults to None.
+            max_cycles (int, optional): The maximum number of cycles. Defaults to 100.
+            fullnode_endpoints (list, optional): List of full node endpoints. Defaults to None.
+            esplora_endpoints (list, optional): List of Esplora endpoints. Defaults to None.
+            blockcypher_tokens (list, optional): List of Blockcypher tokens. Defaults to None.
+
+        Raises:
+            ValueError: If an unknown network is provided or if the derivation path is invalid.
+        """
 
         fullnode_endpoints = kwargs.get("fullnode_endpoints")
         esplora_endpoints = kwargs.get("esplora_endpoints")
@@ -254,6 +272,21 @@ class Wallet:
 
     @classmethod
     def deserialize(cls, data: bytes, password, max_cycles=100):
+        """
+        Deserialize a Wallet object from its byte representation.
+
+        Args:
+            cls: The class object.
+            data (bytes): The byte representation of the Wallet object.
+            password: The password used to encrypt the wallet.
+            max_cycles (int, optional): The maximum number of cycles. Defaults to 100.
+
+        Returns:
+            Wallet: The deserialized Wallet object.
+
+        Raises:
+            ValueError: If an unknown network is encountered during deserialization.
+        """
         wallet = wallet_pb2.Wallet()
         wallet.ParseFromString(data)
         seed_phrase = decrypt_str(wallet.encrypted_seed_phrase, password)
@@ -331,6 +364,12 @@ class Wallet:
         self._setup_client(max_cycles=max_cycles)
 
     def network(self):
+        """
+        Get the network associated with the wallet.
+
+        Returns:
+            CryptoNetwork: The network associated with the wallet.
+        """
         return self._network
 
     def _setup_client(self, max_cycles=100):
@@ -418,6 +457,12 @@ class Wallet:
             raise ValueError("No address client for this network")
 
     def get_transaction_history(self):
+        """
+        Get the transaction history associated with the wallet.
+
+        Returns:
+            List[Transaction]: The list of transactions in the wallet's history.
+        """
         transactions = self.client.get_transaction_history()
         # Create a set to keep track of unique txid values
         seen_txids = set()
@@ -447,6 +492,15 @@ class Wallet:
         return tx_array
 
     def get_utxos(self, only_unspent=False):
+        """
+        Get the unspent transaction outputs (UTXOs) associated with the wallet.
+
+        Args:
+            only_unspent (bool, optional): If True, only unspent UTXOs are retrieved. Defaults to False.
+
+        Returns:
+            List[UTXO]: The list of unspent transaction outputs.
+        """
         addresses = [a.address for a in self.wallet.addresses]
 
         transactions = self.get_transaction_history()
@@ -501,6 +555,16 @@ class Wallet:
         return new_inputs
 
     def get_balance(self, in_standard_units=True):
+        """
+        Get the balance of the wallet.
+
+        Args:
+            in_standard_units (bool, optional): If True, balance is returned in standard units (e.g., BTC, ETH).
+                If False, balance is returned in raw units (e.g., satoshi, wei). Defaults to True.
+
+        Returns:
+            Tuple[float, float]: The total balance and confirmed balance of the wallet.
+        """
         if self._network.SUPPORTS_EVM:
             # We must use the Web3 network to get the balance as UTXOs are not
             # available and getting transaction history of an address is
@@ -527,16 +591,39 @@ class Wallet:
         return total_balance, confirmed_balance
 
     def addresses(self):
+        """
+        Get the addresses associated with the wallet.
+
+        Returns:
+            List[str]: The list of addresses associated with the wallet.
+        """
         return [a.address for a in self.wallet.addresses]
 
     def random_address(self):
+        """
+        Get a random address from the wallet.
+
+        Returns:
+            str: A randomly selected address from the wallet.
+        """
         addresses = self.addresses()
         return addresses[randrange(0, len(addresses))]
 
     def private_keys(self, password):
+        """
+        Get the private keys associated with the wallet.
+
+        Args:
+            password: The password used to encrypt the wallet.
+
+        Returns:
+            List[str]: The list of private keys associated with the wallet.
+        """
         private_keys = []
         try:
-            private_keys = json.loads(decrypt_str(self.encrypted_private_keys, password))
+            private_keys = json.loads(
+                decrypt_str(self.encrypted_private_keys, password)
+            )
             return private_keys
         except ValueError as e:
             del private_keys
@@ -607,6 +694,18 @@ class Wallet:
         spend_unconfirmed_inputs=False,
         **kwargs,
     ):
+        """
+        Create a transaction.
+
+        Args:
+            password (bytes): The password used to encrypt the wallet.
+            destinations (List[Destination]): The list of destinations for the transaction.
+            fee_rate: The fee rate for the transaction.
+            spend_unconfirmed_inputs (bool, optional): If True, spend unconfirmed inputs. Defaults to False.
+
+        Returns:
+            Transaction: The created transaction.
+        """
         inputs = self.get_utxos(only_unspent=True)
 
         if not spend_unconfirmed_inputs:
@@ -647,7 +746,19 @@ class Wallet:
         return create_transaction(inputs, destinations, network=self._network)
 
     def broadcast_transaction(self, transaction):
+        """
+        Broadcast a transaction to the network.
+
+        Args:
+            transaction: The transaction to broadcast.
+        """
         broadcast_transaction(transaction, self._network)
 
     def serialize(self):
+        """
+        Serialize the wallet object.
+
+        Returns:
+            bytes: The serialized representation of the wallet.
+        """
         return self.wallet.SerializeToString()

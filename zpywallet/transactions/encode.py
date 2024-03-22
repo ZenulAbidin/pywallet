@@ -53,12 +53,10 @@ def create_varint(value):
 
 
 def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network):
-    """
-    Signs the inputs of a legacy transaction. The parts are contained in bytes 1, 2, 3, 4.
-    Bytes 2 contains the inputs broken up so that the signature is isolated. It also has
-    the script pubkey, the private key, and sighash.
-    Note that Segwit transactions use a different signing format (see BIP 143).
-    """
+    # Signs the inputs of a legacy transaction. The parts are contained in bytes 1, 2, 3, 4.
+    # Bytes 2 contains the inputs broken up so that the signature is isolated. It also has
+    # the script pubkey, the private key, and sighash.
+    # Note that Segwit transactions use a different signing format (see BIP 143).
     signatures = []
     # Note that only ONE INPUT IS FILLED AT A TIME DURING SIGNING
     for b2i in range(0, len(bytes_2_inputs)):
@@ -105,11 +103,10 @@ def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network)
 
 
 def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network):
-    """
-    Signs the inputs of a segwit transaction. The parts are contained in bytes 1, 2, 3, 4.
-    Bytes 2 contains the inputs broken up so that the signature is isolated. It also has
-    the script pubkey, the private key, and sighash.
-    """
+    # Signs the inputs of a segwit transaction. The parts are contained in bytes 1, 2, 3, 4.
+    # Bytes 2 contains the inputs broken up so that the signature is isolated. It also has
+    # the script pubkey, the private key, and sighash.
+    #
     # The partial transaction to sign is a double SHA256 of the serialization of:
     # 1.  nVersion of the transaction (4-byte little endian)
     # 2.  hashPrevouts (32-byte hash)
@@ -178,15 +175,37 @@ def create_transaction(
     outputs: List[Destination],
     rbf=True,
     network=BitcoinSegwitMainNet,
-    full_nodes=[],
+    full_nodes=None,
     **kwargs
 ):
     """
-    Creates a signed transaction, given a network an array of UTXOs, and an
-    array of address/amount destination tuples.
-    Never call this function directly, it does not automatically calculate
-    change or fees. Instead, use Wallet.create_transaction().
+    Creates a signed Bitcoin transaction.
+
+    Usually you do not want to use this function, because it does not
+    automatically calculate change or fees. Instead, use
+    Wallet.create_transaction().
+
+    Args:
+        inputs (List[UTXO]): A list of Unspent Transaction Output objects.
+        outputs (List[Destination]): A list of Destination objects representing
+            the transaction outputs.
+        rbf (bool, optional): Whether to enable Replace-By-Fee. Defaults to True.
+            Only for Bitcoin-like blockchains.
+        network (CryptoNetwork, optional): The network to use. Defaults to
+            BitcoinSegwitMainNet.
+        full_nodes (list, optional): List of Web3 nodes to connect for signing.
+            Only for EVM blockchains.
+        gas (int): Specifies the gas in Gwei. Only for EVM blockchains.
+
+    Returns:
+        bytes: The signed transaction data in bytes.
+
+    Raises:
+        ValueError: If there's an issue with the transaction or network configuration.
     """
+
+    if not full_nodes:
+        full_nodes = []
 
     # First, construct the raw transacation
     if network.SUPPORTS_EVM:

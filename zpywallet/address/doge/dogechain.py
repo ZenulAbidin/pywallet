@@ -6,7 +6,6 @@ import json
 from functools import reduce
 
 from ...errors import NetworkException
-from ...utils.utils import convert_to_utc_timestamp
 from ...generated import wallet_pb2
 
 
@@ -16,10 +15,10 @@ def deduplicate(elements):
 
 class DogeChainAddress:
     """
-    A class representing a Dogecoin address.
+    A class representing a list of Dogecoin addresses.
 
     This class allows you to retrieve the balance and transaction history of a
-    Dogecoin address using the DogeChain API.
+    Dogecoin address using DogeChain.
     """
 
     def _clean_tx(self, element):
@@ -103,8 +102,9 @@ class DogeChainAddress:
 
         Args:
             addresses (list): A list of human-readable Dogecoin addresses.
-            request_interval (tuple): A pair of integers indicating the number of requests allowed during
-                a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
+            request_interval (tuple): A pair of integers indicating the number
+                of requests allowed during a particular amount of seconds. Set
+                to (0,N) for no rate limiting, where N>0.
         """
         self.addresses = addresses
         self.requests, self.interval_sec = request_interval
@@ -127,10 +127,11 @@ class DogeChainAddress:
         Retrieves the balance of the Dogecoin address.
 
         Returns:
-            float: The balance of the Dogecoin address in BTC.
+            float: The balance of the Dogecoin address in DOGE.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance
+                cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -142,6 +143,12 @@ class DogeChainAddress:
         return total_balance, confirmed_balance
 
     def get_utxos(self):
+        """Fetches the UTXO set for the addresses.
+
+        Returns:
+            list: A list of UTXOs
+        """
+
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions) - 1, -1, -1):
@@ -160,7 +167,16 @@ class DogeChainAddress:
         return utxos
 
     def get_block_height(self):
-        """Returns the current block height."""
+        """
+        Retrieves the current block height.
+
+        Returns:
+            int: The current block height.
+
+        Raises:
+            NetworkException: If the API request fails or the block height
+                cannot be retrieved.
+        """
 
         # Dogechain gives us the block height through a web socket
         # This only works because the block mining for Dogecoin is very fast.
@@ -191,13 +207,15 @@ class DogeChainAddress:
 
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Dogecoin address from cached data augmented with network data.
+        Retrieves the transaction history of the Dogecoin address from cached
+        data augmented with network data.
 
         Returns:
-            list: A list of dictionaries representing the transaction history.
+            list: A list of transaction objects.
 
         Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
+            NetworkException: If the API request fails or the transaction
+                history cannot be retrieved.
         """
         if len(self.transactions) == 0:
             self.transactions = [*self._get_transaction_history()]
@@ -212,19 +230,6 @@ class DogeChainAddress:
         return self.transactions
 
     def _get_transaction_history(self, txhash=None):
-        """
-        Retrieves the transaction history of the Dogecoin address. (internal method that makes the network query)
-
-        Parameters:
-            txhash (str): Get all transactions before (and not including) txhash.
-                Defaults to None, which disables this behavior.
-
-        Returns:
-            list: A list of dictionaries representing the transaction history.
-
-        Raises:
-            Exception: If the API request fails or the transaction history cannot be retrieved.
-        """
         for address in self.addresses:
             i = 1
             url = f"https://dogechain.info/api/v1/address/transactions/{address}/{i}"

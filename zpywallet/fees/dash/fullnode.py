@@ -5,7 +5,9 @@ from ...errors import NetworkException
 
 
 class DashRPCClient:
-    """Fee estimation class using Dash full nodes."""
+    """
+    Fee estimation class using Dash full nodes.
+    """
 
     def __init__(self, **kwargs):
         self.rpc_url = kwargs.get("url")

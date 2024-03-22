@@ -4,6 +4,13 @@ from ...errors import NetworkException
 
 
 async def broadcast_transaction_btctest_esplora(raw_transaction_hex, **kwargs):
+    """Broadcast a Bitcoin testnet transaction using an Esplora node.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+        esplora_url (str): The Esplora endpoint URL.
+    """
+
     esplora_url = kwargs.get("url")
     api_url = f"{esplora_url}/api/tx"
     payload = {"tx": raw_transaction_hex}

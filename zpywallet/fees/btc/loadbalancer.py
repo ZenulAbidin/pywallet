@@ -1,7 +1,6 @@
 from statistics import median
 
 
-from .blockchain_info import BlockchainInfoFeeEstimator
 from .blockcypher import BlockcypherFeeEstimator
 from .blockstream import BlockstreamFeeEstimator
 from .earndotcom import EarnDotComFeeEstimator
@@ -13,8 +12,11 @@ from ...nodes.btc import btc_nodes, btc_esplora_nodes
 
 
 class BitcoinFeeEstimator:
-    """Load balancer for all BTC fee providers provided to an instance of this class,
-    using the round robin scheduling algorithm.
+    """
+    A class representing a Bitcoin fee rate estimator.
+
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(self, **kwargs):
@@ -28,7 +30,6 @@ class BitcoinFeeEstimator:
         if not fullnode_endpoints:
             fullnode_endpoints = [] + btc_nodes
 
-        self.provider_list.append(BlockchainInfoFeeEstimator())
         tokens = blockcypher_tokens
         if not tokens:
             tokens = []

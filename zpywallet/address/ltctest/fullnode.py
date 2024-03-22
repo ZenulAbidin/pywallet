@@ -6,8 +6,12 @@ from ...generated import wallet_pb2
 
 
 class LitecoinRPCClient:
-    """Address querying class for Litecoin full nodes utilizing descriptors.
-    Requires node running with -txindex.
+    """
+    A class representing a list of Litecoin testnet addresses.
+
+    This class allows you to retrieve the balance, UTXO set, and transaction
+    history of a Litecoin testnet address using a full node.
+    Requires a node running with -txindex.
     """
 
     # Not static because we need to make calls to fetch input transactions.
@@ -156,7 +160,8 @@ class LitecoinRPCClient:
             float: The balance of the Bitcoin address in BTC.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance
+                cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -170,6 +175,12 @@ class LitecoinRPCClient:
         return total_balance, confirmed_balance
 
     def get_utxos(self):
+        """Fetches the UTXO set for the addresses.
+
+        Returns:
+            list: A list of UTXOs
+        """
+
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions) - 1, -1, -1):
@@ -195,14 +206,16 @@ class LitecoinRPCClient:
 
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Dash address from cached data augmented with network data.
+        Retrieves the transaction history of the Dash address from cached data
+        augmented with network data.
         Does not include Genesis blocks.
 
         Returns:
-            list: A list of dictionaries representing the transaction history.
+            list: A list of transaction objects.
 
         Raises:
-            Exception: If the RPC request fails or the transaction history cannot be retrieved.
+            NetworkException: If the RPC request fails or the transaction
+                history cannot be retrieved.
         """
         if len(self.transactions) == 0:
             self.transactions = [*self._get_transaction_history()]

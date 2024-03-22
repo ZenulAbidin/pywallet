@@ -4,6 +4,12 @@ from ...errors import NetworkException
 
 
 async def broadcast_transaction_btc_smartbit(raw_transaction_hex):
+    """Broadcast a Bitcoin transaction using Smartbit.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+    """
+
     api_url = "https://api.smartbit.com.au/v1/blockchain/pushtx"
     payload = {"hex": raw_transaction_hex}
 

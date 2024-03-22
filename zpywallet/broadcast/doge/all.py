@@ -8,12 +8,27 @@ from ...nodes.doge import doge_nodes
 
 
 def tx_hash_doge(raw_transaction_hex):
+    """Calculate the hash of a Dogecoin transaction.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+    """
+
     return binascii.hexlify(
         hashlib.sha256(hashlib.sha256(raw_transaction_hex.decode()).digest()).digest()
     )
 
 
 async def broadcast_transaction_doge(raw_transaction_hex, **kwargs):
+    """Broadcast a Dogecoin transaction.
+
+    This function attempts to asynchronously broadcast a signed transaction to
+    several propagators that relay the transaction across the network.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+    """
+
     rpc_nodes = kwargs.get("rpc_nodes") or []
 
     tasks = []

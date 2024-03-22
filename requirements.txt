@@ -1,6 +1,6 @@
-# There is a security vulnerability in the included libsecp256k1 in version 18.0, which has been patched in 19.0.0
-# but that version has been yanked from PyPI because it doesn't work on Windows (yet).
-coincurve>=18.0.0
+# It is imparative to use the latest coincurve version as it includes the latest security patches
+# for libsecp256k1.
+coincurve>=19.0.1
 
 # Requests 2.20.1 fixes Auth stripping and <2.20.0 fails in certain Windows environments
 requests>=2.20.1

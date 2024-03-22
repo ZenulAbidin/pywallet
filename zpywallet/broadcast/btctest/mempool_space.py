@@ -4,6 +4,12 @@ from ...errors import NetworkException
 
 
 async def broadcast_transaction_btctest_mempool_space(raw_transaction_hex):
+    """Broadcast a Bitcoin testnet transaction using Mempool.space.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+    """
+
     api_url = "https://mempool.space/testnet/api/tx"
     payload = {"hex": raw_transaction_hex}
 

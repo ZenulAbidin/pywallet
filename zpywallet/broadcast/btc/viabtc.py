@@ -4,6 +4,12 @@ from ...errors import NetworkException
 
 
 async def broadcast_transaction_btc_viabtc(raw_transaction_hex):
+    """Broadcast a Bitcoin transaction using ViaBTC.
+
+    Args:
+        raw_transaction_hex (str): The raw transaction in hexadecimal form.
+    """
+
     api_url = "https://www.viabtc.com/res/tx/send"
     payload = {"rawtx": raw_transaction_hex}
 

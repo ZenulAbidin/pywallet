@@ -1,7 +1,4 @@
-"""
-Implementing SHA-256 from scratch was fun, but for RIPEMD160 I am
-taking an existing implementation and made some cleanups and api changes.
-"""
+# -*- coding: utf-8 -*-
 
 # ripemd.py - pure Python implementation of the RIPEMD-160 algorithm.
 # Bjorn Edstrom <be@bjrn.se> 16 december 2007.
@@ -50,7 +47,7 @@ import struct
 
 
 def ripemd160(b: bytes) -> bytes:
-    """simple wrapper for a simpler API to this hash function, just bytes to bytes"""
+    """Calculates the RIPEMD160 hash of binary data"""
     ctx = RMDContext()
     RMD160Update(ctx, b, len(b))
     digest = RMD160Final(ctx)

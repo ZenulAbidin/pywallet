@@ -10,8 +10,10 @@ from ...nodes.btc import btc_nodes, btc_esplora_nodes
 
 
 class BitcoinAddress:
-    """Load balancer for all BTC address providers provided to an instance of this class,
-    using the round robin scheduling algorithm.
+    """Represents a list of Bitcoin addresses.
+
+    Developers should use this class, because it autoselects the most stable
+    providers to fetch data from.
     """
 
     def __init__(
@@ -116,7 +118,8 @@ class BitcoinAddress:
             float: The balance of the Bitcoin address in BTC.
 
         Raises:
-            Exception: If the API request fails or the address balance cannot be retrieved.
+            NetworkException: If the API request fails or the address balance
+                cannot be retrieved.
         """
         utxos = self.get_utxos()
         total_balance = 0
@@ -128,6 +131,12 @@ class BitcoinAddress:
         return total_balance, confirmed_balance
 
     def get_utxos(self):
+        """Fetches the UTXO set for the addresses.
+
+        Returns:
+            list: A list of UTXOs
+        """
+
         # Transactions are generated in reverse order
         utxos = []
         for i in range(len(self.transactions) - 1, -1, -1):
@@ -145,7 +154,7 @@ class BitcoinAddress:
                     utxos.append(utxo)
         return utxos
 
-    def advance_to_next_provider(self):
+    def _advance_to_next_provider(self):
         if not self.provider_list:
             return
 
@@ -160,10 +169,11 @@ class BitcoinAddress:
         Retrieves the current block height.
 
         Returns:
-            float: The current block height.
+            int: The current block height.
 
         Raises:
-            Exception: If the API request fails or the block height cannot be retrieved.
+            NetworkException: If the API request fails or the block height
+                cannot be retrieved.
         """
         cycle = 1
         while cycle <= self.max_cycles:
@@ -174,7 +184,7 @@ class BitcoinAddress:
                     return h
             except NetworkException:
                 self.transactions = self.provider_list[self.current_index].transactions
-                self.advance_to_next_provider()
+                self._advance_to_next_provider()
                 cycle += 1
         raise NetworkException(
             f"None of the address providers are working after {self.max_cycles} tries"
@@ -199,7 +209,7 @@ class BitcoinAddress:
                     break
                 except NetworkException:
                     txs = self.provider_list[self.current_index].transactions
-                    self.advance_to_next_provider()
+                    self._advance_to_next_provider()
                     cycle += 1
             self.transactions.extend(txs)
         return self.transactions

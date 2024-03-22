@@ -14,26 +14,28 @@ import copy
 import hashlib
 from binascii import unhexlify, hexlify
 
-from ..utils.utils import hash160
-
 from ..network import BitcoinSegwitMainNet
 
 from ..utils.base58 import b58encode_check
 
 from ..utils.bech32 import bech32_encode
 
+from ..utils.ripemd160 import ripemd160
+
+
+def hash160(data):
+    return ripemd160(hashlib.sha256(data).digest())
+
 
 def p2sh_address(redeem_script, network=BitcoinSegwitMainNet):
-    """Generate a P2SH (3) address from a redeem script."""
+    # Generate a P2SH (3) address from a redeem script.
     return b58encode_check(
         bytes([network.SCRIPT_ADDRESS]) + bytes.fromhex(redeem_script)
     )
 
 
 def to_bytes(string, unhex=True):
-    """
-    Converts a hex string to bytes
-    """
+    # Convert a hex string to bytes
     if not string:
         return b""
     if unhex:
@@ -275,21 +277,16 @@ CODE_OPS = {
 
 
 class Script:
-    """Represents any script in Bitcoin
+    """Represents a script in Bitcoin. Can also represent most scripts in other altcoins
+        like Litecoin, Dogecoin, and Bitcoin Cash.
 
-    A Script contains just a list of OP_CODES and also knows how to serialize
-    into bytes
+    A Script contains just a list of OP_CODES and also knows how to serialize into bytes.
 
-    Attributes
-    ----------
-    script : list
-        the list with all the script OP_CODES and data
+    Attributes:
+        script (list): The list with all the script OP_CODES and data.
 
-    Raises
-    ------
-    ValueError
-        If string data is too large or integer is negative Methods
-
+    Raises:
+        ValueError: If string data is too large or integer is negative.
     """
 
     def __init__(self, script, network=BitcoinSegwitMainNet):
@@ -308,16 +305,15 @@ class Script:
         return self.__str__()
 
     def _op_push_data(self, data):
-        """Converts data to appropriate OP_PUSHDATA OP code including length
-
-        0x01-0x4b           -> just length plus data bytes
-        0x4c-0xff           -> OP_PUSHDATA1 plus 1-byte-length plus data bytes
-        0x0100-0xffff       -> OP_PUSHDATA2 plus 2-byte-length plus data bytes
-        0x010000-0xffffffff -> OP_PUSHDATA4 plus 4-byte-length plus data bytes
-
-        Also note that according to standarardness rules (BIP-62) the minimum
-        possible PUSHDATA operator must be used!
-        """
+        # Converts data to appropriate OP_PUSHDATA OP code including length
+        #
+        # 0x01-0x4b           -> just length plus data bytes
+        # 0x4c-0xff           -> OP_PUSHDATA1 plus 1-byte-length plus data bytes
+        # 0x0100-0xffff       -> OP_PUSHDATA2 plus 2-byte-length plus data bytes
+        # 0x010000-0xffffffff -> OP_PUSHDATA4 plus 4-byte-length plus data bytes
+        #
+        # Also note that according to standarardness rules (BIP-62) the minimum
+        # possible PUSHDATA operator must be used!
 
         # expects data in hexadecimal characters and converts appropriately
         data_bytes = unhexlify(data)
@@ -342,10 +338,9 @@ class Script:
         return parse_varint(data_bytes)[0] + data_bytes
 
     def _push_integer(self, integer):
-        """Converts integer to bytes; as signed little-endian integer
-
-        Currently supports only positive integers
-        """
+        # Converts integer to bytes; as signed little-endian integer
+        #
+        # Currently supports only positive integers
 
         if integer < 0:
             raise ValueError("Integer is currently required to be positive.")
