@@ -1,7 +1,10 @@
+from base64 import b64decode, b64encode
+from urllib.parse import urlparse
 import psycopg2
 import mysql.connector
 import sqlite3
 import json
+from copy import deepcopy
 from ..generated import wallet_pb2
 
 
@@ -9,7 +12,7 @@ class DatabaseConnection:
     def __init__(self, connection_params):
         self.connection_params = connection_params
         self.connection = None
-        self.cache = []
+        self.cursor = None
 
     def connect(self):
         raise NotImplementedError("Subclasses must implement connect method")
@@ -23,37 +26,70 @@ class DatabaseConnection:
         self.disconnect()
         self.connect()
 
+    @staticmethod
+    def parse_uri(uri):
+        parsed_uri = urlparse(uri)
+        if parsed_uri.scheme == "sqlite":
+            # For SQLite URIs with a local file
+            connection_params = {
+                "protocol": "sqlite",
+                "database": parsed_uri.path.lstrip("/"),
+            }
+        else:
+            # For other database types
+            connection_params = {
+                "protocol": parsed_uri.scheme,
+                "host": parsed_uri.hostname,
+                "port": parsed_uri.port,
+                "database": parsed_uri.path.lstrip("/"),
+                "user": parsed_uri.username,
+                "password": parsed_uri.password,
+            }
+        return connection_params
+
+    def parse_connection_params(self):
+        if isinstance(self.connection_params, str):
+            return self.parse_uri(self.connection_params)
+        else:
+            return self.connection_params
+
 
 class PostgreSQLConnection(DatabaseConnection):
     def connect(self):
         self.connection = psycopg2.connect(**self.connection_params)
+        self.cursor = self.connection.cursor()
 
 
 class MySQLConnection(DatabaseConnection):
     def connect(self):
         self.connection = mysql.connector.connect(**self.connection_params)
+        self.cursor = self.connection.cursor()
 
 
 class SQLiteConnection(DatabaseConnection):
     def connect(self):
         self.connection = sqlite3.connect(**self.connection_params)
+        self.cursor = self.connection.cursor()
 
 
 class SQLTransactionStorage:
     def __init__(self, connection_params):
         self.connection_params = connection_params
         self.connection = None
+        self.cache = []
         self.max_cached = 100
 
     def connect(self):
         if not self.connection:
-            protocol = self.connection_params.get("protocol")
+            protocol = self.connection_params["protocol"]
+            params = deepcopy(self.connection_params)
+            del params["protocol"]
             if protocol == "postgresql":
-                self.connection = PostgreSQLConnection(self.connection_params)
+                self.connection = PostgreSQLConnection(params)
             elif protocol == "mysql":
-                self.connection = MySQLConnection(self.connection_params)
+                self.connection = MySQLConnection(params)
             elif protocol == "sqlite":
-                self.connection = SQLiteConnection(self.connection_params)
+                self.connection = SQLiteConnection(params)
             else:
                 raise ValueError("Unsupported protocol")
 
@@ -104,8 +140,6 @@ class SQLTransactionStorage:
                     height BIGINT,
                     total_fee BIGINT,
                     fee_metric INT,
-                    btc_fee BIGINT,
-                    eth_gas BIGINT,
                     btclike_transaction JSONB,
                     ethlike_transaction JSONB
                 )
@@ -119,8 +153,6 @@ class SQLTransactionStorage:
                     height BIGINT,
                     total_fee BIGINT,
                     fee_metric INT,
-                    btc_fee BIGINT,
-                    eth_gas BIGINT,
                     btclike_transaction JSON,
                     ethlike_transaction JSON
                 )
@@ -129,17 +161,17 @@ class SQLTransactionStorage:
                 sql = """
                 CREATE TABLE IF NOT EXISTS transactions (
                     txid TEXT PRIMARY KEY,
-                    timestamp TEXT,
+                    timestamp INTEGER,
                     confirmed INTEGER,
                     height INTEGER,
                     total_fee INTEGER,
                     fee_metric INTEGER,
-                    btc_fee INTEGER,
-                    eth_gas INTEGER,
-                    btclike_transaction TEXT,
-                    ethlike_transaction TEXT
+                    btclike_transaction JSON,
+                    ethlike_transaction JSON
                 )
                 """
+            else:
+                raise DatabaseError(f"Unknown protocol: {protocol}")
 
             self.connection.cursor.execute(sql)
         except Exception as e:
@@ -152,26 +184,69 @@ class SQLTransactionStorage:
 
             sql = """
             INSERT INTO transactions (txid, timestamp, confirmed, height, total_fee,
-                                      fee_metric, btc_fee, eth_gas, btclike_transaction,
+                                      fee_metric, btclike_transaction,
                                       ethlike_transaction)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """
             data = (
-                transaction.txid,
+                f"'{transaction.txid}'",
                 transaction.timestamp,
-                transaction.confirmed,
+                int(transaction.confirmed),
                 transaction.height,
                 transaction.total_fee,
                 transaction.fee_metric,
-                transaction.btc_fee,
-                transaction.eth_gas,
-                self._protobuf_to_sql(transaction.btclike_transaction),
-                self._protobuf_to_sql(transaction.ethlike_transaction),
+                f"'{self._btcprotobuf_to_sql(transaction.btclike_transaction)}'",
+                f"'{self._ethprotobuf_to_sql(transaction.ethlike_transaction)}'",
             )
             self.connection.cursor.execute(sql, data)
             self.update_cache(transaction)
         except Exception as e:
             raise DatabaseError(f"Error storing transaction: {e}")
+
+    def have_transaction(self, txid):
+        try:
+            if not self.connection:
+                self.connect()
+
+            sql = """
+            SELECT COUNT(txid) from transactions
+            """
+
+            self.connection.cursor.execute(sql)
+            count = self.connection.cursor.fetchone()[0]
+            return count > 0
+        except Exception as e:
+            raise DatabaseError(f"Error deleting transaction: {e}")
+
+    def all_txids(self):
+        try:
+            if not self.connection:
+                self.connect()
+
+            sql = """
+            SELECT txid from transactions
+            """
+
+            self.connection.cursor.execute(sql)
+            txs = self.connection.cursor.fetchall()
+            return [tx[0] for tx in txs]
+
+        except Exception as e:
+            raise DatabaseError(f"Error deleting transaction: {e}")
+
+    def delete_transaction(self, txid):
+        try:
+            if not self.connection:
+                self.connect()
+
+            sql = """
+            DELETE FROM transactions WHERE txid == ?
+            """
+
+            data = (txid,)
+            self.connection.cursor.execute(sql, data)
+        except Exception as e:
+            raise DatabaseError(f"Error deleting transaction: {e}")
 
     def get_transaction_by_txid(self, txid):
         for cached_transaction in self.cache:
@@ -212,18 +287,51 @@ class SQLTransactionStorage:
         except Exception as e:
             raise DatabaseError(f"Error getting transactions by address: {e}")
 
-    def _protobuf_to_sql(self, transaction_data):
-        # Convert Protobuf message to JSON and serialize to string
+    def _btcprotobuf_to_sql(self, transaction_data):
+        # Convert BTCLikeTransaction Protobuf message to JSON and serialize to string
         json_data = {
             "fee": transaction_data.fee,
             "inputs": [
-                self._protobuf_to_sql(input_data)
+                self._btcinprotobuf_to_sql(input_data)
                 for input_data in transaction_data.inputs
             ],
             "outputs": [
-                self._protobuf_to_sql(output_data)
+                self._btcoutprotobuf_to_sql(output_data)
                 for output_data in transaction_data.outputs
             ],
+        }
+        return json.dumps(json_data)
+
+    def _btcinprotobuf_to_sql(self, txi_data):
+        # Convert BTCLikeInput Protobuf message to JSON and serialize to string
+        json_data = {
+            "txid": txi_data.txid,
+            "index": txi_data.index,
+            "amount": txi_data.amount,
+            # "witness_data": txi_data.witness_data,  # We DO NOT save witness data for now
+            "address": txi_data.address,
+        }
+        return json.dumps(json_data)
+
+    def _btcoutprotobuf_to_sql(self, txo_data):
+        # Convert BTCLikeOutput Protobuf message to JSON and serialize to string
+        json_data = {
+            "amount": txo_data.amount,
+            "address": txo_data.address,
+            "index": txo_data.index,
+            # "witness_data": txo_data.witness_data,  # We DO NOT save witness data for now
+            "spent": txo_data.spent,
+        }
+        return json.dumps(json_data)
+
+    def _ethprotobuf_to_sql(self, transaction_data):
+        # Convert EthLikeTransaction Protobuf message to JSON and serialize to string
+        json_data = {
+            "txfrom": transaction_data.txfrom,
+            "txto": transaction_data.txto,
+            "amount": transaction_data.amount,
+            "gas": transaction_data.gas,
+            "data": b64encode(transaction_data.data).decode("utf-8"),
         }
         return json.dumps(json_data)
 
@@ -232,10 +340,13 @@ class SQLTransactionStorage:
             self.cache.pop(0)
         self.cache.append(transaction)
 
+    def empty_cache(self):
+        self.cache = []
+
     def _sql_to_protobuf(self, row):
         # Parse transaction data from SQL result
-        btclike_transaction = json.loads(row[8])
-        ethlike_transaction = json.loads(row[9])
+        btclike_transaction = json.loads(row[6])
+        ethlike_transaction = json.loads(row[7])
 
         # Create Protobuf message
         transaction = wallet_pb2.Transaction()
@@ -245,8 +356,6 @@ class SQLTransactionStorage:
         transaction.height = row[3]
         transaction.total_fee = row[4]
         transaction.fee_metric = row[5]
-        transaction.btc_fee = row[6]
-        transaction.eth_gas = row[7]
         transaction.btclike_transaction.fee = btclike_transaction["fee"]
         transaction.btclike_transaction.inputs.extend(btclike_transaction["inputs"])
         transaction.btclike_transaction.outputs.extend(btclike_transaction["outputs"])
@@ -254,7 +363,7 @@ class SQLTransactionStorage:
         transaction.ethlike_transaction.txto = ethlike_transaction["txto"]
         transaction.ethlike_transaction.amount = ethlike_transaction["amount"]
         transaction.ethlike_transaction.gas = ethlike_transaction["gas"]
-        transaction.ethlike_transaction.data = ethlike_transaction["data"]
+        transaction.ethlike_transaction.data = b64decode(ethlike_transaction["data"])
         return transaction
 
     def _get_transaction_by_address_query(self):

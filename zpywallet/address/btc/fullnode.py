@@ -105,7 +105,6 @@ class BitcoinRPCClient:
         self.rpc_url = kwargs.get("url")
         self.rpc_user = kwargs.get("user")
         self.rpc_password = kwargs.get("password")
-        self.max_tx_at_once = kwargs.get("max_tx_at_once") or 1000
         self.fast_mode = kwargs.get("fast_mode") or True
         self.min_height = kwargs.get("min_height") or 0
         self.transactions = []
