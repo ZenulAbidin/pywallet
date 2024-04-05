@@ -260,8 +260,9 @@ class SQLTransactionStorage:
             if not self.container:
                 self.connect()
 
-            sql = """
+            sql = f"""
             SELECT COUNT(txid) from transactions
+            WHERE txid = {txid} LIMIT 1
             """
 
             self.container.cursor.execute(sql)
