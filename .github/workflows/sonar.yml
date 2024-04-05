@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build
+    name: Check For Issues
     runs-on: ubuntu-latest
     permissions: read-all
     steps:
