@@ -292,7 +292,7 @@ class BTCLikeMempool:
                     temp_transactions.extend(future.result())
         except Exception as e:
             sql_transaction_storage.rollback()
-            raise
+            raise e
         return temp_transactions
 
     def _internal_pass_2b(self, sql_transaction_storage, temp_transactions):
