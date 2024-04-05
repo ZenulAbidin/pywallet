@@ -1,4 +1,3 @@
-from base64 import b64decode, b64encode
 from urllib.parse import urlparse
 import psycopg2
 import mysql.connector
@@ -55,188 +54,253 @@ class DatabaseConnection:
 
 
 class PostgreSQLConnection(DatabaseConnection):
+    BLOB_TYPE = "BYTEA"
+
     def connect(self):
         self.connection = psycopg2.connect(**self.connection_params)
         self.cursor = self.connection.cursor()
 
 
 class MySQLConnection(DatabaseConnection):
+    BLOB_TYPE = "BLOB"
+
     def connect(self):
         self.connection = mysql.connector.connect(**self.connection_params)
         self.cursor = self.connection.cursor()
 
 
 class SQLiteConnection(DatabaseConnection):
+    BLOB_TYPE = "BLOB"
+
     def connect(self):
         self.connection = sqlite3.connect(**self.connection_params)
         self.cursor = self.connection.cursor()
 
 
+# This class does not support transactions. That is because the python DB-API
+# cursor objects create their own transactions.
 class SQLTransactionStorage:
     def __init__(self, connection_params):
         self.connection_params = connection_params
-        self.connection = None
+        self.container = None
         self.cache = []
         self.max_cached = 100
 
     def connect(self):
-        if not self.connection:
+        if not self.container:
             protocol = self.connection_params["protocol"]
             params = deepcopy(self.connection_params)
             del params["protocol"]
             if protocol == "postgresql":
-                self.connection = PostgreSQLConnection(params)
+                self.container = PostgreSQLConnection(params)
             elif protocol == "mysql":
-                self.connection = MySQLConnection(params)
+                self.container = MySQLConnection(params)
             elif protocol == "sqlite":
-                self.connection = SQLiteConnection(params)
+                self.container = SQLiteConnection(params)
             else:
                 raise ValueError("Unsupported protocol")
 
-            self.connection.connect()
+            self.container.connect()
 
             try:
-                self.create_table()
+                self.create_transactions_table()
+                self.create_txos_table()
+                self.create_reftxos_table()
+                self.create_idtxos_table()
             except DatabaseError:
                 pass
 
     def disconnect(self):
-        if self.connection:
-            self.connection.disconnect()
+        if self.container:
+            self.container.disconnect()
 
     def reconnect(self):
-        if self.connection:
-            self.connection.reconnect()
+        if self.container:
+            self.container.reconnect()
 
-    def begin_transaction(self):
-        self.connection.connect()
-        self.connection.cursor.execute("BEGIN")
+    def commit(self):
+        if self.container:
+            self.container.connection.commit()
 
-    def commit_transaction(self):
-        self.connection.cursor.execute("COMMIT")
-
-    def rollback_transaction(self):
-        self.connection.cursor.execute("ROLLBACK")
+    def rollback(self):
+        try:
+            if self.container:
+                self.container.connection.rollback()
+        except Exception:
+            pass
 
     def clear_transactions(self):
         try:
             sql = "DELETE FROM transactions"
-            self.connection.cursor.execute(sql)
+            self.container.cursor.execute(sql)
         except Exception as e:
             raise DatabaseError(f"Error clearing transactions: {e}")
 
-    def create_table(self):
+    def create_transactions_table(self):
         try:
-            if not self.connection:
+            if not self.container:
                 self.connect()
 
-            protocol = self.connection_params.get("protocol")
-            if protocol == "postgresql":
-                sql = """
-                CREATE TABLE IF NOT EXISTS transactions (
-                    txid VARCHAR(255) PRIMARY KEY,
-                    timestamp TIMESTAMP,
-                    confirmed BOOLEAN,
-                    height BIGINT,
-                    total_fee BIGINT,
-                    fee_metric INT,
-                    btclike_transaction JSONB,
-                    ethlike_transaction JSONB
-                )
-                """
-            elif protocol == "mysql":
-                sql = """
-                CREATE TABLE IF NOT EXISTS transactions (
-                    txid VARCHAR(255) PRIMARY KEY,
-                    timestamp TIMESTAMP,
-                    confirmed BOOLEAN,
-                    height BIGINT,
-                    total_fee BIGINT,
-                    fee_metric INT,
-                    btclike_transaction JSON,
-                    ethlike_transaction JSON
-                )
-                """
-            elif protocol == "sqlite":
-                sql = """
-                CREATE TABLE IF NOT EXISTS transactions (
-                    txid TEXT PRIMARY KEY,
-                    timestamp INTEGER,
-                    confirmed INTEGER,
-                    height INTEGER,
-                    total_fee INTEGER,
-                    fee_metric INTEGER,
-                    btclike_transaction JSON,
-                    ethlike_transaction JSON
-                )
-                """
-            else:
-                raise DatabaseError(f"Unknown protocol: {protocol}")
+            sql = """
+            CREATE TABLE IF NOT EXISTS transactions (
+                txid VARCHAR(64) PRIMARY KEY,
+                timestamp TIMESTAMP,
+                confirmed BOOLEAN,
+                height BIGINT,
+                total_fee BIGINT,
+                fee_metric INTEGER,
+                rawtx TEXT,
+                txfrom TEXT,
+                txto TEXT,
+                amount INTEGER,
+                gas INTEGER,
+                data TEXT
+            )
+            """
 
-            self.connection.cursor.execute(sql)
+            self.container.cursor.execute(sql)
+        except Exception as e:
+            raise DatabaseError(f"Error creating table: {e}")
+
+    def create_txos_table(self):
+        try:
+            if not self.container:
+                self.connect()
+
+            sql = """
+            CREATE TABLE IF NOT EXISTS txos (
+                txidn VARCHAR(72) PRIMARY KEY,
+                txid VARCHAR(64),
+                n INTEGER,
+                address VARCHAR(64),
+                amount BIGINT,
+                output BOOLEAN
+            )
+            """
+            self.container.cursor.execute(sql)
+
+            sql = """
+            CREATE VIEW IF NOT EXISTS outtxos AS
+                SELECT * FROM txos WHERE output = TRUE;
+            """
+            self.container.cursor.execute(sql)
+
+            sql = """
+            CREATE VIEW IF NOT EXISTS intxos AS
+                SELECT * FROM txos WHERE output = FALSE;
+            """
+            self.container.cursor.execute(sql)
+
+        except Exception as e:
+            raise DatabaseError(f"Error creating table: {e}")
+
+    def create_reftxos_table(self):
+        try:
+            if not self.container:
+                self.connect()
+
+            sql = f"""
+            CREATE TABLE IF NOT EXISTS reftxos (
+                txid VARCHAR(64) PRIMARY KEY,
+                fine_rawtx {self.container.BLOB_TYPE}
+            )
+            """
+
+            self.container.cursor.execute(sql)
+        except Exception as e:
+            raise DatabaseError(f"Error creating table: {e}")
+
+    def create_idtxos_table(self):
+        try:
+            if not self.container:
+                self.connect()
+
+            sql = """
+            CREATE TABLE IF NOT EXISTS idtxos (
+                txid VARCHAR(64) PRIMARY KEY,
+            )
+            """
+
+            self.container.cursor.execute(sql)
         except Exception as e:
             raise DatabaseError(f"Error creating table: {e}")
 
     def store_transaction(self, transaction):
         try:
-            if not self.connection:
+            if not self.container:
                 self.connect()
 
             sql = """
             INSERT INTO transactions (txid, timestamp, confirmed, height, total_fee,
-                                      fee_metric, btclike_transaction,
-                                      ethlike_transaction)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                      fee_metric, rawtx,
+                                      txfrom, txto, amount, gas, data)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
             data = (
-                f"'{transaction.txid}'",
+                transaction.txid,
                 transaction.timestamp,
                 int(transaction.confirmed),
                 transaction.height,
                 transaction.total_fee,
                 transaction.fee_metric,
-                f"'{self._btcprotobuf_to_sql(transaction.btclike_transaction)}'",
-                f"'{self._ethprotobuf_to_sql(transaction.ethlike_transaction)}'",
+                transaction.SerializeToString(),
+                transaction.ethlike_transaction.txfrom or "",
+                transaction.ethlike_transaction.txto or "",
+                transaction.ethlike_transaction.amount,
+                transaction.ethlike_transaction.gas,
+                "",  # f"'{b64encode(transaction.ethlike_transaction.data).decode("utf-8")}'"
             )
-            self.connection.cursor.execute(sql, data)
+            self.container.cursor.execute(sql, data)
             self.update_cache(transaction)
         except Exception as e:
             raise DatabaseError(f"Error storing transaction: {e}")
 
     def have_transaction(self, txid):
         try:
-            if not self.connection:
+            if not self.container:
                 self.connect()
 
             sql = """
             SELECT COUNT(txid) from transactions
             """
 
-            self.connection.cursor.execute(sql)
-            count = self.connection.cursor.fetchone()[0]
+            self.container.cursor.execute(sql)
+            count = self.container.cursor.fetchone()[0]
             return count > 0
         except Exception as e:
             raise DatabaseError(f"Error deleting transaction: {e}")
 
     def all_txids(self):
         try:
-            if not self.connection:
+            if not self.container:
                 self.connect()
+
+            txids = []
 
             sql = """
             SELECT txid from transactions
             """
 
-            self.connection.cursor.execute(sql)
-            txs = self.connection.cursor.fetchall()
-            return [tx[0] for tx in txs]
+            self.container.cursor.execute(sql)
+            txs = self.container.cursor.fetchall()
+            txids += [tx[0] for tx in txs]
+
+            sql = """
+            SELECT txid from txos
+            """
+
+            self.container.cursor.execute(sql)
+            txs = self.container.cursor.fetchall()
+            txids += [tx[0] for tx in txs]
+
+            return txids
 
         except Exception as e:
             raise DatabaseError(f"Error deleting transaction: {e}")
 
     def delete_transaction(self, txid):
         try:
-            if not self.connection:
+            if not self.container:
                 self.connect()
 
             sql = """
@@ -244,9 +308,28 @@ class SQLTransactionStorage:
             """
 
             data = (txid,)
-            self.connection.cursor.execute(sql, data)
+            self.container.cursor.execute(sql, data)
+
+            sql = """
+            DELETE FROM txos WHERE txid == ?
+            """
+            self.container.cursor.execute(sql, data)
+
         except Exception as e:
             raise DatabaseError(f"Error deleting transaction: {e}")
+
+    def wipeout_reftxos(self):
+        try:
+            if not self.container:
+                self.connect()
+
+            sql = """
+            DELETE FROM reftxos
+            """
+            self.container.cursor.execute(sql)
+
+        except Exception as e:
+            raise DatabaseError(f"Error clearing reftoxs: {e}")
 
     def get_transaction_by_txid(self, txid):
         for cached_transaction in self.cache:
@@ -254,12 +337,12 @@ class SQLTransactionStorage:
                 return cached_transaction
 
         try:
-            if not self.connection:
+            if not self.container:
                 self.connect()
 
             sql = "SELECT * FROM transactions WHERE txid = %s"
-            self.connection.cursor.execute(sql, (txid,))
-            result = self.connection.cursor.fetchone()
+            self.container.cursor.execute(sql, (txid,))
+            result = self.container.cursor.fetchone()
             if result:
                 return self._sql_to_protobuf(result)
             else:
@@ -267,25 +350,130 @@ class SQLTransactionStorage:
         except Exception as e:
             raise DatabaseError(f"Error getting transaction by txid: {e}")
 
-    def get_transaction_by_address(self, address):
-        for cached_transaction in self.cache:
-            if address in [
-                i.address for i in cached_transaction.btclike_transaction.inputs
-            ] or address in [
-                o.address for o in cached_transaction.btclike_transaction.outputs
-            ]:
-                return cached_transaction
+    def store_txo1(self, txid, transaction):
         try:
-            if not self.connection:
+            if not self.container:
                 self.connect()
 
-            sql = self._get_transaction_by_address_query()
-            self.connection.cursor.execute(sql, (address,))
-            result = self.connection.cursor.fetchall()
-            transactions = [self._sql_to_protobuf(row) for row in result]
+            sql = """
+            INSERT INTO reftxos (txid, fine_rawtx)
+            VALUES (?, ?)
+            """
+            data = (
+                txid,
+                transaction,
+            )
+            self.container.cursor.execute(sql, data)
+
+        except Exception as e:
+            raise DatabaseError(f"Error storing txo: {e}")
+
+    def store_txo0(self, transaction, n, output=True):
+
+        def get_address(parent, n):
+            return parent[n].address
+
+        def get_amount(parent, n):
+            return parent[n].amount
+
+        try:
+            if not self.container:
+                self.connect()
+
+            sql = """
+            INSERT INTO txos (txidn, txid, n, address, amount, output)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """
+            outputs = transaction.btclike_transaction.outputs
+            inputs = transaction.btclike_transaction.inputs
+            data = (
+                transaction.txid + ("" if output else "-") + str(n),
+                transaction.txid,
+                n,
+                get_address(outputs if output else inputs, n),
+                get_amount(outputs if output else inputs, n),
+                output,
+            )
+            self.container.cursor.execute(sql, data)
+        except Exception as e:
+            raise DatabaseError(f"Error storing txo: {e}")
+
+    def store_idtxo(self, txid):
+        try:
+            if not self.container:
+                self.connect()
+
+            sql = """
+            INSERT INTO idtxo (txid)
+            VALUES (?)
+            """
+            data = (txid,)
+            self.container.cursor.execute(sql, data)
+        except Exception as e:
+            raise DatabaseError(f"Error storing idtxo: {e}")
+
+    def get_rawtx(self, txid):
+        try:
+            if not self.container:
+                self.connect()
+
+            sql = """
+            SELECT fine_rawtx from reftxos WHERE txid = ?
+            """
+            data = (txid,)
+            self.container.cursor.execute(sql, data)
+            try:
+                result = self.container.cursor.fetchone()
+                rawtx = wallet_pb2.Transaction()
+                rawtx.ParseFromString(result[0])
+                return rawtx
+            except Exception as e:
+                return None
+        except Exception as e:
+            raise DatabaseError(f"Error storing txo: {e}")
+
+    def get_idtxos(self, batch):
+        try:
+            if not self.container:
+                self.connect()
+
+            sql = """
+            SELECT * FROM idtxos
+            """
+            self.container.cursor.execute(sql)
+            try:
+                result = self.container.cursor.fetchmany(batch)
+                while result is not None:
+                    yield [row[0] for row in result]
+                    result = self.container.cursor.fetchmany(batch)
+            except Exception as e:
+                pass
+        except Exception as e:
+            raise DatabaseError(f"Error storing txo: {e}")
+
+    def get_transactions_by_address(self, address):
+        try:
+            if not self.container:
+                self.connect()
+
+            sql = """
+            SELECT txid from txos WHERE address = ?
+            """
+            data = (address,)
+            self.container.cursor.execute(sql, data)
+            result = self.container.cursor.fetchall()
+            txids = [r[0] for r in result]
+            transactions = []
+            for txid in txids:
+                sql = """
+                SELECT * FROM transactions WHERE txid = ?
+                """
+                self.container.cursor.execute(sql, (txid,))
+                row = self.container.cursor.fetchone()
+                transactions.append(self._sql_to_protobuf(row))
             return transactions
         except Exception as e:
-            raise DatabaseError(f"Error getting transactions by address: {e}")
+            raise DatabaseError(f"Error storing txo: {e}")
 
     def _btcprotobuf_to_sql(self, transaction_data):
         # Convert BTCLikeTransaction Protobuf message to JSON and serialize to string
@@ -324,17 +512,6 @@ class SQLTransactionStorage:
         }
         return json.dumps(json_data)
 
-    def _ethprotobuf_to_sql(self, transaction_data):
-        # Convert EthLikeTransaction Protobuf message to JSON and serialize to string
-        json_data = {
-            "txfrom": transaction_data.txfrom,
-            "txto": transaction_data.txto,
-            "amount": transaction_data.amount,
-            "gas": transaction_data.gas,
-            "data": b64encode(transaction_data.data).decode("utf-8"),
-        }
-        return json.dumps(json_data)
-
     def update_cache(self, transaction):
         if len(self.cache) >= self.max_cached:
             self.cache.pop(0)
@@ -346,7 +523,6 @@ class SQLTransactionStorage:
     def _sql_to_protobuf(self, row):
         # Parse transaction data from SQL result
         btclike_transaction = json.loads(row[6])
-        ethlike_transaction = json.loads(row[7])
 
         # Create Protobuf message
         transaction = wallet_pb2.Transaction()
@@ -359,24 +535,12 @@ class SQLTransactionStorage:
         transaction.btclike_transaction.fee = btclike_transaction["fee"]
         transaction.btclike_transaction.inputs.extend(btclike_transaction["inputs"])
         transaction.btclike_transaction.outputs.extend(btclike_transaction["outputs"])
-        transaction.ethlike_transaction.txfrom = ethlike_transaction["txfrom"]
-        transaction.ethlike_transaction.txto = ethlike_transaction["txto"]
-        transaction.ethlike_transaction.amount = ethlike_transaction["amount"]
-        transaction.ethlike_transaction.gas = ethlike_transaction["gas"]
-        transaction.ethlike_transaction.data = b64decode(ethlike_transaction["data"])
+        transaction.ethlike_transaction.txfrom = row[7]
+        transaction.ethlike_transaction.txto = row[8]
+        transaction.ethlike_transaction.amount = row[9]
+        transaction.ethlike_transaction.gas = row[10]
+        transaction.ethlike_transaction.data = row[11]
         return transaction
-
-    def _get_transaction_by_address_query(self):
-        protocol = self.connection_params.get("protocol")
-        if protocol == "postgresql":
-            return "SELECT * FROM transactions WHERE btclike_transaction->'inputs' @> %s \
-                OR btclike_transaction->'outputs' @> %s"
-        elif protocol == "mysql":
-            return "SELECT * FROM transactions WHERE JSON_CONTAINS(btclike_transaction->'inputs', %s) \
-                OR JSON_CONTAINS(btclike_transaction->'outputs', %s)"
-        elif protocol == "sqlite":
-            return "SELECT * FROM transactions WHERE btclike_transaction LIKE '%' || ? || '%' \
-                OR btclike_transaction LIKE '%' || ? || '%'"
 
 
 class DatabaseError(Exception):

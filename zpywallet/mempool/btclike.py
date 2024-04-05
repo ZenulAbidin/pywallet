@@ -1,12 +1,14 @@
 import json
+import multiprocessing
 import random
 import requests
 from concurrent.futures import ThreadPoolExecutor
 
-from ..errors import NetworkException
-from ..generated import wallet_pb2
 
-from .cache import SQLTransactionStorage
+from zpywallet.errors import NetworkException
+from zpywallet.generated import wallet_pb2
+
+from zpywallet.mempool.cache import SQLTransactionStorage, DatabaseError
 
 
 def transform_and_sort_transactions(data):
@@ -65,6 +67,8 @@ class BTCLikeMempool:
         new_element.txid = element["txid"]
 
         for vin in element["vin"]:
+            if "txid" not in vin.keys():
+                continue
             txinput = new_element.btclike_transaction.inputs.add()
             txinput.txid = vin["txid"]
             txinput.index = vin["vout"]
@@ -86,23 +90,17 @@ class BTCLikeMempool:
         new_element.btclike_transaction.fee = element["vsize"]
         return new_element
 
-    def _post_clean_tx(self, new_element):
-
+    def _post_clean_tx(self, new_element, sql_transaction_storage):
         for txinput in new_element.btclike_transaction.inputs:
-            fine_rawtx = self.raw_txos.get(txinput.txid)
+            fine_rawtx = sql_transaction_storage.get_rawtx(txinput.txid)
             if fine_rawtx is None:
                 return None  # maybe processing error.
-            txinput.amount = int(fine_rawtx["vout"][txinput.index]["value"] * 1e8)
-            if "address" in fine_rawtx["vout"][txinput.index]["scriptPubKey"].keys():
-                txinput.address = fine_rawtx["vout"][txinput.index]["scriptPubKey"][
-                    "address"
-                ]
-            elif (
-                "addresses" in fine_rawtx["vout"][txinput.index]["scriptPubKey"].keys()
-            ):
-                txinput.address = fine_rawtx["vout"][txinput.index]["scriptPubKey"][
-                    "addresses"
-                ][0]
+            txinput.amount = fine_rawtx.btclike_transaction.outputs[
+                txinput.index
+            ].amount
+            txinput.address = fine_rawtx.btclike_transaction.outputs[
+                txinput.index
+            ].address
 
         # Now we must calculate the total fee
         total_inputs = sum([a.amount for a in new_element.btclike_transaction.inputs])
@@ -128,9 +126,7 @@ class BTCLikeMempool:
         self.future_blocks_min = kwargs.get("future_blocks_min") or 0
         self.future_blocks_max = kwargs.get("future_blocks_max") or 1
         self.full_transactions = kwargs.get("full_transactions") or True
-        self.sql_transaction_storage: SQLTransactionStorage = kwargs.get(
-            "sql_transaction_storage"
-        )
+        self.db_connection_parameters = kwargs.get("db_connection_parameters")
         self.transactions = []
         self.in_mempool = []
         self.txos = []
@@ -160,7 +156,7 @@ class BTCLikeMempool:
         # Certain nodes which are placed behind web servers or Cloudflare will
         # configure rate limits and return some HTML error page if we go over that.
         # Zpywallet is not designed to handle such content so we check for it first.
-        # If you are using the full node facilities, ou are recommended to connect
+        # If you are using the full node facilities, you are recommended to connect
         # to your own node and not to a public one, for this reason.
         try:
             j = response.json()
@@ -186,7 +182,6 @@ class BTCLikeMempool:
         try:
             # Requests session is not needed for the full node but we can use it
             # for the other providers in the future.
-
             response = requests.post(
                 self.rpc_url,
                 auth=(
@@ -230,48 +225,48 @@ class BTCLikeMempool:
         except Exception as e:
             raise NetworkException(f"Failed to make RPC Call: {str(e)}")
 
-    def _get_raw_mempool(self):
+    # Internal methods are ran in a separate process which allows the OS
+    # to properly garbage collect the memory, as Python leaves a large footprint
+    # behind.
+    def _internal_mempool_fetch(self):
         res = self._send_rpc_request("getrawmempool", [True])
         sorted_transactions = transform_and_sort_transactions(res)
+        return [tx["txid"] for tx in sorted_transactions]
 
-        transaction_batches = [
-            sorted_transactions[i : i + self.max_batch]
-            for i in range(0, len(sorted_transactions), self.max_batch)
-        ]
+    def _internal_pass_1(self, transaction_batch):
+        sql_transaction_storage = SQLTransactionStorage(self.db_connection_parameters)
+        sql_transaction_storage.connect()
+        try:
+            # The first pass will be to delete the confirmed transactions inside the DB
+            # if applicable.
+            txids = transaction_batch
+            all_txids = sql_transaction_storage.all_txids()
+            for saved_txid in all_txids:
+                if saved_txid not in txids:
+                    sql_transaction_storage.delete_transaction(saved_txid)
 
-        # The first pass will be to delete the confirmed transactions inside the DB
-        # if applicable.
-        for transaction_batch in transaction_batches:
-            txids = [tx["txid"] for tx in transaction_batch]
-            new_txids = txids
-            if self.sql_transaction_storage:
-                all_txids = self.sql_transaction_storage.all_txids()
-                for saved_txid in all_txids:
-                    if saved_txid not in txids:
-                        self.sql_transaction_storage.delete_transaction(saved_txid)
-
-        if self.sql_transaction_storage:
-            yield "Checkpoint 1"
-
-        for transaction_batch in transaction_batches:
-            txids = [tx["txid"] for tx in transaction_batch]
-            new_txids = txids
+            sql_transaction_storage.wipeout_reftxos()
+            sql_transaction_storage.commit()
 
             # The second pass will be to create a copy of the mempool transactions
             # without the ones we already have stored inside the list or DB.
-            if self.sql_transaction_storage:
-                all_txids = self.sql_transaction_storage.all_txids()
-                for saved_txid in all_txids:
-                    if saved_txid in txids:
-                        new_txids.delete(new_txids.index(saved_txid))
-            else:
-                for tx in self.transactions:
-                    if tx.txid in txids:
-                        yield tx
-                        new_txids.delete(new_txids.index(saved_txid))
+            new_txids = list(set(txids) - set(all_txids))
 
-            txids = new_txids
+            new_txid_batches = [
+                [t for t in new_txids[i : i + self.max_batch]]
+                for i in range(0, len(new_txids), self.max_batch)
+            ]
+            return new_txid_batches
 
+        except Exception as e:
+            sql_transaction_storage.rollback()
+            raise e
+
+    def _internal_pass_2(self, transaction_batch):
+        sql_transaction_storage = SQLTransactionStorage(self.db_connection_parameters)
+        sql_transaction_storage.connect()
+        try:
+            txids = transaction_batch
             # Next we are going to yield new mempool transactions that we don't have
             # Confirmed mempool transactions are dropped by this method and the one above.
             txid_batches = [
@@ -295,8 +290,11 @@ class BTCLikeMempool:
             # resolving txins.
             if not self.full_transactions:
                 for tx in temp_transactions:
-                    tx.total_fee = 0
-                    yield tx
+                    tx.total_fee = 0  # Because this is actually the (v)size
+                    sql_transaction_storage.store_transaction(tx)
+                    for i in range(len(tx.btclike_transaction.outputs)):
+                        sql_transaction_storage.store_txo0(tx, i)
+                sql_transaction_storage.commit()
                 return
 
             # Otherwise we have to get all of the input txids in one swoop so we can
@@ -305,27 +303,48 @@ class BTCLikeMempool:
                 self.txos[i : i + self.max_workers]
                 for i in range(0, len(self.txos), self.max_workers)
             ]
-
             with ThreadPoolExecutor(max_workers=self.rps) as executor:
                 futures = [
                     executor.submit(self._postprocess_transaction, txes)
                     for txes in txid_batches
                 ]
-                # Self.raw_txos also has to be cached to the database.
-                self.raw_txos = {}
                 for future in futures:
-                    self.raw_txos.update(future.result())
+                    results = future.result()
+                    for txid, result in results.items():
+                        try:
+                            sql_transaction_storage.store_txo1(txid, result)
+                        except DatabaseError:
+                            pass
 
             self.txos = []
             for i in range(len(temp_transactions) - 1, -1, -1):
                 temp_transaction = temp_transactions[i]
-                new_transaction = self._post_clean_tx(temp_transaction)
+                new_transaction = self._post_clean_tx(
+                    temp_transaction, sql_transaction_storage
+                )
                 if new_transaction is not None:
-                    yield new_transaction
+                    sql_transaction_storage.store_transaction(new_transaction)
+                    for j in range(len(new_transaction.btclike_transaction.inputs)):
+                        sql_transaction_storage.store_txo0(
+                            new_transaction, j, output=False
+                        )
+                    for j in range(len(new_transaction.btclike_transaction.outputs)):
+                        sql_transaction_storage.store_txo0(new_transaction, j)
                 del temp_transactions[i]
+            sql_transaction_storage.wipeout_reftxos()
+            sql_transaction_storage.commit()
+        except Exception as e:
+            sql_transaction_storage.rollback()
+            raise e
 
-            self.raw_txos = {}
-            yield "Flush"
+    def _get_raw_mempool(self):
+        with multiprocessing.Pool(1) as pool:
+            transaction_batches = pool.apply(self._internal_mempool_fetch)
+
+        new_txid_batches = self._internal_pass_1(transaction_batches)
+
+        for transaction_batch in new_txid_batches:
+            self._internal_pass_2(transaction_batch)
 
     def _postprocess_transaction(self, txes):
         res = self._send_batch_rpc_request(
@@ -335,7 +354,9 @@ class BTCLikeMempool:
         input_transactions = {}
         for r in res:
             if type(r) is dict and "result" in r.keys():
-                input_transactions[r["result"]["txid"]] = r["result"]
+                input_transactions[r["result"]["txid"]] = self._clean_tx(
+                    r["result"]
+                ).SerializeToString()
 
         return input_transactions
 
@@ -363,42 +384,5 @@ class BTCLikeMempool:
         return temp_transactions
 
     def get_raw_mempool(self):
-        if self.sql_transaction_storage:
-            self.sql_transaction_storage.create_table()
-            try:
-
-                # Start a transaction
-                self.sql_transaction_storage.begin_transaction()
-
-                gen = self._get_raw_mempool()
-                transaction = next(gen)
-                assert transaction == "Checkpoint 1"
-
-                self.sql_transaction_storage.commit_transaction()
-
-                # Start a transaction
-                self.sql_transaction_storage.begin_transaction()
-
-                try:
-                    while True:
-                        transaction = next(gen)
-                        if transaction == "Flush":
-                            # Commit the transaction
-                            self.sql_transaction_storage.commit_transaction
-                        else:
-                            self.sql_transaction_storage.store_transaction(transaction)
-
-                except StopIteration:
-                    pass
-
-            except Exception as e:
-                # Rollback the transaction if an error occurs
-                self.sql_transaction_storage.rollback_transaction()
-                raise e
-
-            # Warning: This will use a lot of memory.
-            return []
-        else:
-            # Warning: This will also use a lot of memory.
-            self.transactions = [*self._get_raw_mempool()]
-            return self.transactions
+        self._get_raw_mempool()
+        return []
