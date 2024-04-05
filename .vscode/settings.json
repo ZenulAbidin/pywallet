@@ -4,5 +4,8 @@
         "editor.formatOnSave": true
       },
       "editor.wordWrap": "off",
-      "editor.rulers": [80, 120]
+      "editor.rulers": [
+        80,
+        120
+      ]
 }

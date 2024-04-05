@@ -27,7 +27,8 @@ class Destination:
             address (str): The destination address.
             amount (int): The amount of the destination in the lowest denomination.
             network: The network associated with the destination.
-            fee_policy (FeePolicy, optional): The fee policy associated with the destination. Defaults to FeePolicy.NONE.
+            fee_policy (FeePolicy, optional): The fee policy associated with the destination.
+                Defaults to FeePolicy.NONE.
         """
         self._network = network
         self._address = address
@@ -46,7 +47,8 @@ class Destination:
         Returns the amount of the destination.
 
         Args:
-            in_standard_units (bool, optional): If True, returns the amount in standard units. If False, returns the amount in the lowest denomination. Defaults to True.
+            in_standard_units (bool, optional): If True, returns the amount in standard units.
+                If False, returns the amount in the lowest denomination. Defaults to True.
         """
         if not in_standard_units:
             if self._network.SUPPORTS_EVM:

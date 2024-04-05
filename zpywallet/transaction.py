@@ -94,7 +94,8 @@ class Transaction:
         Returns the total fee of the transaction.
 
         Args:
-            in_standard_units (bool, optional): If True, returns the fee in standard units. If False, returns the fee in the lowest denomination. Defaults to True.
+            in_standard_units (bool, optional): If True, returns the fee in standard units.
+                If False, returns the fee in the lowest denomination. Defaults to True.
         """
         if in_standard_units:
             if self._network.SUPPORTS_EVM:
@@ -126,7 +127,8 @@ class Transaction:
         Returns the amount transferred in the transaction (EVM).
 
         Args:
-            in_standard_units (bool, optional): If True, returns the amount in standard units. If False, returns the amount in the lowest denomination. Defaults to True.
+            in_standard_units (bool, optional): If True, returns the amount in standard units.
+                If False, returns the amount in the lowest denomination. Defaults to True.
         """
         if not self._network.SUPPORTS_EVM:
             raise ValueError("Blockchain does not support this property")

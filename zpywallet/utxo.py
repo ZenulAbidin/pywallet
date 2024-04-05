@@ -26,7 +26,8 @@ class UTXO:
             index (int): The index of the UTXO in the transaction outputs.
             other_transactions (list, optional): Other transactions related to the UTXO. Defaults to None.
             addresses (list, optional): Addresses associated with the UTXO. Defaults to None.
-            only_mine (bool, optional): If True, only includes UTXOs belonging to the specified addresses. Defaults to False.
+            only_mine (bool, optional): If True, only includes UTXOs belonging to the specified addresses.
+                Defaults to False.
             _unsafe_internal_testing_only: For internal testing purposes only. Defaults to None.
         """
         if other_transactions is None:
@@ -82,7 +83,8 @@ class UTXO:
         Returns the amount of the UTXO.
 
         Args:
-            in_standard_units (bool, optional): If True, returns the amount in standard units. If False, returns the amount in the lowest denomination. Defaults to True.
+            in_standard_units (bool, optional): If True, returns the amount in standard units.
+                If False, returns the amount in the lowest denomination. Defaults to True.
         """
         if in_standard_units:
             return self._output["amount"] / 1e8

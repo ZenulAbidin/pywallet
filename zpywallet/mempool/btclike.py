@@ -1,10 +1,14 @@
 import json
+import multiprocessing
 import random
 import requests
 from concurrent.futures import ThreadPoolExecutor
 
-from ..errors import NetworkException
-from ..generated import wallet_pb2
+
+from zpywallet.errors import NetworkException
+from zpywallet.generated import wallet_pb2
+
+from zpywallet.mempool.cache import SQLTransactionStorage, DatabaseError
 
 
 def transform_and_sort_transactions(data):
@@ -17,11 +21,12 @@ def transform_and_sort_transactions(data):
     return sorted_data
 
 
-class BitcoinMempool:
-    """Holds the transactions inside the mempool. There should only be one
-    mempool class for each coin running in the entire application.
+class BTCLikeMempool:
+    """Holds the transactions of Bitcoin-like blockchains inside the mempool.
+    There should only be one mempool class for each coin running in the entire
+    application.
 
-    Note: The performance of this class heavily depends on the network speed and CPU
+    The performance of this class heavily depends on the network speed and CPU
     speed of the node as well as the number of threads available, the size of the RPC
     batch work queue specified in the constructor, and the amount of transactions in
     megabytes you are trying to fetch at once.
@@ -59,8 +64,11 @@ class BitcoinMempool:
         # Of course this is an unconfirmed transaction.
         # Hence it is also not a coinbase transaction.
         new_element.confirmed = False
+        new_element.txid = element["txid"]
 
         for vin in element["vin"]:
+            if "txid" not in vin.keys():
+                continue
             txinput = new_element.btclike_transaction.inputs.add()
             txinput.txid = vin["txid"]
             txinput.index = vin["vout"]
@@ -82,23 +90,17 @@ class BitcoinMempool:
         new_element.btclike_transaction.fee = element["vsize"]
         return new_element
 
-    def _post_clean_tx(self, new_element):
-
+    def _post_clean_tx(self, new_element, sql_transaction_storage):
         for txinput in new_element.btclike_transaction.inputs:
-            fine_rawtx = self.raw_txos.get(txinput.txid)
+            fine_rawtx = sql_transaction_storage.get_rawtx(txinput.txid)
             if fine_rawtx is None:
                 return None  # maybe processing error.
-            txinput.amount = int(fine_rawtx["vout"][txinput.index]["value"] * 1e8)
-            if "address" in fine_rawtx["vout"][txinput.index]["scriptPubKey"].keys():
-                txinput.address = fine_rawtx["vout"][txinput.index]["scriptPubKey"][
-                    "address"
-                ]
-            elif (
-                "addresses" in fine_rawtx["vout"][txinput.index]["scriptPubKey"].keys()
-            ):
-                txinput.address = fine_rawtx["vout"][txinput.index]["scriptPubKey"][
-                    "addresses"
-                ][0]
+            txinput.amount = fine_rawtx.btclike_transaction.outputs[
+                txinput.index
+            ].amount
+            txinput.address = fine_rawtx.btclike_transaction.outputs[
+                txinput.index
+            ].address
 
         # Now we must calculate the total fee
         total_inputs = sum([a.amount for a in new_element.btclike_transaction.inputs])
@@ -124,6 +126,7 @@ class BitcoinMempool:
         self.future_blocks_min = kwargs.get("future_blocks_min") or 0
         self.future_blocks_max = kwargs.get("future_blocks_max") or 1
         self.full_transactions = kwargs.get("full_transactions") or True
+        self.db_connection_parameters = kwargs.get("db_connection_parameters")
         self.transactions = []
         self.in_mempool = []
         self.txos = []
@@ -153,7 +156,7 @@ class BitcoinMempool:
         # Certain nodes which are placed behind web servers or Cloudflare will
         # configure rate limits and return some HTML error page if we go over that.
         # Zpywallet is not designed to handle such content so we check for it first.
-        # If you are using the full node facilities, ou are recommended to connect
+        # If you are using the full node facilities, you are recommended to connect
         # to your own node and not to a public one, for this reason.
         try:
             j = response.json()
@@ -179,7 +182,6 @@ class BitcoinMempool:
         try:
             # Requests session is not needed for the full node but we can use it
             # for the other providers in the future.
-
             response = requests.post(
                 self.rpc_url,
                 auth=(
@@ -223,56 +225,48 @@ class BitcoinMempool:
         except Exception as e:
             raise NetworkException(f"Failed to make RPC Call: {str(e)}")
 
-    def _get_raw_mempool(self):
-        height = self._get_block_height()
-        h1, h2, h3, h4, h5 = [
-            a["result"]
-            for a in self._send_batch_rpc_request(
-                [
-                    ("getblockhash", [height]),
-                    ("getblockhash", [height - 1]),
-                    ("getblockhash", [height - 2]),
-                    ("getblockhash", [height - 3]),
-                    ("getblockhash", [height - 4]),
-                ]
-            )
-        ]
-        res = self._send_batch_rpc_request(
-            [
-                ("getblock", [h1, 1]),
-                ("getblock", [h2, 1]),
-                ("getblock", [h3, 1]),
-                ("getblock", [h4, 1]),
-                ("getblock", [h5, 1]),
-            ]
-        )
-        tx_counts = [len(r["result"]["tx"]) for r in res]
-        avg_tx_count = sum(tx_counts) // len(tx_counts)
+    # Internal methods are ran in a separate process which allows the OS
+    # to properly garbage collect the memory, as Python leaves a large footprint
+    # behind.
+    def _internal_mempool_fetch(self):
         res = self._send_rpc_request("getrawmempool", [True])
         sorted_transactions = transform_and_sort_transactions(res)
-        sorted_transactions = sorted_transactions[
-            avg_tx_count
-            * self.future_blocks_min : avg_tx_count
-            * self.future_blocks_max
-        ]
+        return [tx["txid"] for tx in sorted_transactions]
 
-        transaction_batches = [
-            sorted_transactions[i : i + self.max_batch]
-            for i in range(0, len(sorted_transactions), self.max_batch)
-        ]
+    def _internal_pass_1(self, transaction_batch):
+        sql_transaction_storage = SQLTransactionStorage(self.db_connection_parameters)
+        sql_transaction_storage.connect()
+        try:
+            # The first pass will be to delete the confirmed transactions inside the DB
+            # if applicable.
+            txids = transaction_batch
+            all_txids = sql_transaction_storage.all_txids()
+            for saved_txid in all_txids:
+                if saved_txid not in txids:
+                    sql_transaction_storage.delete_transaction(saved_txid)
 
-        for transaction_batch in transaction_batches:
+            sql_transaction_storage.wipeout_reftxos()
+            sql_transaction_storage.commit()
 
-            txids = [tx["txid"] for tx in transaction_batch]
+            # The second pass will be to create a copy of the mempool transactions
+            # without the ones we already have stored inside the list or DB.
+            new_txids = list(set(txids) - set(all_txids))
 
-            # We are going to replace the mempool transactions with the ones
-            # yielded by this function.
-            # First we are going to yield the ones that are already stored
-            # to save time.
-            for tx in self.transactions:
-                if tx.txid in txids:
-                    yield tx
+            new_txid_batches = [
+                [t for t in new_txids[i : i + self.max_batch]]
+                for i in range(0, len(new_txids), self.max_batch)
+            ]
+            return new_txid_batches
 
+        except Exception as e:
+            sql_transaction_storage.rollback()
+            raise e
+
+    def _internal_pass_2(self, transaction_batch):
+        sql_transaction_storage = SQLTransactionStorage(self.db_connection_parameters)
+        sql_transaction_storage.connect()
+        try:
+            txids = transaction_batch
             # Next we are going to yield new mempool transactions that we don't have
             # Confirmed mempool transactions are dropped by this method and the one above.
             txid_batches = [
@@ -296,8 +290,11 @@ class BitcoinMempool:
             # resolving txins.
             if not self.full_transactions:
                 for tx in temp_transactions:
-                    tx.total_fee = 0
-                    yield (tx)
+                    tx.total_fee = 0  # Because this is actually the (v)size
+                    sql_transaction_storage.store_transaction(tx)
+                    for i in range(len(tx.btclike_transaction.outputs)):
+                        sql_transaction_storage.store_txo0(tx, i)
+                sql_transaction_storage.commit()
                 return
 
             # Otherwise we have to get all of the input txids in one swoop so we can
@@ -306,27 +303,48 @@ class BitcoinMempool:
                 self.txos[i : i + self.max_workers]
                 for i in range(0, len(self.txos), self.max_workers)
             ]
-
             with ThreadPoolExecutor(max_workers=self.rps) as executor:
                 futures = [
                     executor.submit(self._postprocess_transaction, txes)
                     for txes in txid_batches
                 ]
-                self.raw_txos = {}
                 for future in futures:
-                    self.raw_txos.update(future.result())
+                    results = future.result()
+                    for txid, result in results.items():
+                        try:
+                            sql_transaction_storage.store_txo1(txid, result)
+                        except DatabaseError:
+                            pass
 
             self.txos = []
-            new_transactions = []
             for i in range(len(temp_transactions) - 1, -1, -1):
                 temp_transaction = temp_transactions[i]
-                new_transactions.append(self._post_clean_tx(temp_transaction))
+                new_transaction = self._post_clean_tx(
+                    temp_transaction, sql_transaction_storage
+                )
+                if new_transaction is not None:
+                    sql_transaction_storage.store_transaction(new_transaction)
+                    for j in range(len(new_transaction.btclike_transaction.inputs)):
+                        sql_transaction_storage.store_txo0(
+                            new_transaction, j, output=False
+                        )
+                    for j in range(len(new_transaction.btclike_transaction.outputs)):
+                        sql_transaction_storage.store_txo0(new_transaction, j)
                 del temp_transactions[i]
+            sql_transaction_storage.wipeout_reftxos()
+            sql_transaction_storage.commit()
+        except Exception as e:
+            sql_transaction_storage.rollback()
+            raise e
 
-            self.raw_txos = {}
-            for tx in new_transactions:
-                if tx is not None:
-                    yield tx
+    def _get_raw_mempool(self):
+        with multiprocessing.Pool(1) as pool:
+            transaction_batches = pool.apply(self._internal_mempool_fetch)
+
+        new_txid_batches = self._internal_pass_1(transaction_batches)
+
+        for transaction_batch in new_txid_batches:
+            self._internal_pass_2(transaction_batch)
 
     def _postprocess_transaction(self, txes):
         res = self._send_batch_rpc_request(
@@ -336,7 +354,9 @@ class BitcoinMempool:
         input_transactions = {}
         for r in res:
             if type(r) is dict and "result" in r.keys():
-                input_transactions[r["result"]["txid"]] = r["result"]
+                input_transactions[r["result"]["txid"]] = self._clean_tx(
+                    r["result"]
+                ).SerializeToString()
 
         return input_transactions
 
@@ -364,5 +384,5 @@ class BitcoinMempool:
         return temp_transactions
 
     def get_raw_mempool(self):
-        self.transactions = [*self._get_raw_mempool()]
-        return self.transactions
+        self._get_raw_mempool()
+        return []
