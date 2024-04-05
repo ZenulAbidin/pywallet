@@ -265,10 +265,10 @@ class BTCLikeMempool:
     def _internal_pass_2(self, transaction_batch):
         sql_transaction_storage = SQLTransactionStorage(self.db_connection_parameters)
         sql_transaction_storage.connect()
-        temp_transactions = self.internal_pass_2a(
+        temp_transactions = self._internal_pass_2a(
             sql_transaction_storage, transaction_batch
         )
-        self.internal_pass_2b(sql_transaction_storage, temp_transactions)
+        self._internal_pass_2b(sql_transaction_storage, temp_transactions)
 
     def _internal_pass_2a(self, sql_transaction_storage, transaction_batch):
         try:
