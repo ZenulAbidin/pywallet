@@ -427,7 +427,7 @@ class SQLTransactionStorage:
                 rawtx = wallet_pb2.Transaction()
                 rawtx.ParseFromString(result[0])
                 return rawtx
-            except Exception as e:
+            except Exception:
                 return None
         except Exception as e:
             raise DatabaseError(f"Error storing txo: {e}")
@@ -446,7 +446,7 @@ class SQLTransactionStorage:
                 while result is not None:
                     yield [row[0] for row in result]
                     result = self.container.cursor.fetchmany(batch)
-            except Exception as e:
+            except Exception:
                 pass
         except Exception as e:
             raise DatabaseError(f"Error storing txo: {e}")
