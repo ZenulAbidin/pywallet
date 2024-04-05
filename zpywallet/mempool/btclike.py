@@ -265,6 +265,12 @@ class BTCLikeMempool:
     def _internal_pass_2(self, transaction_batch):
         sql_transaction_storage = SQLTransactionStorage(self.db_connection_parameters)
         sql_transaction_storage.connect()
+        temp_transactions = self.internal_pass_2a(
+            sql_transaction_storage, transaction_batch
+        )
+        self.internal_pass_2b(sql_transaction_storage, temp_transactions)
+
+    def _internal_pass_2a(self, sql_transaction_storage, transaction_batch):
         try:
             txids = transaction_batch
             # Next we are going to yield new mempool transactions that we don't have
@@ -284,7 +290,13 @@ class BTCLikeMempool:
                 temp_transactions = []
                 for future in futures:
                     temp_transactions.extend(future.result())
+        except Exception as e:
+            sql_transaction_storage.rollback()
+            raise
+        return temp_transactions
 
+    def _internal_pass_2b(self, sql_transaction_storage, temp_transactions):
+        try:
             # If we only need to know information about the outputs and not the inputs
             # (e.g. payment processing) then we can skip the very expensive process of
             # resolving txins.
@@ -317,20 +329,19 @@ class BTCLikeMempool:
                             pass
 
             self.txos = []
-            for i in range(len(temp_transactions) - 1, -1, -1):
+            for temp_transaction in temp_transactions:
                 temp_transaction = temp_transactions[i]
                 new_transaction = self._post_clean_tx(
                     temp_transaction, sql_transaction_storage
                 )
                 if new_transaction is not None:
                     sql_transaction_storage.store_transaction(new_transaction)
-                    for j in range(len(new_transaction.btclike_transaction.inputs)):
+                    for i in range(len(new_transaction.btclike_transaction.inputs)):
                         sql_transaction_storage.store_txo0(
-                            new_transaction, j, output=False
+                            new_transaction, i, output=False
                         )
-                    for j in range(len(new_transaction.btclike_transaction.outputs)):
-                        sql_transaction_storage.store_txo0(new_transaction, j)
-                del temp_transactions[i]
+                    for i in range(len(new_transaction.btclike_transaction.outputs)):
+                        sql_transaction_storage.store_txo0(new_transaction, i)
             sql_transaction_storage.wipeout_reftxos()
             sql_transaction_storage.commit()
         except Exception as e:
