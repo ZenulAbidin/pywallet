@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-# aes256.py
-# This file is part of AES-everywhere project (https://github.com/mervick/aes-everywhere)
 #
-# This is an implementation of the AES algorithm, specifically CBC mode,
-# with 256 bits key length and PKCS7 padding.
+# This is an implementation of the AES algorithm, specifically GCM-SIV mode,
+# as defined in RFC 5297, with 256 bits key length and PKCS7 padding.
+# Note that this is *not* AES-GCM-SIV!
 #
+#
+# Copyright (c) Ali Sherief 2023-2024 <ali@notatether.com>
 # Copyright Andrey Izman (c) 2018-2019 <izmanw@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -33,12 +34,14 @@ from Cryptodome.Cipher import AES
 
 BLOCK_SIZE = 16
 KEY_LEN = 32
-IV_LEN = 16
+NONCE_LEN = 12
 
 
-def hash_password_pbkdf2(password, iterations=600000, key_length=128):
-    # Hash the password using PBKDF2
-    return hashlib.pbkdf2_hmac("sha256", password, b"Salted__", iterations, key_length)
+def hash_password_pbkdf2(
+    password: bytes, salt: bytes, iterations=600000, key_length=128
+):
+    # Hash the password using PBKDF2 with OWASP-recommended rounds
+    return hashlib.pbkdf2_hmac("sha256", password + salt, salt, iterations, key_length)
 
 
 def encrypt(raw: bytes, passphrase: bytes) -> bytes:
@@ -53,9 +56,10 @@ def encrypt(raw: bytes, passphrase: bytes) -> bytes:
         bytes: The encrypted text
     """
     salt = Random.new().read(8)
-    key, iv = __derive_key_and_iv(passphrase, salt)
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    return base64.b64encode(b"Salted__" + salt + cipher.encrypt(__pkcs7_padding(raw)))
+    key, nonce = __derive_key_and_nonce(passphrase, salt)
+    cipher = AES.new(key, AES.MODE_SIV, nonce)
+    text, mac = cipher.encrypt_and_digest(__pkcs7_padding(raw))
+    return base64.b64encode(b"Salted__" + salt + mac + text)
 
 
 def encrypt_str(raw: str, passphrase: str) -> str:
@@ -80,9 +84,15 @@ def decrypt(enc: bytes, passphrase: bytes) -> bytes:
     if salted != b"Salted__":
         raise ValueError("Decryption failed")
     salt = ct[8:16]
-    key, iv = __derive_key_and_iv(passphrase, salt)
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    d = __pkcs7_trimming(cipher.decrypt(ct[16:]))
+    key, nonce = __derive_key_and_nonce(passphrase, salt)
+    cipher = AES.new(key, AES.MODE_SIV, nonce)
+
+    mac = ct[16:32]
+    text = ct[32:]
+
+    # Will throw ValueError if the authentication tag was tampered with
+    d = __pkcs7_trimming(cipher.decrypt_and_verify(text, mac))
+
     if len(d) == 0:
         raise ValueError("Decryption failed")
     return d
@@ -100,7 +110,6 @@ def __pkcs7_padding(s):
     # ord(number of missing characters).
     #
     # See: http://www.di-mgt.com.au/cryptopad.html
-
     s_len = len(s)
     s = s + (BLOCK_SIZE - s_len % BLOCK_SIZE) * bytes(
         chr(BLOCK_SIZE - s_len % BLOCK_SIZE), "utf-8"
@@ -113,10 +122,10 @@ def __pkcs7_trimming(s):
     return s[0 : -s[-1]]
 
 
-def __derive_key_and_iv(password, salt):
+def __derive_key_and_nonce(password, salt):
     d = d_i = b""
     enc_pass = password
-    while len(d) < KEY_LEN + IV_LEN:
-        d_i = hash_password_pbkdf2(d_i + enc_pass + salt)
+    while len(d) < KEY_LEN + NONCE_LEN:
+        d_i = hash_password_pbkdf2(d_i + enc_pass, salt)
         d += d_i
-    return d[:KEY_LEN], d[KEY_LEN : KEY_LEN + IV_LEN]
+    return d[:KEY_LEN], d[KEY_LEN : KEY_LEN + NONCE_LEN]
