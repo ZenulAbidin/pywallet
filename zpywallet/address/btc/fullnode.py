@@ -27,13 +27,13 @@ class BitcoinRPCClient:
         if "blocktime" in element.keys():
             new_element.timestamp = element["blocktime"]
 
-        isCoinbase = False
+        is_coinbase = False
         for vin in element["vin"]:
             txinput = new_element.btclike_transaction.inputs.add()
             if "prevout" in vin.keys():
-                isCoinbase = isCoinbase or vin["prevout"]["generated"]
+                is_coinbase = is_coinbase or vin["prevout"]["generated"]
                 is_mine = True
-                if not isCoinbase:
+                if not is_coinbase:
                     txinput.txid = vin["txid"]
                     txinput.index = vin["vout"]
                 txinput.amount = int(vin["value"] * 1e8)
@@ -67,7 +67,7 @@ class BitcoinRPCClient:
                         ][0]
                     is_mine = is_mine or address in self.addresses
             else:
-                isCoinbase = True
+                is_coinbase = True
 
         for vout in element["vout"]:
             txoutput = new_element.btclike_transaction.outputs.add()
@@ -79,7 +79,7 @@ class BitcoinRPCClient:
                 txoutput.address = vout["scriptPubKey"]["addresses"][0]
             is_mine = is_mine or txoutput.address in self.addresses
 
-        if not isCoinbase and (not self.fast_mode or (_recursive and is_mine)):
+        if not is_coinbase and (not self.fast_mode or (_recursive and is_mine)):
             # Now we must calculate the total fee
             total_inputs = sum(
                 [a.amount for a in new_element.btclike_transaction.inputs]
@@ -201,26 +201,31 @@ class BitcoinRPCClient:
         """
 
         # Transactions are generated in reverse order
+        all_outputs = {}
+        for transaction in self.transactions:
+            for i in range(len(transaction.btclike_transaction.outputs)):
+                all_outputs[(transaction.txid, i)] = (
+                    transaction.btclike_transaction.outputs[i]
+                )
+
+        for transaction in self.transactions:
+            for vin in transaction.btclike_transaction.inputs:
+                if (vin.txid, vin.index) in all_outputs:
+                    # Spent
+                    del all_outputs[(vin.txid, vin.index)]
+
         utxos = []
-        for i in range(len(self.transactions) - 1, -1, -1):
-            for utxo in [u for u in utxos]:
-                # Check if any utxo has been spent in this transaction
-                for vin in self.transactions[i].btcllike_transaction.inputs:
-                    if vin.spent or (
-                        vin.txid == utxo["txid"] and vin["index"] == utxo.index
-                    ):
-                        # Spent
-                        utxos.remove(utxo)
-            for out in self.transactions[i].btclike_transaction.outputs:
-                if out.address in self.addresses:
-                    utxo = wallet_pb2.UTXO()
-                    utxo.address = out.address
-                    utxo.txid = self.transactions[i].txid
-                    utxo.index = out.index
-                    utxo.amount = out.amount
-                    utxo.height = self.transactions[i].height
-                    utxo.confirmed = self.transactions[i].confirmed
-                    utxos.append(utxo)
+        for out in reversed(all_outputs.values()):
+            if out.address in self.addresses:
+                utxo = wallet_pb2.UTXO()
+                utxo.address = out.address
+                utxo.txid = self.transactions[i].txid
+                utxo.index = out.index
+                utxo.amount = out.amount
+                utxo.height = self.transactions[i].height
+                utxo.confirmed = self.transactions[i].confirmed
+                utxos.append(utxo)
+
         return utxos
 
     def get_transaction_history(self):

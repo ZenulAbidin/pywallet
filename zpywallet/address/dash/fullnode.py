@@ -182,26 +182,30 @@ class DashRPCClient:
         """
 
         # Transactions are generated in reverse order
+        all_outputs = {}
+        for transaction in self.transactions:
+            for i in range(len(transaction.btclike_transaction.outputs)):
+                all_outputs[(transaction.txid, i)] = (
+                    transaction.btclike_transaction.outputs[i]
+                )
+
+        for transaction in self.transactions:
+            for vin in transaction.btclike_transaction.inputs:
+                if (vin.txid, vin.index) in all_outputs:
+                    # Spent
+                    del all_outputs[(vin.txid, vin.index)]
+
         utxos = []
-        for i in range(len(self.transactions) - 1, -1, -1):
-            for utxo in [u for u in utxos]:
-                # Check if any utxo has been spent in this transaction
-                for vin in self.transactions[i].btcllike_transaction.inputs:
-                    if vin.spent or (
-                        vin.txid == utxo["txid"] and vin["index"] == utxo.index
-                    ):
-                        # Spent
-                        utxos.remove(utxo)
-            for out in self.transactions[i].btclike_transaction.outputs:
-                if out.address in self.addresses:
-                    utxo = wallet_pb2.UTXO()
-                    utxo.address = out.address
-                    utxo.txid = self.transactions[i].txid
-                    utxo.index = out.index
-                    utxo.amount = out.amount
-                    utxo.height = self.transactions[i].height
-                    utxo.confirmed = self.transactions[i].confirmed
-                    utxos.append(utxo)
+        for out in reversed(all_outputs.values()):
+            if out.address in self.addresses:
+                utxo = wallet_pb2.UTXO()
+                utxo.address = out.address
+                utxo.txid = self.transactions[i].txid
+                utxo.index = out.index
+                utxo.amount = out.amount
+                utxo.height = self.transactions[i].height
+                utxo.confirmed = self.transactions[i].confirmed
+                utxos.append(utxo)
         return utxos
 
     def get_transaction_history(self):

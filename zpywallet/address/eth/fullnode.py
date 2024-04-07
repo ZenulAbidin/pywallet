@@ -33,7 +33,7 @@ class EthereumWeb3Client:
         new_element.ethlike_transaction.txto = element["to"]
         new_element.ethlike_transaction.amount = int(element["value"])
 
-        new_element.timestamp = hex(block["timestamp"], 16)
+        new_element.timestamp = int(block["timestamp"], 16)
         new_element.ethlike_transaction.data = element["input"]
 
         gas = int(element["gas"], 16)
