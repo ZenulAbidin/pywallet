@@ -1,20 +1,19 @@
 from urllib.parse import urlparse
-import psycopg2
-import mysql.connector
-import sqlite3
 import json
 from copy import deepcopy
 from ..generated import wallet_pb2
 
 
 class DatabaseConnection:
-    def __init__(self, connection_params):
+    def __init__(self, dbmodule, connection_params):
+        self.dbmodule = dbmodule
         self.connection_params = connection_params
         self.connection = None
         self.cursor = None
 
     def connect(self):
-        raise NotImplementedError("Subclasses must implement connect method")
+        self.connection = self.dbmodule.connect(**self.connection_params)
+        self.cursor = self.connection.cursor()
 
     def disconnect(self):
         if self.connection:
@@ -56,25 +55,22 @@ class DatabaseConnection:
 class PostgreSQLConnection(DatabaseConnection):
     BLOB_TYPE = "BYTEA"
 
-    def connect(self):
-        self.connection = psycopg2.connect(**self.connection_params)
-        self.cursor = self.connection.cursor()
+    def __init__(self, psycopg2, connection_params):
+        super().__init__(psycopg2, connection_params)
 
 
 class MySQLConnection(DatabaseConnection):
     BLOB_TYPE = "BLOB"
 
-    def connect(self):
-        self.connection = mysql.connector.connect(**self.connection_params)
-        self.cursor = self.connection.cursor()
+    def __init__(self, mysql_connector, connection_params):
+        super().__init__(mysql_connector, connection_params)
 
 
 class SQLiteConnection(DatabaseConnection):
     BLOB_TYPE = "BLOB"
 
-    def connect(self):
-        self.connection = sqlite3.connect(**self.connection_params)
-        self.cursor = self.connection.cursor()
+    def __init__(self, sqlite3, connection_params):
+        super().__init__(sqlite3, connection_params)
 
 
 # This class does not support transactions. That is because the python DB-API
@@ -83,8 +79,6 @@ class SQLTransactionStorage:
     def __init__(self, connection_params):
         self.connection_params = connection_params
         self.container = None
-        self.cache = []
-        self.max_cached = 100
 
     def connect(self):
         if not self.container:
@@ -92,11 +86,17 @@ class SQLTransactionStorage:
             params = deepcopy(self.connection_params)
             del params["protocol"]
             if protocol == "postgresql":
-                self.container = PostgreSQLConnection(params)
+                import psycopg2
+
+                self.container = PostgreSQLConnection(psycopg2, params)
             elif protocol == "mysql":
-                self.container = MySQLConnection(params)
+                import mysql.connector
+
+                self.container = MySQLConnection(mysql.connector, params)
             elif protocol == "sqlite":
-                self.container = SQLiteConnection(params)
+                import sqlite3
+
+                self.container = SQLiteConnection(sqlite3, params)
             else:
                 raise ValueError("Unsupported protocol")
 
@@ -251,7 +251,6 @@ class SQLTransactionStorage:
                 "",  # f"'{b64encode(transaction.ethlike_transaction.data).decode("utf-8")}'"
             )
             self.container.cursor.execute(sql, data)
-            self.update_cache(transaction)
         except Exception as e:
             raise DatabaseError(f"Error storing transaction: {e}")
 
@@ -345,7 +344,7 @@ class SQLTransactionStorage:
             self.container.cursor.execute(sql, (txid,))
             result = self.container.cursor.fetchone()
             if result:
-                return self._sql_to_protobuf(result)
+                return self._sql_to_protobuf(result)  # FIXME wrong parsing code
             else:
                 return None
         except Exception as e:
@@ -512,14 +511,6 @@ class SQLTransactionStorage:
             "spent": txo_data.spent,
         }
         return json.dumps(json_data)
-
-    def update_cache(self, transaction):
-        if len(self.cache) >= self.max_cached:
-            self.cache.pop(0)
-        self.cache.append(transaction)
-
-    def empty_cache(self):
-        self.cache = []
 
     def _sql_to_protobuf(self, row):
         # Parse transaction data from SQL result
