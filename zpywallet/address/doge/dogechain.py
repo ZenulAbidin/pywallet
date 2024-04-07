@@ -1,7 +1,5 @@
 import requests
 import time
-import websocket
-import json
 
 from functools import reduce
 
@@ -178,31 +176,32 @@ class DogeChainAddress:
                 cannot be retrieved.
         """
 
-        # Dogechain gives us the block height through a web socket
-        # This only works because the block mining for Dogecoin is very fast.
-        uri = "wss://ws.dogechain.info/inv"
+        base_url = "https://dogechain.info/api/v1/block/"
         for attempt in range(3, -1, -1):
             if attempt == 0:
                 raise NetworkException("Network request failure")
+
             try:
-                ws = websocket.create_connection(uri)
-                message = {"op": "ping_block"}
-                ws.send(json.dumps(message))
+                best_block_hash_response = requests.get(base_url + "besthash")
+                best_block_hash_data = best_block_hash_response.json()
 
-                # Ignore the pong response
-                ws.recv()
-                # And get the real response
-                response = json.loads(ws.recv())
+                if best_block_hash_data["success"] == 1:
+                    best_block_hash = best_block_hash_data["hash"]
+                else:
+                    continue
+
+                # Get block information using the best block hash
+                block_info_response = requests.get(base_url + best_block_hash)
+                block_info_data = block_info_response.json()
+
+                if block_info_data["success"] == 1:
+                    break
+                else:
+                    continue
             except requests.RequestException:
-                pass
-            finally:
-                try:
-                    ws.close()
-                except Exception:
-                    pass
-                break
+                continue
 
-        self.height = response["x"]["height"]
+        self.height = block_info_data["block"]["height"]
         return self.height
 
     def get_transaction_history(self):
