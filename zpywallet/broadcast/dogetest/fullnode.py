@@ -18,10 +18,11 @@ async def broadcast_transaction_dogetest_full_node(raw_transaction_hex, **kwargs
     user = kwargs.get("user")
     password = kwargs.get("password")
     url = kwargs.get("url")
+    protocol = kwargs.get("protocol") or "http"
     if user and password:
-        rpc_url = f"http://{user}:{password}@{url}"
+        rpc_url = f"{protocol}://{user}:{password}@{url}"
     else:
-        rpc_url = url
+        rpc_url = f"{protocol}://{url}"
 
     payload = {
         "jsonrpc": "2.0",
