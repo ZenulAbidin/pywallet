@@ -20,3 +20,4 @@ Icon
 docs/build
 docs/source/zpywallet*.rst
 docs/source/modules.rst
+coverage.xml
