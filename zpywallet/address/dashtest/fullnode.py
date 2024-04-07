@@ -1,4 +1,4 @@
-import random
+from Cryptodome import Random
 import requests
 
 from ...errors import NetworkException
@@ -14,65 +14,54 @@ class DashRPCClient:
     Requires a node running with -txindex.
     """
 
+    def _get_address(self, item):
+        if "address" in item["scriptPubKey"].keys():
+            return item["scriptPubKey"]["address"]
+        elif "addresses" in item["scriptPubKey"].keys():
+            return item["scriptPubKey"]["addresses"][0]
+
     # Not static because we need to make calls to fetch input transactions.
     def _clean_tx(self, element, block_height, is_mine=False, _recursive=False):
         new_element = wallet_pb2.Transaction()
         new_element.txid = element["txid"]
-        if block_height:
-            new_element.confirmed = True
-            new_element.height = block_height
-        else:
-            new_element.confirmed = False
+        new_element.confirmed = bool(block_height)
+        new_element.height = block_height or None
+        new_element.timestamp = element.get("blocktime")
 
-        if "blocktime" in element.keys():
-            new_element.timestamp = element["blocktime"]
-
-        isCoinbase = False
+        is_coinbase = False
         for vin in element["vin"]:
             txinput = new_element.btclike_transaction.inputs.add()
-            if "txid" in vin.keys():
-                # If there is a vin txid then it's not e.g. a coinbase transaction input
-                txinput.txid = vin["txid"]
-                txinput.index = vin["vout"]
-                # To fill in the amount, we have to get the other transaction id
-                # But only if we're not parsing a coinbase transaction
-                if txinput.txid in [t.txid for t in self.txset] or is_mine:
-                    res = self._send_rpc_request(
-                        "getrawtransaction", params=[vin["txid"], True]
-                    )
-                    fine_rawtx = res["result"]
-                    txinput.amount = int(
-                        fine_rawtx["vout"][txinput.index]["value"] * 1e8
-                    )
-                    if (
-                        "address"
-                        in fine_rawtx["vout"][txinput.index]["scriptPubKey"].keys()
-                    ):
-                        address = fine_rawtx["vout"][txinput.index]["scriptPubKey"][
-                            "address"
-                        ]
-                    elif (
-                        "addresses"
-                        in fine_rawtx["vout"][txinput.index]["scriptPubKey"].keys()
-                    ):
-                        address = fine_rawtx["vout"][txinput.index]["scriptPubKey"][
-                            "addresses"
-                        ][0]
-                    is_mine = is_mine or address in self.addresses
-            else:
-                isCoinbase = True
+            if "txid" not in vin.keys():
+                is_coinbase = True
+                break  # There will never be more than one coinbase input
+
+            # If there is a vin txid then it's not e.g. a coinbase transaction input
+            txinput.txid = vin["txid"]
+            txinput.index = vin["vout"]
+            # To fill in the amount, we have to get the other transaction id
+            # But only if we're not parsing a coinbase transaction
+            # TODO this has to use a database.
+            if txinput.txid in [t.txid for t in self.txset] or is_mine:
+                res = self._send_rpc_request(
+                    "getrawtransaction", params=[vin["txid"], True]
+                )
+                fine_rawtx = res["result"]
+                txinput.amount = int(fine_rawtx["vout"][txinput.index]["value"] * 1e8)
+                script_pubkey = fine_rawtx["vout"][txinput.index]["scriptPubKey"]
+                address = self._get_address(script_pubkey)
+                is_mine = is_mine or address in self.addresses
 
         for vout in element["vout"]:
             txoutput = new_element.btclike_transaction.outputs.add()
             txoutput.amount = int(vout["value"] * 1e8)
             txoutput.index = vout["n"]
-            if "address" in vout["scriptPubKey"].keys():
-                txoutput.address = vout["scriptPubKey"]["address"]
-            elif "addresses" in vout["scriptPubKey"].keys():
-                txoutput.address = vout["scriptPubKey"]["addresses"][0]
+            txoutput.address = self._get_address(vout)
             is_mine = is_mine or txoutput.address in self.addresses
 
-        if not isCoinbase and (not self.fast_mode or (_recursive and is_mine)):
+        if not is_mine:
+            return None
+
+        if not is_coinbase and ((not self.fast_mode) or _recursive):
             # Now we must calculate the total fee
             total_inputs = sum(
                 [a.amount for a in new_element.btclike_transaction.inputs]
@@ -88,14 +77,11 @@ class DashRPCClient:
             )
         new_element.fee_metric = wallet_pb2.VBYTE
 
-        if is_mine:
-            if not _recursive:
-                new_element = self._clean_tx(
-                    element, block_height, is_mine=True, _recursive=True
-                )
-                self.txset.append(new_element)
-        else:
-            return None
+        if not _recursive:
+            new_element = self._clean_tx(
+                element, block_height, is_mine=True, _recursive=True
+            )
+            self.txset.append(new_element)
         return new_element
 
     def __init__(self, addresses, transactions=None, **kwargs):
@@ -119,12 +105,12 @@ class DashRPCClient:
             except NetworkException:
                 self.min_height = 0
 
-    def _send_rpc_request(self, method, params=None, as_wallet=False):
+    def _send_rpc_request(self, method, params=None):
         payload = {
             "method": method,
             "params": params or [],
             "jsonrpc": "2.0",
-            "id": random.randint(1, 999999),
+            "id": int.from_bytes(Random.new().read(4), byteorder="big"),
         }
         try:
             response = requests.post(
@@ -258,7 +244,6 @@ class DashRPCClient:
                     else:
                         found_it = True
 
-                    # raw_transaction = self._send_rpc_request('getrawtransaction', params=[tx, True])['result']
                     raw_transaction = tx  # Verbosity=2 in bitcoin gives us the getrawtransaction output
                     parsed_transaction = self._clean_tx(raw_transaction, block_height)
                     if parsed_transaction is not None:

@@ -1,4 +1,4 @@
-import random
+from Cryptodome import Random
 import requests
 from ...errors import NetworkException
 
@@ -25,7 +25,7 @@ async def broadcast_transaction_dogetest_full_node(raw_transaction_hex, **kwargs
 
     payload = {
         "jsonrpc": "2.0",
-        "id": f"{random.randint(1, 0xFFFFFFFF)}",
+        "id": f"{int.from_bytes(Random.new().read(4), byteorder='big')}",
         "method": "sendrawtransaction",
         "params": [raw_transaction_hex],
     }

@@ -1,6 +1,6 @@
 import json
 import multiprocessing
-import random
+from Cryptodome import Random
 import requests
 from concurrent.futures import ThreadPoolExecutor
 
@@ -137,7 +137,7 @@ class BTCLikeMempool:
             "method": method,
             "params": params or [],
             "jsonrpc": "2.0",
-            "id": random.randint(1, 999999),
+            "id": int.from_bytes(Random.new().read(4), byteorder="big"),
         }
         try:
             response = requests.post(
@@ -175,7 +175,7 @@ class BTCLikeMempool:
                     "method": method,
                     "params": params or [],
                     "jsonrpc": "2.0",
-                    "id": random.randint(1, 999999),
+                    "id": int.from_bytes(Random.new().read(4), byteorder="big"),
                 }
             )
 

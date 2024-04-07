@@ -1,4 +1,4 @@
-import random
+from Cryptodome import Random
 import requests
 
 from ...errors import NetworkException
@@ -37,37 +37,35 @@ class BitcoinRPCClient:
                     txinput.txid = vin["txid"]
                     txinput.index = vin["vout"]
                 txinput.amount = int(vin["value"] * 1e8)
-            elif "txid" in vin.keys():
-                # If there is a vin txid then it's not e.g. a coinbase transaction input
-                txinput.txid = vin["txid"]
-                txinput.index = vin["vout"]
-                # To fill in the amount, we have to get the other transaction id
-                # But only if we're not parsing a coinbase transaction
-                if txinput.txid in [t.txid for t in self.txset] or is_mine:
-                    res = self._send_rpc_request(
-                        "getrawtransaction", params=[vin["txid"], True]
-                    )
-                    fine_rawtx = res["result"]
-                    txinput.amount = int(
-                        fine_rawtx["vout"][txinput.index]["value"] * 1e8
-                    )
-                    if (
-                        "address"
-                        in fine_rawtx["vout"][txinput.index]["scriptPubKey"].keys()
-                    ):
-                        address = fine_rawtx["vout"][txinput.index]["scriptPubKey"][
-                            "address"
-                        ]
-                    elif (
-                        "addresses"
-                        in fine_rawtx["vout"][txinput.index]["scriptPubKey"].keys()
-                    ):
-                        address = fine_rawtx["vout"][txinput.index]["scriptPubKey"][
-                            "addresses"
-                        ][0]
-                    is_mine = is_mine or address in self.addresses
-            else:
+            elif "txid" not in vin.keys():
                 is_coinbase = True
+                continue
+            # If there is a vin txid then it's not e.g. a coinbase transaction input
+            txinput.txid = vin["txid"]
+            txinput.index = vin["vout"]
+            # To fill in the amount, we have to get the other transaction id
+            # But only if we're not parsing a coinbase transaction
+            if txinput.txid in [t.txid for t in self.txset] or is_mine:
+                res = self._send_rpc_request(
+                    "getrawtransaction", params=[vin["txid"], True]
+                )
+                fine_rawtx = res["result"]
+                txinput.amount = int(fine_rawtx["vout"][txinput.index]["value"] * 1e8)
+                if (
+                    "address"
+                    in fine_rawtx["vout"][txinput.index]["scriptPubKey"].keys()
+                ):
+                    address = fine_rawtx["vout"][txinput.index]["scriptPubKey"][
+                        "address"
+                    ]
+                elif (
+                    "addresses"
+                    in fine_rawtx["vout"][txinput.index]["scriptPubKey"].keys()
+                ):
+                    address = fine_rawtx["vout"][txinput.index]["scriptPubKey"][
+                        "addresses"
+                    ][0]
+                is_mine = is_mine or address in self.addresses
 
         for vout in element["vout"]:
             txoutput = new_element.btclike_transaction.outputs.add()
@@ -126,12 +124,12 @@ class BitcoinRPCClient:
             except NetworkException:
                 self.min_height = 0
 
-    def _send_rpc_request(self, method, params=None, as_wallet=False):
+    def _send_rpc_request(self, method, params=None):
         payload = {
             "method": method,
             "params": params or [],
             "jsonrpc": "2.0",
-            "id": random.randint(1, 999999),
+            "id": int.from_bytes(Random.new().read(4), byteorder="big"),
         }
         try:
             response = requests.post(
