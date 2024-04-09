@@ -136,36 +136,46 @@ class Mnemonic(object):
             )
         # Look up all the words in the list and construct the
         # concatenation of the original entropy and the checksum.
-        concatLenBits = len(words) * 11
-        concatBits = [False] * concatLenBits
+        concat_len_bits = len(words) * 11
+        concat_bits = [False] * concat_len_bits
         wordindex = 0
+        missing_word = next((word for word in words if word not in self.wordlist), None)
+        if missing_word is not None:
+            raise LookupError('Unable to find "%s" in word list.' % missing_word)
         for word in words:
             # Find the words index in the wordlist
             ndx = self.wordlist.index(word)
-            if ndx < 0:
-                raise LookupError('Unable to find "%s" in word list.' % word)
             # Set the next 11 bits to the value of the index.
-            for ii in range(11):
-                concatBits[(wordindex * 11) + ii] = (ndx & (1 << (10 - ii))) != 0
+            concat_bits[(wordindex * 11) + 0] = (ndx & 0x400) != 0
+            concat_bits[(wordindex * 11) + 1] = (ndx & 0x200) != 0
+            concat_bits[(wordindex * 11) + 2] = (ndx & 0x100) != 0
+            concat_bits[(wordindex * 11) + 3] = (ndx & 0x80) != 0
+            concat_bits[(wordindex * 11) + 4] = (ndx & 0x40) != 0
+            concat_bits[(wordindex * 11) + 5] = (ndx & 0x20) != 0
+            concat_bits[(wordindex * 11) + 6] = (ndx & 0x10) != 0
+            concat_bits[(wordindex * 11) + 7] = (ndx & 0x8) != 0
+            concat_bits[(wordindex * 11) + 8] = (ndx & 0x4) != 0
+            concat_bits[(wordindex * 11) + 9] = (ndx & 0x2) != 0
+            concat_bits[(wordindex * 11) + 10] = (ndx & 0x1) != 0
             wordindex += 1
-        checksumLengthBits = concatLenBits // 33
-        entropyLengthBits = concatLenBits - checksumLengthBits
+        checksum_length_bits = concat_len_bits // 33
+        entropy_length_bits = concat_len_bits - checksum_length_bits
         # Extract original entropy as bytes.
-        entropy = bytearray(entropyLengthBits // 8)
+        entropy = bytearray(entropy_length_bits // 8)
         for ii in range(len(entropy)):
             for jj in range(8):
-                if concatBits[(ii * 8) + jj]:
+                if concat_bits[(ii * 8) + jj]:
                     entropy[ii] |= 1 << (7 - jj)
         # Take the digest of the entropy.
-        hashBytes = hashlib.sha256(entropy).digest()
-        hashBits = list(
+        hash_bytes = hashlib.sha256(entropy).digest()
+        hash_bits = list(
             itertools.chain.from_iterable(
-                [c & (1 << (7 - i)) != 0 for i in range(8)] for c in hashBytes
+                [c & (1 << (7 - i)) != 0 for i in range(8)] for c in hash_bytes
             )
         )
         # Check all the checksum bits.
-        for i in range(checksumLengthBits):
-            if concatBits[entropyLengthBits + i] != hashBits[i]:
+        for i in range(checksum_length_bits):
+            if concat_bits[entropy_length_bits + i] != hash_bits[i]:
                 raise ValueError("Failed checksum.")
         return entropy
 
