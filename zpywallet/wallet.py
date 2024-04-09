@@ -163,112 +163,87 @@ class Wallet:
         blockcypher_tokens = kwargs.get("blockcypher_tokens")
 
         self._network = network
-        if not derivation_path:
-            derivation_path = (
-                network.BIP32_SEGWIT_PATH
-                if network.BIP32_SEGWIT_PATH
-                else network.BIP32_PATH
+        derivation_path = derivation_path or (
+            network.BIP32_SEGWIT_PATH or network.BIP32_PATH
+        )
+
+        seed_phrase = seed_phrase or generate_mnemonic()
+
+        if not _with_wallet:
+            return
+
+        self.wallet = wallet_pb2.Wallet()
+        self.wallet.SerializeToString()
+        self.wallet.receive_gap_limit = receive_gap_limit
+        self.wallet.change_gap_limit = change_gap_limit
+        self.wallet.height = 0
+
+        self.wallet.derivation_path = derivation_path
+        if not isinstance(derivation_path, str):
+            raise ValueError("Invalid derivation path")
+
+        # Generate addresses and keys
+        hdwallet = HDWallet.from_mnemonic(mnemonic=seed_phrase, network=network)
+
+        # We do not save the password. Instead, we are going to
+        # generate a base64-encrypted serialization of this wallet file
+        # using the password.
+        self.wallet.encrypted_seed_phrase = encrypt_str(
+            seed_phrase, password
+        )  # AES-256-SIV encryption
+
+        # Set properties
+        network_map = {
+            BitcoinSegwitMainNet: wallet_pb2.BITCOIN_SEGWIT_MAINNET,
+            BitcoinMainNet: wallet_pb2.BITCOIN_MAINNET,
+            BitcoinSegwitTestNet: wallet_pb2.BITCOIN_SEGWIT_TESTNET,
+            BitcoinTestNet: wallet_pb2.BITCOIN_TESTNET,
+            LitecoinSegwitMainNet: wallet_pb2.LITECOIN_SEGWIT_MAINNET,
+            LitecoinMainNet: wallet_pb2.LITECOIN_MAINNET,
+            LitecoinBTCSegwitMainNet: wallet_pb2.LITECOIN_BTC_SEGWIT_MAINNET,
+            LitecoinBTCMainNet: wallet_pb2.LITECOIN_BTC_MAINNET,
+            LitecoinSegwitTestNet: wallet_pb2.LITECOIN_SEGWIT_TESTNET,
+            LitecoinTestNet: wallet_pb2.LITECOIN_TESTNET,
+            EthereumMainNet: wallet_pb2.ETHEREUM_MAINNET,
+            DogecoinMainNet: wallet_pb2.DOGECOIN_MAINNET,
+            DogecoinBTCMainNet: wallet_pb2.DOGECOIN_BTC_MAINNET,
+            DogecoinTestNet: wallet_pb2.DOGECOIN_TESTNET,
+            DashMainNet: wallet_pb2.DASH_MAINNET,
+            DashInvertedMainNet: wallet_pb2.DASH_INVERTED_MAINNET,
+            DashBTCMainNet: wallet_pb2.DASH_BTC_MAINNET,
+            DashTestNet: wallet_pb2.DASH_TESTNET,
+            DashInvertedTestNet: wallet_pb2.DASH_INVERTED_TESTNET,
+            BitcoinCashMainNet: wallet_pb2.BITCOIN_CASH_MAINNET,
+            BlockcypherTestNet: wallet_pb2.BLOCKCYPHER_TESTNET,
+        }
+
+        self.wallet.network = network_map.get(network)
+        if self.wallet.network is None:
+            raise ValueError("Unknown network")
+
+        self.wallet.fullnode_endpoints.extend(fullnode_endpoints or [])
+        self.wallet.esplora_endpoints.extend(esplora_endpoints or [])
+        self.wallet.blockcypher_tokens.extend(blockcypher_tokens or [])
+
+        self.encrypted_private_keys = []
+        for i in range(0, receive_gap_limit):
+            privkey = hdwallet.get_child_for_path(
+                f"{derivation_path}/0/{i}"
+            ).private_key
+            pubkey = privkey.public_key
+
+            # Add an Address
+            address = self.wallet.addresses.add()
+            address.address = pubkey.address()
+            address.pubkey = pubkey.to_hex()
+            self.encrypted_private_keys.append(
+                privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
             )
+        self.encrypted_private_keys = encrypt_str(
+            json.dumps(self.encrypted_private_keys), password
+        )
 
-        if not seed_phrase:
-            seed_phrase = generate_mnemonic()
-
-        if _with_wallet:
-            self.wallet = wallet_pb2.Wallet()
-            self.wallet.SerializeToString()
-            self.wallet.receive_gap_limit = receive_gap_limit
-            self.wallet.change_gap_limit = change_gap_limit
-            self.wallet.height = 0
-
-            if type(derivation_path) is str:
-                self.wallet.derivation_path = derivation_path
-            else:
-                raise ValueError("Invalid derivation path")
-
-            # Generate addresses and keys
-            hdwallet = HDWallet.from_mnemonic(mnemonic=seed_phrase, network=network)
-
-            # We do not save the password. Instead, we are going to
-            # generate a base64-encrypted serialization of this wallet file
-            # using the password.
-            self.wallet.encrypted_seed_phrase = encrypt_str(
-                seed_phrase, password
-            )  # AES-256-CBC encryption
-
-            # Set properties
-            if network == BitcoinSegwitMainNet:
-                self.wallet.network = wallet_pb2.BITCOIN_SEGWIT_MAINNET
-            elif network == BitcoinMainNet:
-                self.wallet.network = wallet_pb2.BITCOIN_MAINNET
-            elif network == BitcoinSegwitTestNet:
-                self.wallet.network = wallet_pb2.BITCOIN_SEGWIT_TESTNET
-            elif network == BitcoinTestNet:
-                self.wallet.network = wallet_pb2.BITCOIN_TESTNET
-            elif network == LitecoinSegwitMainNet:
-                self.wallet.network = wallet_pb2.LITECOIN_SEGWIT_MAINNET
-            elif network == LitecoinMainNet:
-                self.wallet.network = wallet_pb2.LITECOIN_MAINNET
-            elif network == LitecoinBTCSegwitMainNet:
-                self.wallet.network = wallet_pb2.LITECOIN_BTC_SEGWIT_MAINNET
-            elif network == LitecoinBTCMainNet:
-                self.wallet.network = wallet_pb2.LITECOIN_BTC_MAINNET
-            elif network == LitecoinSegwitTestNet:
-                self.wallet.network = wallet_pb2.LITECOIN_SEGWIT_TESTNET
-            elif network == LitecoinTestNet:
-                self.wallet.network = wallet_pb2.LITECOIN_TESTNET
-            elif network == EthereumMainNet:
-                self.wallet.network = wallet_pb2.ETHEREUM_MAINNET
-            elif network == DogecoinMainNet:
-                self.wallet.network = wallet_pb2.DOGECOIN_MAINNET
-            elif network == DogecoinBTCMainNet:
-                self.wallet.network = wallet_pb2.DOGECOIN_BTC_MAINNET
-            elif network == DogecoinTestNet:
-                self.wallet.network = wallet_pb2.DOGECOIN_TESTNET
-            elif network == DashMainNet:
-                self.wallet.network = wallet_pb2.DASH_MAINNET
-            elif network == DashInvertedMainNet:
-                self.wallet.network = wallet_pb2.DASH_INVERTED_MAINNET
-            elif network == DashBTCMainNet:
-                self.wallet.network = wallet_pb2.DASH_BTC_MAINNET
-            elif network == DashTestNet:
-                self.wallet.network = wallet_pb2.DASH_TESTNET
-            elif network == DashInvertedTestNet:
-                self.wallet.network = wallet_pb2.DASH_INVERTED_TESTNET
-            elif network == BitcoinCashMainNet:
-                self.wallet.network = wallet_pb2.BITCOIN_CASH_MAINNET
-            elif network == BlockcypherTestNet:
-                self.wallet.network = wallet_pb2.BLOCKCYPHER_TESTNET
-            else:
-                raise ValueError("Unkown network")
-
-            if fullnode_endpoints is not None:
-                self.wallet.fullnode_endpoints.extend(fullnode_endpoints)
-
-            if esplora_endpoints is not None:
-                self.wallet.esplora_endpoints.extend(esplora_endpoints)
-
-            if blockcypher_tokens is not None:
-                self.wallet.blockcypher_tokens.extend(blockcypher_tokens)
-
-            self.encrypted_private_keys = []
-            for i in range(0, receive_gap_limit):
-                privkey = hdwallet.get_child_for_path(
-                    f"{derivation_path}/0/{i}"
-                ).private_key
-                pubkey = privkey.public_key
-
-                # Add an Address
-                address = self.wallet.addresses.add()
-                address.address = pubkey.address()
-                address.pubkey = pubkey.to_hex()
-                self.encrypted_private_keys.append(
-                    privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
-                )
-            self.encrypted_private_keys = encrypt_str(
-                json.dumps(self.encrypted_private_keys), password
-            )
-
-            self._setup_client(max_cycles=max_cycles)
+        self._setup_client(max_cycles=max_cycles)
 
     @classmethod
     def deserialize(cls, data: bytes, password, max_cycles=100):
@@ -291,50 +266,33 @@ class Wallet:
         wallet.ParseFromString(data)
         seed_phrase = decrypt_str(wallet.encrypted_seed_phrase, password)
 
-        if wallet.network == wallet_pb2.BITCOIN_SEGWIT_MAINNET:
-            network = BitcoinSegwitMainNet
-        elif wallet.network == wallet_pb2.BITCOIN_MAINNET:
-            network = BitcoinMainNet
-        elif wallet.network == wallet_pb2.BITCOIN_SEGWIT_TESTNET:
-            network = BitcoinSegwitTestNet
-        elif wallet.network == wallet_pb2.BITCOIN_TESTNET:
-            network = BitcoinTestNet
-        elif wallet.network == wallet_pb2.LITECOIN_SEGWIT_MAINNET:
-            network = LitecoinSegwitMainNet
-        elif wallet.network == wallet_pb2.LITECOIN_MAINNET:
-            network = LitecoinMainNet
-        elif wallet.network == wallet_pb2.LITECOIN_BTC_SEGWIT_MAINNET:
-            network = LitecoinBTCSegwitMainNet
-        elif wallet.network == wallet_pb2.LITECOIN_BTC_MAINNET:
-            network = LitecoinBTCMainNet
-        elif wallet.network == wallet_pb2.LITECOIN_SEGWIT_TESTNET:
-            network = LitecoinSegwitTestNet
-        elif wallet.network == wallet_pb2.LITECOIN_TESTNET:
-            network = LitecoinTestNet
-        elif wallet.network == wallet_pb2.ETHEREUM_MAINNET:
-            network = EthereumMainNet
-        elif wallet.network == wallet_pb2.DOGECOIN_MAINNET:
-            network = DogecoinMainNet
-        elif wallet.network == wallet_pb2.DOGECOIN_BTC_MAINNET:
-            network = DogecoinBTCMainNet
-        elif wallet.network == wallet_pb2.DOGECOIN_TESTNET:
-            network = DogecoinTestNet
-        elif wallet.network == wallet_pb2.DASH_MAINNET:
-            network = DashMainNet
-        elif wallet.network == wallet_pb2.DASH_INVERTED_MAINNET:
-            network = DashInvertedMainNet
-        elif wallet.network == wallet_pb2.DASH_BTC_MAINNET:
-            network = DashBTCMainNet
-        elif wallet.network == wallet_pb2.DASH_TESTNET:
-            network = DashTestNet
-        elif wallet.network == wallet_pb2.DASH_INVERTED_TESTNET:
-            network = DashInvertedTestNet
-        elif wallet.network == wallet_pb2.BITCOIN_CASH_MAINNET:
-            network = BitcoinCashMainNet
-        elif wallet.network == wallet_pb2.BLOCKCYPHER_TESTNET:
-            network = BlockcypherTestNet
-        else:
-            raise ValueError("Unkown network")
+        network_map = {
+            wallet_pb2.BITCOIN_SEGWIT_MAINNET: BitcoinSegwitMainNet,
+            wallet_pb2.BITCOIN_MAINNET: BitcoinMainNet,
+            wallet_pb2.BITCOIN_SEGWIT_TESTNET: BitcoinSegwitTestNet,
+            wallet_pb2.BITCOIN_TESTNET: BitcoinTestNet,
+            wallet_pb2.LITECOIN_SEGWIT_MAINNET: LitecoinSegwitMainNet,
+            wallet_pb2.LITECOIN_MAINNET: LitecoinMainNet,
+            wallet_pb2.LITECOIN_BTC_SEGWIT_MAINNET: LitecoinBTCSegwitMainNet,
+            wallet_pb2.LITECOIN_BTC_MAINNET: LitecoinBTCMainNet,
+            wallet_pb2.LITECOIN_SEGWIT_TESTNET: LitecoinSegwitTestNet,
+            wallet_pb2.LITECOIN_TESTNET: LitecoinTestNet,
+            wallet_pb2.ETHEREUM_MAINNET: EthereumMainNet,
+            wallet_pb2.DOGECOIN_MAINNET: DogecoinMainNet,
+            wallet_pb2.DOGECOIN_BTC_MAINNET: DogecoinBTCMainNet,
+            wallet_pb2.DOGECOIN_TESTNET: DogecoinTestNet,
+            wallet_pb2.DASH_MAINNET: DashMainNet,
+            wallet_pb2.DASH_INVERTED_MAINNET: DashInvertedMainNet,
+            wallet_pb2.DASH_BTC_MAINNET: DashBTCMainNet,
+            wallet_pb2.DASH_TESTNET: DashTestNet,
+            wallet_pb2.DASH_INVERTED_TESTNET: DashInvertedTestNet,
+            wallet_pb2.BITCOIN_CASH_MAINNET: BitcoinCashMainNet,
+            wallet_pb2.BLOCKCYPHER_TESTNET: BlockcypherTestNet,
+        }
+
+        network = network_map.get(wallet.network)
+        if network is None:
+            raise ValueError("Unknown network")
 
         self = cls(network, seed_phrase, password, _with_wallet=False)
         self.wallet = wallet
@@ -615,7 +573,7 @@ class Wallet:
         watermark = int(math.ceil(math.log2(len(addresses)))) // 8
 
         while limit >= len(addresses):
-            limit = int.from_bytes(Random.new().read(watermark), byteorder='big')
+            limit = int.from_bytes(Random.new().read(watermark), byteorder="big")
         return addresses[limit]
 
     def private_keys(self, password):

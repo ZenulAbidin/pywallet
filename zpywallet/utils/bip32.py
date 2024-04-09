@@ -73,6 +73,8 @@ class HDWallet(object):
     https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
     """
 
+    bitcoin_seed = b"Bitcoin seed"
+
     def __init__(
         self,
         chain_code,
@@ -446,30 +448,52 @@ class HDWallet(object):
 
         See the spec in `deserialize` for more details.
         """
-        if private:
-            if not self.private_key:
-                raise WatchOnlyWalletError("Private key is not available")
-            elif segwit:
-                if not self.network.EXT_SEGWIT_SECRET_KEY:
-                    raise SegwitError("Segwit is not supported on this network")
-                network_version = long_to_hex(self.network.EXT_SEGWIT_SECRET_KEY, 8)
-            else:
-                if not self.network.EXT_SECRET_KEY:
-                    raise unsupported_feature_exception_factory(
+
+        if private and not self.private_key:
+            raise WatchOnlyWalletError("Private key is not available")
+
+        # Define the mapping for the conditions and corresponding actions
+        # Args are (use private key, use segwit)
+        condition_action_map = {
+            (True, True): (
+                lambda self: (
+                    lambda: self.network.EXT_SEGWIT_SECRET_KEY,
+                    lambda: SegwitError("Segwit is not supported on this network"),
+                )
+            ),
+            (True, False): (
+                lambda self: (
+                    lambda: self.network.EXT_SECRET_KEY,
+                    lambda: unsupported_feature_exception_factory(
                         self.network.NAME, "private key serialization"
-                    )
-                network_version = long_to_hex(self.network.EXT_SECRET_KEY, 8)
-        else:
-            if segwit:
-                if not self.network.EXT_SEGWIT_PUBLIC_KEY:
-                    raise SegwitError("Segwit is not supported on this network")
-                network_version = long_to_hex(self.network.EXT_SEGWIT_PUBLIC_KEY, 8)
-            else:
-                if not self.network.EXT_PUBLIC_KEY:
-                    raise unsupported_feature_exception_factory(
+                    ),
+                )
+            ),
+            (False, True): (
+                lambda self: (
+                    lambda: self.network.EXT_SEGWIT_PUBLIC_KEY,
+                    lambda: SegwitError("Segwit is not supported on this network"),
+                )
+            ),
+            (False, False): (
+                lambda self: (
+                    lambda: self.network.EXT_PUBLIC_KEY,
+                    lambda: unsupported_feature_exception_factory(
                         self.network.NAME, "public key serialization"
-                    )
-                network_version = long_to_hex(self.network.EXT_PUBLIC_KEY, 8)
+                    ),
+                )
+            ),
+        }
+
+        # Get the appropriate functions based on conditions
+        network_version_func, error_func = condition_action_map[(private, segwit)](self)
+
+        # Check conditions and take corresponding actions
+        if not network_version_func():
+            raise error_func()
+
+        network_version = long_to_hex(network_version_func(), 8)
+
         depth = long_to_hex(self.depth, 2)
         parent_fingerprint = self.parent_fingerprint[2:]  # strip leading 0x
         child_number = long_to_hex(self.child_number, 8)
@@ -525,20 +549,18 @@ class HDWallet(object):
                 - 0x01 for level-1 descendants, ....
             * 4 byte fingerprint of the parent's key (0x00000000 if master key)
             * 4 byte child number. This is the number i in x_i = x_{par}/i,
-              with x_i the key being serialized. This is encoded in MSB order.
-              (0x00000000 if master key)
+                with x_i the key being serialized. This is encoded in MSB order.
+                (0x00000000 if master key)
             * 32 bytes: the chain code
             * 33 bytes: the public key or private key data
-              (0x02 + X or 0x03 + X for public keys, 0x00 + k for private keys)
-              (Note that this also supports 0x04 + X + Y uncompressed points,
-              but this is totally non-standard and this library won't even
-              generate such data.)
+                (0x02 + X or 0x03 + X for public keys, 0x00 + k for private keys)
+                (Note that this also supports 0x04 + X + Y uncompressed points,
+                but this is totally non-standard and this library won't even
+                generate such data.)
         """
 
-        if len(key) in [78, (78 + 32)]:
-            # we have a byte array, so pass
-            pass
-        else:
+        if len(key) not in [78, (78 + 32)]:
+            # not a byte array
             key = key.encode("utf-8")
             if len(key) in [78 * 2, (78 + 32) * 2]:
                 # we have a hexlified non-base58 key, continue!
@@ -595,9 +617,7 @@ class HDWallet(object):
             raise ValueError(f"Invalid key_data prefix, got {point_type}")
 
         def bytes_int(byte_seq):
-            if byte_seq is None:
-                return byte_seq
-            elif isinstance(byte_seq, int):
+            if byte_seq is None or isinstance(byte_seq, int):
                 return byte_seq
             return int(hexlify(byte_seq), 16)
 
@@ -627,14 +647,14 @@ class HDWallet(object):
         seed = mne.to_seed(mnemonic, passphrase)
 
         # Given a seed S of at least 128 bits, but 256 is advised
-        # Calculate I = HMAC-SHA512(key="Bitcoin seed", msg=S)
-        I = hmac.new(b"Bitcoin seed", msg=seed, digestmod=sha512).digest()
+        # Calculate I = HMAC-SHA512(key=HDWallet.bitcoin_seed, msg=S)
+        I = hmac.new(HDWallet.bitcoin_seed, msg=seed, digestmod=sha512).digest()
         # Split I into two 32-byte sequences, IL and IR.
-        Il, Ir = I[:32], I[32:]
+        il, ir = I[:32], I[32:]
         # Use IL as master secret key, and IR as master chain code.
         return cls(
-            private_exponent=int(hexlify(Il), 16),
-            chain_code=hexlify(Ir),
+            private_exponent=int(hexlify(il), 16),
+            chain_code=hexlify(ir),
             mnemonic=mnemonic,
             network=network,
         )
@@ -664,13 +684,13 @@ class HDWallet(object):
                 password.encode("utf-8"), msg=data, digestmod=sha256
             ).digest()
 
-        I = hmac.new(b"Bitcoin seed", msg=data, digestmod=sha512).digest()
+        I = hmac.new(HDWallet.bitcoin_seed, msg=data, digestmod=sha512).digest()
         # Split I into two 32-byte sequences, IL and IR.
-        Il, Ir = I[:32], I[32:]
+        il, ir = I[:32], I[32:]
         # Use IL as master secret key, and IR as master chain code.
         return cls(
-            private_exponent=int(hexlify(Il), 16),
-            chain_code=hexlify(Ir),
+            private_exponent=int(hexlify(il), 16),
+            chain_code=hexlify(ir),
             network=network,
         )
 
@@ -688,14 +708,14 @@ class HDWallet(object):
         """
 
         # Given a seed S of at least 128 bits, but 256 is advised
-        # Calculate I = HMAC-SHA512(key="Bitcoin seed", msg=S)
-        I = hmac.new(b"Bitcoin seed", msg=seed, digestmod=sha512).digest()
+        # Calculate I = HMAC-SHA512(key=HDWallet.bitcoin_seed, msg=S)
+        I = hmac.new(HDWallet.bitcoin_seed, msg=seed, digestmod=sha512).digest()
         # Split I into two 32-byte sequences, IL and IR.
-        Il, Ir = I[:32], I[32:]
+        il, ir = I[:32], I[32:]
         # Use IL as master secret key, and IR as master chain code.
         return cls(
-            private_exponent=int(hexlify(Il), 16),
-            chain_code=hexlify(Ir),
+            private_exponent=int(hexlify(il), 16),
+            chain_code=hexlify(ir),
             network=network,
         )
 
@@ -711,7 +731,7 @@ class HDWallet(object):
                 It directly affects the length of the mnemonic exported
                 (each additional 32 bits adds an extra three words at the end).
             passphrase (str): An optional passphrase for the generated
-               mnemonic string.
+                mnemonic string.
             network: The network to use for things like defining key
                 key paths and supported address formats. Defaults to Bitcoin mainnet.
 
@@ -742,7 +762,7 @@ class HDWallet(object):
         )
 
     def __ne__(self, other):
-        return not self == other
+        return self != other
 
     __hash__ = object.__hash__
 
