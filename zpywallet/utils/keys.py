@@ -564,9 +564,9 @@ class PublicKey:
         elif (
             text_lines[-4] != f"-----BEGIN {self.network.NAME.upper()} SIGNATURE -----"
         ):
-            raise ValueError("Invalid RFC2440 signature")
+            raise ValueError("Missing BEGIN in RFC2440 signature")
         elif text_lines[-4] != f"-----END {self.network.NAME.upper()} SIGNATURE -----":
-            raise ValueError("Invalid RFC2440 signature")
+            raise ValueError("Missing END in RFC2440 signature")
 
         address = text_lines[-3]
         signature = text_lines[-2]

@@ -23,9 +23,9 @@ class BitcoinCashMainNet(CryptoNetwork):
     COIN = "BCH"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x28  # int(0x28) = 40
-    PUBKEY_ADDRESS = 0x1C  # int(0x00) = 28  # Used to create payment addresses
-    SECRET_KEY = 0x80  # int(0x80) = 128  # Used for WIF format
+    SCRIPT_ADDRESS = 0x28  # decimal 40
+    PUBKEY_ADDRESS = 0x1C  # decimal 28
+    SECRET_KEY = 0x80  # decimal 128
     # same as Bitcoin
     EXT_PUBLIC_KEY = 0x0488B21E  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x0488ADE4  # Used to serialize private BIP32 addresses
@@ -56,9 +56,9 @@ class DashMainNet(CryptoNetwork):
     COIN = "DASH"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x10  # int(0x10) = 16
-    PUBKEY_ADDRESS = 0x4C  # int(0x4C) = 76  # Used to create payment addresses
-    SECRET_KEY = 0xCC  # int(0xCC) = 204  # Used for WIF format
+    SCRIPT_ADDRESS = 0x10  # decimal 16
+    PUBKEY_ADDRESS = 0x4C  # decimal 76
+    SECRET_KEY = 0xCC  # decimal 204
     EXT_PUBLIC_KEY = 0x02FE52CC  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x02FE52F8  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/5'/0'"
@@ -85,9 +85,9 @@ class DashInvertedMainNet(CryptoNetwork):
     COIN = "DASH"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x10  # int(0x10) = 16
-    PUBKEY_ADDRESS = 0x4C  # int(0x4C) = 76  # Used to create payment addresses
-    SECRET_KEY = 0xCC  # int(0xCC) = 204  # Used for WIF format
+    SCRIPT_ADDRESS = 0x10  # decimal 16
+    PUBKEY_ADDRESS = 0x4C  # decimal 76
+    SECRET_KEY = 0xCC  # decimal 204
     EXT_PUBLIC_KEY = 0x02FE52F8  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x02FE52CC  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/5'/0'"
@@ -113,9 +113,9 @@ class DashBTCMainNet(CryptoNetwork):
     COIN = "DASH"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x10  # int(0x10) = 16
-    PUBKEY_ADDRESS = 0x4C  # int(0x4C) = 76  # Used to create payment addresses
-    SECRET_KEY = 0xCC  # int(0xCC) = 204  # Used for WIF format
+    SCRIPT_ADDRESS = 0x10  # decimal 16
+    PUBKEY_ADDRESS = 0x4C  # decimal 76
+    SECRET_KEY = 0xCC  # decimal 204
     EXT_PUBLIC_KEY = 0x0488B21E  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x0488ADE4  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/5'/0'"
@@ -137,9 +137,9 @@ class DashTestNet(CryptoNetwork):
     COIN = "DASH"
     TESTNET = True
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x13  # int(0x13) = 19
-    PUBKEY_ADDRESS = 0x8C  # int(0x8C) = 140  # Used to create payment addresses
-    SECRET_KEY = 0xEF  # int(0xEF) = 239  # Used for WIF format
+    SCRIPT_ADDRESS = 0x13  # decimal 19
+    PUBKEY_ADDRESS = 0x8C  # decimal 140
+    SECRET_KEY = 0xEF  # decimal 239
     EXT_PUBLIC_KEY = 0x3A805837  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x3A8061A0  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/1'/0'"
@@ -161,9 +161,9 @@ class DashInvertedTestNet(CryptoNetwork):
     COIN = "DASH"
     TESTNET = True
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x13  # int(0x13) = 19
-    PUBKEY_ADDRESS = 0x8C  # int(0x8C) = 140  # Used to create payment addresses
-    SECRET_KEY = 0xEF  # int(0xEF) = 239  # Used for WIF format
+    SCRIPT_ADDRESS = 0x13  # decimal 19
+    PUBKEY_ADDRESS = 0x8C  # decimal 140
+    SECRET_KEY = 0xEF  # decimal 239
     EXT_PUBLIC_KEY = 0x3A8061A0  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x3A805837  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/1'/0'"
@@ -187,9 +187,9 @@ class BitcoinMainNet(CryptoNetwork):
     COIN = "BTC"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x05  # int(0x05) = 5
-    PUBKEY_ADDRESS = 0x00  # int(0x00) = 0  # Used to create payment addresses
-    SECRET_KEY = 0x80  # int(0x80) = 128  # Used for WIF format
+    SCRIPT_ADDRESS = 0x05  # decimal 5
+    PUBKEY_ADDRESS = 0x00  # decimal 0
+    SECRET_KEY = 0x80  # decimal 128
 
     EXT_PUBLIC_KEY = 0x0488B21E  # Used to serialize public keys in BIP32 legacy (P2PKH)
     EXT_SECRET_KEY = (
@@ -232,9 +232,9 @@ class BitcoinTestNet(CryptoNetwork):
     COIN = "BTC"
     TESTNET = True
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0xC4  # int(0xc4) = 196
-    PUBKEY_ADDRESS = 0x6F  # int(0x6f) = 111
-    SECRET_KEY = 0xEF  # int(0xef) = 239
+    SCRIPT_ADDRESS = 0xC4  # decimal 196
+    PUBKEY_ADDRESS = 0x6F  # decimal 111
+    SECRET_KEY = 0xEF  # decimal 239
 
     EXT_PUBLIC_KEY = 0x043587CF  # Used to serialize public keys in BIP32 legacy (P2PKH)
     EXT_SECRET_KEY = (
@@ -281,9 +281,9 @@ class LitecoinMainNet(CryptoNetwork):
     COIN = "LTC"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x05  # int(0x05) = 5
-    PUBKEY_ADDRESS = 0x30  # int(0x30) = 48
-    SECRET_KEY = PUBKEY_ADDRESS + 128  # = int(0xb0) = 176
+    SCRIPT_ADDRESS = 0x05  # decimal 5
+    PUBKEY_ADDRESS = 0x30  # decimal 48
+    SECRET_KEY = PUBKEY_ADDRESS + 128  # = decimal 176
 
     # Litecoin is using xpub/xpriv - same as Bitcoin
     # According to [1] and [2], Litecoin was supposed to use Lpub/Lprv
@@ -333,9 +333,9 @@ class LitecoinBTCMainNet(CryptoNetwork):
     COIN = "LTC"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x05  # int(0x05) = 5
-    PUBKEY_ADDRESS = 0x30  # int(0x30) = 48
-    SECRET_KEY = PUBKEY_ADDRESS + 128  # = int(0xb0) = 176
+    SCRIPT_ADDRESS = 0x05  # decimal 5
+    PUBKEY_ADDRESS = 0x30  # decimal 48
+    SECRET_KEY = PUBKEY_ADDRESS + 128  # = decimal 176
 
     # Litecoin is using xpub/xpriv - same as Bitcoin
     # According to [1] and [2], Litecoin was supposed to use Lpub/Lprv
@@ -388,9 +388,9 @@ class LitecoinTestNet(CryptoNetwork):
     COIN = "LTC"
     TESTNET = True
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0xC4  # int(0xc4) = 196
-    PUBKEY_ADDRESS = 0x6F  # int(0x6f) = 111
-    SECRET_KEY = PUBKEY_ADDRESS + 128  # = int(0xef) = 239
+    SCRIPT_ADDRESS = 0xC4  # decimal 196
+    PUBKEY_ADDRESS = 0x6F  # decimal 111
+    SECRET_KEY = PUBKEY_ADDRESS + 128  # = decimal 239
 
     EXT_PUBLIC_KEY = 0x0436F6E1
     EXT_SECRET_KEY = 0x0436EF7D
@@ -436,9 +436,9 @@ class DogecoinMainNet(CryptoNetwork):
     COIN = "DOGE"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x16  # int(0x16) = 22
-    PUBKEY_ADDRESS = 0x1E  # int(0x1e) = 30
-    SECRET_KEY = PUBKEY_ADDRESS + 128  # int(0x9e) = 158
+    SCRIPT_ADDRESS = 0x16  # decimal 22
+    PUBKEY_ADDRESS = 0x1E  # decimal 30
+    SECRET_KEY = PUBKEY_ADDRESS + 128  # decimal 158
 
     # Unofficial extended version bytes taken from
     # https://bitcointalk.org/index.php?topic=409731
@@ -471,9 +471,9 @@ class DogecoinBTCMainNet(CryptoNetwork):
     COIN = "DOGE"
     TESTNET = False
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x16  # int(0x16) = 22
-    PUBKEY_ADDRESS = 0x1E  # int(0x1e) = 30
-    SECRET_KEY = PUBKEY_ADDRESS + 128  # int(0x9e) = 158
+    SCRIPT_ADDRESS = 0x16  # decimal 22
+    PUBKEY_ADDRESS = 0x1E  # decimal 30
+    SECRET_KEY = PUBKEY_ADDRESS + 128  # decimal 158
 
     # Unofficial extended version bytes taken from
     # https://bitcointalk.org/index.php?topic=409731
@@ -506,9 +506,9 @@ class DogecoinTestNet(CryptoNetwork):
     COIN = "DOGE"
     TESTNET = True
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0xC4  # int(0xc4) = 196
-    PUBKEY_ADDRESS = 0x71  # int(0x71) = 113
-    SECRET_KEY = PUBKEY_ADDRESS + 128  # int(0xf1) = 241
+    SCRIPT_ADDRESS = 0xC4  # decimal 196
+    PUBKEY_ADDRESS = 0x71  # decimal 113
+    SECRET_KEY = PUBKEY_ADDRESS + 128  # decimal 241
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -534,9 +534,9 @@ class BlockcypherTestNet(CryptoNetwork):
     INTERNAL_NAME = wallet_pb2.Network.BLOCKCYPHER_TESTNET
     COIN = "BCY"
     ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x1F  # int(0x1f) = 31
-    PUBKEY_ADDRESS = 0x1B  # int(0x1b) = 27  # Used to create payment addresses
-    SECRET_KEY = 0x49  # int(0x49) = 73  # Used for WIF format
+    SCRIPT_ADDRESS = 0x1F  # decimal 31
+    PUBKEY_ADDRESS = 0x1B  # decimal 27
+    SECRET_KEY = 0x49  # decimal 73
     EXT_PUBLIC_KEY = 0x2D413FF  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x2D40FC3  # Used to serialize private BIP32 addresses
     BIP32_PATH = "m/44'/1'/0'"

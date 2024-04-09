@@ -160,14 +160,11 @@ class Bip38PrivateKey:
         """
         # BIP0038 non-ec-multiply decryption. Returns WIF privkey.
         d = base58.b58decode(self._encrypted_privkey)
-        d = d[2:]
-        # flagbyte = d[0:1]
-        d = d[1:]
-        # WIF compression
-        # if flagbyte == b'\xc0':
-        #    compressed = False
-        # if flagbyte == b'\xe0':
-        #    compressed = True
+        # The flagbyte is the 3rd byte in this array.
+        # 0xc0 means uncompressed and 0xe0 means compressed.
+        # But we don't use that because the user can choose
+        # the compression themselves.
+        d = d[3:]
         addresshash = d[0:4]
         d = d[4:-4]
         key = scrypt(

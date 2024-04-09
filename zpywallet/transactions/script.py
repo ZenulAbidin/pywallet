@@ -290,7 +290,7 @@ class Script:
     """
 
     def __init__(self, script, network=BitcoinSegwitMainNet):
-        self.script = script
+        self.script_bytes = script
         self.network = network
 
     @classmethod
@@ -299,7 +299,7 @@ class Script:
         return cls(scripts)
 
     def __str__(self):
-        return str(self.script)
+        return str(self.script_bytes)
 
     def __repr__(self):
         return self.__str__()
@@ -367,7 +367,7 @@ class Script:
         and include with appropriate OP_PUSHDATA OP code plus length
         """
         script_bytes = b""
-        for token in self.script:
+        for token in self.script_bytes:
             # add op codes directly
             if token in OP_CODES:
                 script_bytes += OP_CODES[token]
@@ -436,17 +436,17 @@ class Script:
 
     def get_script(self):
         """Returns script as array of strings"""
-        return self.script
+        return self.script_bytes
 
     def is_p2pkh(self):
         """Checks whether the transaction is P2PKH"""
         try:
             return (
-                self.script[0] == "OP_DUP"
-                and self.script[1] == "OP_HASH160"
-                and self.script[3] == "OP_EQUALVERIFY"
-                and self.script[4] == "OP_CHECKSIG"
-                and len(self.script) == 5
+                self.script_bytes[0] == "OP_DUP"
+                and self.script_bytes[1] == "OP_HASH160"
+                and self.script_bytes[3] == "OP_EQUALVERIFY"
+                and self.script_bytes[4] == "OP_CHECKSIG"
+                and len(self.script_bytes) == 5
             )
         except KeyError:
             return False
@@ -455,9 +455,9 @@ class Script:
         """Checks whether the transaction is P2SH"""
         try:
             return (
-                self.script[0] == "OP_HASH160"
-                and self.script[2] == "OP_EQUAL"
-                and len(self.script) == 3
+                self.script_bytes[0] == "OP_HASH160"
+                and self.script_bytes[2] == "OP_EQUAL"
+                and len(self.script_bytes) == 3
             )
         except KeyError:
             return False
@@ -467,9 +467,9 @@ class Script:
         # The script is in hex
         try:
             return (
-                self.script[0] == "OP_0"
-                and len(self.script[1]) == 20 * 2
-                and len(self.script) == 2
+                self.script_bytes[0] == "OP_0"
+                and len(self.script_bytes[1]) == 20 * 2
+                and len(self.script_bytes) == 2
             )
         except KeyError:
             return False
@@ -479,9 +479,9 @@ class Script:
         # The script is in hex
         try:
             return (
-                self.script[0] == "OP_0"
-                and len(self.script[1]) == 32 * 2
-                and len(self.script) == 2
+                self.script_bytes[0] == "OP_0"
+                and len(self.script_bytes[1]) == 32 * 2
+                and len(self.script_bytes) == 2
             )
         except KeyError:
             return False
@@ -491,9 +491,9 @@ class Script:
         # The script is in hex
         try:
             return (
-                self.script[0] == "OP_1"
-                and len(self.script[1]) == 32 * 2
-                and len(self.script) == 2
+                self.script_bytes[0] == "OP_1"
+                and len(self.script_bytes[1]) == 32 * 2
+                and len(self.script_bytes) == 2
             )
         except KeyError:
             return False
@@ -502,7 +502,8 @@ class Script:
         """Creates the P2PKH address from the script."""
         if self.is_p2pkh():
             return b58encode_check(
-                bytes([self.network.PUBKEY_ADDRESS]) + bytes.fromhex(self.script[2])
+                bytes([self.network.PUBKEY_ADDRESS])
+                + bytes.fromhex(self.script_bytes[2])
             )
         else:
             return None
@@ -511,7 +512,8 @@ class Script:
         """Creates the P2PKH address from the script."""
         if self.is_p2sh():
             return b58encode_check(
-                bytes([self.network.SCRIPT_ADDRESS]) + bytes.fromhex(self.script[1])
+                bytes([self.network.SCRIPT_ADDRESS])
+                + bytes.fromhex(self.script_bytes[1])
             )
         else:
             return None
@@ -520,7 +522,7 @@ class Script:
         """Creates the P2WPKH address from the script."""
         if self.is_p2wpkh():
             return bech32_encode(
-                self.network.BECH32_PREFIX, 0, bytes.fromhex(self.script[1])
+                self.network.BECH32_PREFIX, 0, bytes.fromhex(self.script_bytes[1])
             )
         else:
             return None
@@ -529,7 +531,7 @@ class Script:
         """Creates the P2WSH address from the script."""
         if self.is_p2wsh():
             return bech32_encode(
-                self.network.BECH32_PREFIX, 0, bytes.fromhex(self.script[1])
+                self.network.BECH32_PREFIX, 0, bytes.fromhex(self.script_bytes[1])
             )
         else:
             return None
@@ -538,7 +540,7 @@ class Script:
         """Creates the P2TR address from the script."""
         if self.is_p2tr():
             return bech32_encode(
-                self.network.BECH32_PREFIX, 1, bytes.fromhex(self.script[1])
+                self.network.BECH32_PREFIX, 1, bytes.fromhex(self.script_bytes[1])
             )
         else:
             return None
@@ -551,7 +553,6 @@ class Script:
         """
 
         redeem_script = hash160(self.to_hex())  # script hash
-        # address = p2sh_address(redeem_script)
         return Script(["OP_HASH160", redeem_script, "OP_EQUAL"])
 
     def to_p2wsh_script_pub_key(self):

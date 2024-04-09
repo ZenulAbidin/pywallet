@@ -49,8 +49,8 @@ import struct
 def ripemd160(b: bytes) -> bytes:
     """Calculates the RIPEMD160 hash of binary data"""
     ctx = RMDContext()
-    RMD160Update(ctx, b, len(b))
-    digest = RMD160Final(ctx)
+    rmd160_update(ctx, b, len(b))
+    digest = rmd160_final(ctx)
     return digest
 
 
@@ -70,7 +70,7 @@ class RMDContext:
         self.buffer = [0] * 64  # uchar
 
 
-def RMD160Update(ctx, inp, inplen):
+def rmd160_update(ctx, inp, inplen):
     have = int((ctx.count // 8) % 64)
     inplen = int(inplen)
     need = 64 - have
@@ -80,24 +80,24 @@ def RMD160Update(ctx, inp, inplen):
         if have:
             for i in range(need):
                 ctx.buffer[have + i] = inp[i]
-            RMD160Transform(ctx.state, ctx.buffer)
+            rmd160_transform(ctx.state, ctx.buffer)
             off = need
             have = 0
         while off + 64 <= inplen:
-            RMD160Transform(ctx.state, inp[off:])  # <---
+            rmd160_transform(ctx.state, inp[off:])  # <---
             off += 64
     if off < inplen:
         for i in range(inplen - off):
             ctx.buffer[have + i] = inp[off + i]
 
 
-def RMD160Final(ctx):
+def rmd160_final(ctx):
     size = struct.pack("<Q", ctx.count)
     padlen = 64 - ((ctx.count // 8) % 64)
     if padlen < 1 + 8:
         padlen += 64
-    RMD160Update(ctx, PADDING, padlen - 8)
-    RMD160Update(ctx, size, 8)
+    rmd160_update(ctx, PADDING, padlen - 8)
+    rmd160_update(ctx, size, 8)
     return struct.pack("<5L", *ctx.state)
 
 
@@ -117,39 +117,37 @@ KK4 = 0x00000000
 PADDING = [0x80] + [0] * 63
 
 
-def ROL(n, x):
+def rol(n, x):
     return ((x << n) & 0xFFFFFFFF) | (x >> (32 - n))
 
 
-def F0(x, y, z):
+def f0(x, y, z):
     return x ^ y ^ z
 
 
-def F1(x, y, z):
+def f1(x, y, z):
     return (x & y) | (((~x) % 0x100000000) & z)
 
 
-def F2(x, y, z):
+def f2(x, y, z):
     return (x | ((~y) % 0x100000000)) ^ z
 
 
-def F3(x, y, z):
+def f3(x, y, z):
     return (x & z) | (((~z) % 0x100000000) & y)
 
 
-def F4(x, y, z):
+def f4(x, y, z):
     return x ^ (y | ((~z) % 0x100000000))
 
 
-def R(a, b, c, d, e, Fj, Kj, sj, rj, X):
-    a = ROL(sj, (a + Fj(b, c, d) + X[rj] + Kj) % 0x100000000) + e
-    c = ROL(10, c)
+def r(a, b, c, d, e, fj, kj, sj, rj, x):
+    a = rol(sj, (a + fj(b, c, d) + x[rj] + kj) % 0x100000000) + e
+    c = rol(10, c)
     return a % 0x100000000, c
 
 
-def RMD160Transform(state, block):  # uint32 state[5], uchar block[64]
-
-    x = [0] * 16
+def rmd160_transform(state, block):  # uint32 state[5], uchar block[64]
     assert (
         sys.byteorder == "little"
     ), "Only little endian is supported atm for RIPEMD160"
@@ -162,90 +160,90 @@ def RMD160Transform(state, block):  # uint32 state[5], uchar block[64]
     e = state[4]
 
     # /* Round 1 */
-    a, c = R(a, b, c, d, e, F0, K0, 11, 0, x)
-    e, b = R(e, a, b, c, d, F0, K0, 14, 1, x)
-    d, a = R(d, e, a, b, c, F0, K0, 15, 2, x)
-    c, e = R(c, d, e, a, b, F0, K0, 12, 3, x)
-    b, d = R(b, c, d, e, a, F0, K0, 5, 4, x)
-    a, c = R(a, b, c, d, e, F0, K0, 8, 5, x)
-    e, b = R(e, a, b, c, d, F0, K0, 7, 6, x)
-    d, a = R(d, e, a, b, c, F0, K0, 9, 7, x)
-    c, e = R(c, d, e, a, b, F0, K0, 11, 8, x)
-    b, d = R(b, c, d, e, a, F0, K0, 13, 9, x)
-    a, c = R(a, b, c, d, e, F0, K0, 14, 10, x)
-    e, b = R(e, a, b, c, d, F0, K0, 15, 11, x)
-    d, a = R(d, e, a, b, c, F0, K0, 6, 12, x)
-    c, e = R(c, d, e, a, b, F0, K0, 7, 13, x)
-    b, d = R(b, c, d, e, a, F0, K0, 9, 14, x)
-    a, c = R(a, b, c, d, e, F0, K0, 8, 15, x)  # /* #15 */
+    a, c = r(a, b, c, d, e, f0, K0, 11, 0, x)
+    e, b = r(e, a, b, c, d, f0, K0, 14, 1, x)
+    d, a = r(d, e, a, b, c, f0, K0, 15, 2, x)
+    c, e = r(c, d, e, a, b, f0, K0, 12, 3, x)
+    b, d = r(b, c, d, e, a, f0, K0, 5, 4, x)
+    a, c = r(a, b, c, d, e, f0, K0, 8, 5, x)
+    e, b = r(e, a, b, c, d, f0, K0, 7, 6, x)
+    d, a = r(d, e, a, b, c, f0, K0, 9, 7, x)
+    c, e = r(c, d, e, a, b, f0, K0, 11, 8, x)
+    b, d = r(b, c, d, e, a, f0, K0, 13, 9, x)
+    a, c = r(a, b, c, d, e, f0, K0, 14, 10, x)
+    e, b = r(e, a, b, c, d, f0, K0, 15, 11, x)
+    d, a = r(d, e, a, b, c, f0, K0, 6, 12, x)
+    c, e = r(c, d, e, a, b, f0, K0, 7, 13, x)
+    b, d = r(b, c, d, e, a, f0, K0, 9, 14, x)
+    a, c = r(a, b, c, d, e, f0, K0, 8, 15, x)  # /* #15 */
     # /* Round 2 */
-    e, b = R(e, a, b, c, d, F1, K1, 7, 7, x)
-    d, a = R(d, e, a, b, c, F1, K1, 6, 4, x)
-    c, e = R(c, d, e, a, b, F1, K1, 8, 13, x)
-    b, d = R(b, c, d, e, a, F1, K1, 13, 1, x)
-    a, c = R(a, b, c, d, e, F1, K1, 11, 10, x)
-    e, b = R(e, a, b, c, d, F1, K1, 9, 6, x)
-    d, a = R(d, e, a, b, c, F1, K1, 7, 15, x)
-    c, e = R(c, d, e, a, b, F1, K1, 15, 3, x)
-    b, d = R(b, c, d, e, a, F1, K1, 7, 12, x)
-    a, c = R(a, b, c, d, e, F1, K1, 12, 0, x)
-    e, b = R(e, a, b, c, d, F1, K1, 15, 9, x)
-    d, a = R(d, e, a, b, c, F1, K1, 9, 5, x)
-    c, e = R(c, d, e, a, b, F1, K1, 11, 2, x)
-    b, d = R(b, c, d, e, a, F1, K1, 7, 14, x)
-    a, c = R(a, b, c, d, e, F1, K1, 13, 11, x)
-    e, b = R(e, a, b, c, d, F1, K1, 12, 8, x)  # /* #31 */
+    e, b = r(e, a, b, c, d, f1, K1, 7, 7, x)
+    d, a = r(d, e, a, b, c, f1, K1, 6, 4, x)
+    c, e = r(c, d, e, a, b, f1, K1, 8, 13, x)
+    b, d = r(b, c, d, e, a, f1, K1, 13, 1, x)
+    a, c = r(a, b, c, d, e, f1, K1, 11, 10, x)
+    e, b = r(e, a, b, c, d, f1, K1, 9, 6, x)
+    d, a = r(d, e, a, b, c, f1, K1, 7, 15, x)
+    c, e = r(c, d, e, a, b, f1, K1, 15, 3, x)
+    b, d = r(b, c, d, e, a, f1, K1, 7, 12, x)
+    a, c = r(a, b, c, d, e, f1, K1, 12, 0, x)
+    e, b = r(e, a, b, c, d, f1, K1, 15, 9, x)
+    d, a = r(d, e, a, b, c, f1, K1, 9, 5, x)
+    c, e = r(c, d, e, a, b, f1, K1, 11, 2, x)
+    b, d = r(b, c, d, e, a, f1, K1, 7, 14, x)
+    a, c = r(a, b, c, d, e, f1, K1, 13, 11, x)
+    e, b = r(e, a, b, c, d, f1, K1, 12, 8, x)  # /* #31 */
     # /* Round 3 */
-    d, a = R(d, e, a, b, c, F2, K2, 11, 3, x)
-    c, e = R(c, d, e, a, b, F2, K2, 13, 10, x)
-    b, d = R(b, c, d, e, a, F2, K2, 6, 14, x)
-    a, c = R(a, b, c, d, e, F2, K2, 7, 4, x)
-    e, b = R(e, a, b, c, d, F2, K2, 14, 9, x)
-    d, a = R(d, e, a, b, c, F2, K2, 9, 15, x)
-    c, e = R(c, d, e, a, b, F2, K2, 13, 8, x)
-    b, d = R(b, c, d, e, a, F2, K2, 15, 1, x)
-    a, c = R(a, b, c, d, e, F2, K2, 14, 2, x)
-    e, b = R(e, a, b, c, d, F2, K2, 8, 7, x)
-    d, a = R(d, e, a, b, c, F2, K2, 13, 0, x)
-    c, e = R(c, d, e, a, b, F2, K2, 6, 6, x)
-    b, d = R(b, c, d, e, a, F2, K2, 5, 13, x)
-    a, c = R(a, b, c, d, e, F2, K2, 12, 11, x)
-    e, b = R(e, a, b, c, d, F2, K2, 7, 5, x)
-    d, a = R(d, e, a, b, c, F2, K2, 5, 12, x)  # /* #47 */
+    d, a = r(d, e, a, b, c, f2, K2, 11, 3, x)
+    c, e = r(c, d, e, a, b, f2, K2, 13, 10, x)
+    b, d = r(b, c, d, e, a, f2, K2, 6, 14, x)
+    a, c = r(a, b, c, d, e, f2, K2, 7, 4, x)
+    e, b = r(e, a, b, c, d, f2, K2, 14, 9, x)
+    d, a = r(d, e, a, b, c, f2, K2, 9, 15, x)
+    c, e = r(c, d, e, a, b, f2, K2, 13, 8, x)
+    b, d = r(b, c, d, e, a, f2, K2, 15, 1, x)
+    a, c = r(a, b, c, d, e, f2, K2, 14, 2, x)
+    e, b = r(e, a, b, c, d, f2, K2, 8, 7, x)
+    d, a = r(d, e, a, b, c, f2, K2, 13, 0, x)
+    c, e = r(c, d, e, a, b, f2, K2, 6, 6, x)
+    b, d = r(b, c, d, e, a, f2, K2, 5, 13, x)
+    a, c = r(a, b, c, d, e, f2, K2, 12, 11, x)
+    e, b = r(e, a, b, c, d, f2, K2, 7, 5, x)
+    d, a = r(d, e, a, b, c, f2, K2, 5, 12, x)  # /* #47 */
     # /* Round 4 */
-    c, e = R(c, d, e, a, b, F3, K3, 11, 1, x)
-    b, d = R(b, c, d, e, a, F3, K3, 12, 9, x)
-    a, c = R(a, b, c, d, e, F3, K3, 14, 11, x)
-    e, b = R(e, a, b, c, d, F3, K3, 15, 10, x)
-    d, a = R(d, e, a, b, c, F3, K3, 14, 0, x)
-    c, e = R(c, d, e, a, b, F3, K3, 15, 8, x)
-    b, d = R(b, c, d, e, a, F3, K3, 9, 12, x)
-    a, c = R(a, b, c, d, e, F3, K3, 8, 4, x)
-    e, b = R(e, a, b, c, d, F3, K3, 9, 13, x)
-    d, a = R(d, e, a, b, c, F3, K3, 14, 3, x)
-    c, e = R(c, d, e, a, b, F3, K3, 5, 7, x)
-    b, d = R(b, c, d, e, a, F3, K3, 6, 15, x)
-    a, c = R(a, b, c, d, e, F3, K3, 8, 14, x)
-    e, b = R(e, a, b, c, d, F3, K3, 6, 5, x)
-    d, a = R(d, e, a, b, c, F3, K3, 5, 6, x)
-    c, e = R(c, d, e, a, b, F3, K3, 12, 2, x)  # /* #63 */
+    c, e = r(c, d, e, a, b, f3, K3, 11, 1, x)
+    b, d = r(b, c, d, e, a, f3, K3, 12, 9, x)
+    a, c = r(a, b, c, d, e, f3, K3, 14, 11, x)
+    e, b = r(e, a, b, c, d, f3, K3, 15, 10, x)
+    d, a = r(d, e, a, b, c, f3, K3, 14, 0, x)
+    c, e = r(c, d, e, a, b, f3, K3, 15, 8, x)
+    b, d = r(b, c, d, e, a, f3, K3, 9, 12, x)
+    a, c = r(a, b, c, d, e, f3, K3, 8, 4, x)
+    e, b = r(e, a, b, c, d, f3, K3, 9, 13, x)
+    d, a = r(d, e, a, b, c, f3, K3, 14, 3, x)
+    c, e = r(c, d, e, a, b, f3, K3, 5, 7, x)
+    b, d = r(b, c, d, e, a, f3, K3, 6, 15, x)
+    a, c = r(a, b, c, d, e, f3, K3, 8, 14, x)
+    e, b = r(e, a, b, c, d, f3, K3, 6, 5, x)
+    d, a = r(d, e, a, b, c, f3, K3, 5, 6, x)
+    c, e = r(c, d, e, a, b, f3, K3, 12, 2, x)  # /* #63 */
     # /* Round 5 */
-    b, d = R(b, c, d, e, a, F4, K4, 9, 4, x)
-    a, c = R(a, b, c, d, e, F4, K4, 15, 0, x)
-    e, b = R(e, a, b, c, d, F4, K4, 5, 5, x)
-    d, a = R(d, e, a, b, c, F4, K4, 11, 9, x)
-    c, e = R(c, d, e, a, b, F4, K4, 6, 7, x)
-    b, d = R(b, c, d, e, a, F4, K4, 8, 12, x)
-    a, c = R(a, b, c, d, e, F4, K4, 13, 2, x)
-    e, b = R(e, a, b, c, d, F4, K4, 12, 10, x)
-    d, a = R(d, e, a, b, c, F4, K4, 5, 14, x)
-    c, e = R(c, d, e, a, b, F4, K4, 12, 1, x)
-    b, d = R(b, c, d, e, a, F4, K4, 13, 3, x)
-    a, c = R(a, b, c, d, e, F4, K4, 14, 8, x)
-    e, b = R(e, a, b, c, d, F4, K4, 11, 11, x)
-    d, a = R(d, e, a, b, c, F4, K4, 8, 6, x)
-    c, e = R(c, d, e, a, b, F4, K4, 5, 15, x)
-    b, d = R(b, c, d, e, a, F4, K4, 6, 13, x)  # /* #79 */
+    b, d = r(b, c, d, e, a, f4, K4, 9, 4, x)
+    a, c = r(a, b, c, d, e, f4, K4, 15, 0, x)
+    e, b = r(e, a, b, c, d, f4, K4, 5, 5, x)
+    d, a = r(d, e, a, b, c, f4, K4, 11, 9, x)
+    c, e = r(c, d, e, a, b, f4, K4, 6, 7, x)
+    b, d = r(b, c, d, e, a, f4, K4, 8, 12, x)
+    a, c = r(a, b, c, d, e, f4, K4, 13, 2, x)
+    e, b = r(e, a, b, c, d, f4, K4, 12, 10, x)
+    d, a = r(d, e, a, b, c, f4, K4, 5, 14, x)
+    c, e = r(c, d, e, a, b, f4, K4, 12, 1, x)
+    b, d = r(b, c, d, e, a, f4, K4, 13, 3, x)
+    a, c = r(a, b, c, d, e, f4, K4, 14, 8, x)
+    e, b = r(e, a, b, c, d, f4, K4, 11, 11, x)
+    d, a = r(d, e, a, b, c, f4, K4, 8, 6, x)
+    c, e = r(c, d, e, a, b, f4, K4, 5, 15, x)
+    b, d = r(b, c, d, e, a, f4, K4, 6, 13, x)  # /* #79 */
 
     aa = a
     bb = b
@@ -260,90 +258,90 @@ def RMD160Transform(state, block):  # uint32 state[5], uchar block[64]
     e = state[4]
 
     # /* Parallel round 1 */
-    a, c = R(a, b, c, d, e, F4, KK0, 8, 5, x)
-    e, b = R(e, a, b, c, d, F4, KK0, 9, 14, x)
-    d, a = R(d, e, a, b, c, F4, KK0, 9, 7, x)
-    c, e = R(c, d, e, a, b, F4, KK0, 11, 0, x)
-    b, d = R(b, c, d, e, a, F4, KK0, 13, 9, x)
-    a, c = R(a, b, c, d, e, F4, KK0, 15, 2, x)
-    e, b = R(e, a, b, c, d, F4, KK0, 15, 11, x)
-    d, a = R(d, e, a, b, c, F4, KK0, 5, 4, x)
-    c, e = R(c, d, e, a, b, F4, KK0, 7, 13, x)
-    b, d = R(b, c, d, e, a, F4, KK0, 7, 6, x)
-    a, c = R(a, b, c, d, e, F4, KK0, 8, 15, x)
-    e, b = R(e, a, b, c, d, F4, KK0, 11, 8, x)
-    d, a = R(d, e, a, b, c, F4, KK0, 14, 1, x)
-    c, e = R(c, d, e, a, b, F4, KK0, 14, 10, x)
-    b, d = R(b, c, d, e, a, F4, KK0, 12, 3, x)
-    a, c = R(a, b, c, d, e, F4, KK0, 6, 12, x)  # /* #15 */
+    a, c = r(a, b, c, d, e, f4, KK0, 8, 5, x)
+    e, b = r(e, a, b, c, d, f4, KK0, 9, 14, x)
+    d, a = r(d, e, a, b, c, f4, KK0, 9, 7, x)
+    c, e = r(c, d, e, a, b, f4, KK0, 11, 0, x)
+    b, d = r(b, c, d, e, a, f4, KK0, 13, 9, x)
+    a, c = r(a, b, c, d, e, f4, KK0, 15, 2, x)
+    e, b = r(e, a, b, c, d, f4, KK0, 15, 11, x)
+    d, a = r(d, e, a, b, c, f4, KK0, 5, 4, x)
+    c, e = r(c, d, e, a, b, f4, KK0, 7, 13, x)
+    b, d = r(b, c, d, e, a, f4, KK0, 7, 6, x)
+    a, c = r(a, b, c, d, e, f4, KK0, 8, 15, x)
+    e, b = r(e, a, b, c, d, f4, KK0, 11, 8, x)
+    d, a = r(d, e, a, b, c, f4, KK0, 14, 1, x)
+    c, e = r(c, d, e, a, b, f4, KK0, 14, 10, x)
+    b, d = r(b, c, d, e, a, f4, KK0, 12, 3, x)
+    a, c = r(a, b, c, d, e, f4, KK0, 6, 12, x)  # /* #15 */
     # /* Parallel round 2 */
-    e, b = R(e, a, b, c, d, F3, KK1, 9, 6, x)
-    d, a = R(d, e, a, b, c, F3, KK1, 13, 11, x)
-    c, e = R(c, d, e, a, b, F3, KK1, 15, 3, x)
-    b, d = R(b, c, d, e, a, F3, KK1, 7, 7, x)
-    a, c = R(a, b, c, d, e, F3, KK1, 12, 0, x)
-    e, b = R(e, a, b, c, d, F3, KK1, 8, 13, x)
-    d, a = R(d, e, a, b, c, F3, KK1, 9, 5, x)
-    c, e = R(c, d, e, a, b, F3, KK1, 11, 10, x)
-    b, d = R(b, c, d, e, a, F3, KK1, 7, 14, x)
-    a, c = R(a, b, c, d, e, F3, KK1, 7, 15, x)
-    e, b = R(e, a, b, c, d, F3, KK1, 12, 8, x)
-    d, a = R(d, e, a, b, c, F3, KK1, 7, 12, x)
-    c, e = R(c, d, e, a, b, F3, KK1, 6, 4, x)
-    b, d = R(b, c, d, e, a, F3, KK1, 15, 9, x)
-    a, c = R(a, b, c, d, e, F3, KK1, 13, 1, x)
-    e, b = R(e, a, b, c, d, F3, KK1, 11, 2, x)  # /* #31 */
+    e, b = r(e, a, b, c, d, f3, KK1, 9, 6, x)
+    d, a = r(d, e, a, b, c, f3, KK1, 13, 11, x)
+    c, e = r(c, d, e, a, b, f3, KK1, 15, 3, x)
+    b, d = r(b, c, d, e, a, f3, KK1, 7, 7, x)
+    a, c = r(a, b, c, d, e, f3, KK1, 12, 0, x)
+    e, b = r(e, a, b, c, d, f3, KK1, 8, 13, x)
+    d, a = r(d, e, a, b, c, f3, KK1, 9, 5, x)
+    c, e = r(c, d, e, a, b, f3, KK1, 11, 10, x)
+    b, d = r(b, c, d, e, a, f3, KK1, 7, 14, x)
+    a, c = r(a, b, c, d, e, f3, KK1, 7, 15, x)
+    e, b = r(e, a, b, c, d, f3, KK1, 12, 8, x)
+    d, a = r(d, e, a, b, c, f3, KK1, 7, 12, x)
+    c, e = r(c, d, e, a, b, f3, KK1, 6, 4, x)
+    b, d = r(b, c, d, e, a, f3, KK1, 15, 9, x)
+    a, c = r(a, b, c, d, e, f3, KK1, 13, 1, x)
+    e, b = r(e, a, b, c, d, f3, KK1, 11, 2, x)  # /* #31 */
     # /* Parallel round 3 */
-    d, a = R(d, e, a, b, c, F2, KK2, 9, 15, x)
-    c, e = R(c, d, e, a, b, F2, KK2, 7, 5, x)
-    b, d = R(b, c, d, e, a, F2, KK2, 15, 1, x)
-    a, c = R(a, b, c, d, e, F2, KK2, 11, 3, x)
-    e, b = R(e, a, b, c, d, F2, KK2, 8, 7, x)
-    d, a = R(d, e, a, b, c, F2, KK2, 6, 14, x)
-    c, e = R(c, d, e, a, b, F2, KK2, 6, 6, x)
-    b, d = R(b, c, d, e, a, F2, KK2, 14, 9, x)
-    a, c = R(a, b, c, d, e, F2, KK2, 12, 11, x)
-    e, b = R(e, a, b, c, d, F2, KK2, 13, 8, x)
-    d, a = R(d, e, a, b, c, F2, KK2, 5, 12, x)
-    c, e = R(c, d, e, a, b, F2, KK2, 14, 2, x)
-    b, d = R(b, c, d, e, a, F2, KK2, 13, 10, x)
-    a, c = R(a, b, c, d, e, F2, KK2, 13, 0, x)
-    e, b = R(e, a, b, c, d, F2, KK2, 7, 4, x)
-    d, a = R(d, e, a, b, c, F2, KK2, 5, 13, x)  # /* #47 */
+    d, a = r(d, e, a, b, c, f2, KK2, 9, 15, x)
+    c, e = r(c, d, e, a, b, f2, KK2, 7, 5, x)
+    b, d = r(b, c, d, e, a, f2, KK2, 15, 1, x)
+    a, c = r(a, b, c, d, e, f2, KK2, 11, 3, x)
+    e, b = r(e, a, b, c, d, f2, KK2, 8, 7, x)
+    d, a = r(d, e, a, b, c, f2, KK2, 6, 14, x)
+    c, e = r(c, d, e, a, b, f2, KK2, 6, 6, x)
+    b, d = r(b, c, d, e, a, f2, KK2, 14, 9, x)
+    a, c = r(a, b, c, d, e, f2, KK2, 12, 11, x)
+    e, b = r(e, a, b, c, d, f2, KK2, 13, 8, x)
+    d, a = r(d, e, a, b, c, f2, KK2, 5, 12, x)
+    c, e = r(c, d, e, a, b, f2, KK2, 14, 2, x)
+    b, d = r(b, c, d, e, a, f2, KK2, 13, 10, x)
+    a, c = r(a, b, c, d, e, f2, KK2, 13, 0, x)
+    e, b = r(e, a, b, c, d, f2, KK2, 7, 4, x)
+    d, a = r(d, e, a, b, c, f2, KK2, 5, 13, x)  # /* #47 */
     # /* Parallel round 4 */
-    c, e = R(c, d, e, a, b, F1, KK3, 15, 8, x)
-    b, d = R(b, c, d, e, a, F1, KK3, 5, 6, x)
-    a, c = R(a, b, c, d, e, F1, KK3, 8, 4, x)
-    e, b = R(e, a, b, c, d, F1, KK3, 11, 1, x)
-    d, a = R(d, e, a, b, c, F1, KK3, 14, 3, x)
-    c, e = R(c, d, e, a, b, F1, KK3, 14, 11, x)
-    b, d = R(b, c, d, e, a, F1, KK3, 6, 15, x)
-    a, c = R(a, b, c, d, e, F1, KK3, 14, 0, x)
-    e, b = R(e, a, b, c, d, F1, KK3, 6, 5, x)
-    d, a = R(d, e, a, b, c, F1, KK3, 9, 12, x)
-    c, e = R(c, d, e, a, b, F1, KK3, 12, 2, x)
-    b, d = R(b, c, d, e, a, F1, KK3, 9, 13, x)
-    a, c = R(a, b, c, d, e, F1, KK3, 12, 9, x)
-    e, b = R(e, a, b, c, d, F1, KK3, 5, 7, x)
-    d, a = R(d, e, a, b, c, F1, KK3, 15, 10, x)
-    c, e = R(c, d, e, a, b, F1, KK3, 8, 14, x)  # /* #63 */
+    c, e = r(c, d, e, a, b, f1, KK3, 15, 8, x)
+    b, d = r(b, c, d, e, a, f1, KK3, 5, 6, x)
+    a, c = r(a, b, c, d, e, f1, KK3, 8, 4, x)
+    e, b = r(e, a, b, c, d, f1, KK3, 11, 1, x)
+    d, a = r(d, e, a, b, c, f1, KK3, 14, 3, x)
+    c, e = r(c, d, e, a, b, f1, KK3, 14, 11, x)
+    b, d = r(b, c, d, e, a, f1, KK3, 6, 15, x)
+    a, c = r(a, b, c, d, e, f1, KK3, 14, 0, x)
+    e, b = r(e, a, b, c, d, f1, KK3, 6, 5, x)
+    d, a = r(d, e, a, b, c, f1, KK3, 9, 12, x)
+    c, e = r(c, d, e, a, b, f1, KK3, 12, 2, x)
+    b, d = r(b, c, d, e, a, f1, KK3, 9, 13, x)
+    a, c = r(a, b, c, d, e, f1, KK3, 12, 9, x)
+    e, b = r(e, a, b, c, d, f1, KK3, 5, 7, x)
+    d, a = r(d, e, a, b, c, f1, KK3, 15, 10, x)
+    c, e = r(c, d, e, a, b, f1, KK3, 8, 14, x)  # /* #63 */
     # /* Parallel round 5 */
-    b, d = R(b, c, d, e, a, F0, KK4, 8, 12, x)
-    a, c = R(a, b, c, d, e, F0, KK4, 5, 15, x)
-    e, b = R(e, a, b, c, d, F0, KK4, 12, 10, x)
-    d, a = R(d, e, a, b, c, F0, KK4, 9, 4, x)
-    c, e = R(c, d, e, a, b, F0, KK4, 12, 1, x)
-    b, d = R(b, c, d, e, a, F0, KK4, 5, 5, x)
-    a, c = R(a, b, c, d, e, F0, KK4, 14, 8, x)
-    e, b = R(e, a, b, c, d, F0, KK4, 6, 7, x)
-    d, a = R(d, e, a, b, c, F0, KK4, 8, 6, x)
-    c, e = R(c, d, e, a, b, F0, KK4, 13, 2, x)
-    b, d = R(b, c, d, e, a, F0, KK4, 6, 13, x)
-    a, c = R(a, b, c, d, e, F0, KK4, 5, 14, x)
-    e, b = R(e, a, b, c, d, F0, KK4, 15, 0, x)
-    d, a = R(d, e, a, b, c, F0, KK4, 13, 3, x)
-    c, e = R(c, d, e, a, b, F0, KK4, 11, 9, x)
-    b, d = R(b, c, d, e, a, F0, KK4, 11, 11, x)  # /* #79 */
+    b, d = r(b, c, d, e, a, f0, KK4, 8, 12, x)
+    a, c = r(a, b, c, d, e, f0, KK4, 5, 15, x)
+    e, b = r(e, a, b, c, d, f0, KK4, 12, 10, x)
+    d, a = r(d, e, a, b, c, f0, KK4, 9, 4, x)
+    c, e = r(c, d, e, a, b, f0, KK4, 12, 1, x)
+    b, d = r(b, c, d, e, a, f0, KK4, 5, 5, x)
+    a, c = r(a, b, c, d, e, f0, KK4, 14, 8, x)
+    e, b = r(e, a, b, c, d, f0, KK4, 6, 7, x)
+    d, a = r(d, e, a, b, c, f0, KK4, 8, 6, x)
+    c, e = r(c, d, e, a, b, f0, KK4, 13, 2, x)
+    b, d = r(b, c, d, e, a, f0, KK4, 6, 13, x)
+    a, c = r(a, b, c, d, e, f0, KK4, 5, 14, x)
+    e, b = r(e, a, b, c, d, f0, KK4, 15, 0, x)
+    d, a = r(d, e, a, b, c, f0, KK4, 13, 3, x)
+    c, e = r(c, d, e, a, b, f0, KK4, 11, 9, x)
+    b, d = r(b, c, d, e, a, f0, KK4, 11, 11, x)  # /* #79 */
 
     t = (state[1] + cc + d) % 0x100000000
     state[1] = (state[2] + dd + e) % 0x100000000

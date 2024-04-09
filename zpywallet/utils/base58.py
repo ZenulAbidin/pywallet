@@ -82,13 +82,13 @@ def b58decode_int(
         v = v.rstrip()
     v = scrub_input(v)
 
-    map = _get_base58_decode_map(alphabet, autofix=autofix)
+    decode_map = _get_base58_decode_map(alphabet, autofix=autofix)
 
     decimal = 0
     base = len(alphabet)
     try:
         for char in v:
-            decimal = decimal * base + map[char]
+            decimal = decimal * base + decode_map[char]
     except KeyError as e:
         raise ValueError("Invalid character {!r}".format(chr(e.args[0]))) from None
     return decimal
