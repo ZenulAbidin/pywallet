@@ -6,7 +6,7 @@ This module contains the methods for creating a crypto wallet.
 import json
 import math
 from os import urandom
-from random import randrange
+from Cryptodome import Random
 from typing import List
 
 from zpywallet.utxo import UTXO
@@ -607,7 +607,16 @@ class Wallet:
             str: A randomly selected address from the wallet.
         """
         addresses = self.addresses()
-        return addresses[randrange(0, len(addresses))]
+
+        # Use a secure RNG to resist blockchain analysis
+        limit = len(addresses)
+
+        # Convert bits to bytes and round up to the nearest byte
+        watermark = int(math.ceil(math.log2(len(addresses)))) // 8
+
+        while limit >= len(addresses):
+            limit = int.from_bytes(Random.new().read(watermark), byteorder='big')
+        return addresses[limit]
 
     def private_keys(self, password):
         """
