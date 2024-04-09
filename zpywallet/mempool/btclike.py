@@ -268,7 +268,8 @@ class BTCLikeMempool:
         temp_transactions = self._internal_pass_2a(
             sql_transaction_storage, transaction_batch
         )
-        self._internal_pass_2b(sql_transaction_storage, temp_transactions)
+        if self.full_transactions:
+            self._internal_pass_2b(sql_transaction_storage, temp_transactions)
 
     def _internal_pass_2a(self, sql_transaction_storage, transaction_batch):
         try:
@@ -290,13 +291,7 @@ class BTCLikeMempool:
                 temp_transactions = []
                 for future in futures:
                     temp_transactions.extend(future.result())
-        except Exception as e:
-            sql_transaction_storage.rollback()
-            raise e
-        return temp_transactions
 
-    def _internal_pass_2b(self, sql_transaction_storage, temp_transactions):
-        try:
             # If we only need to know information about the outputs and not the inputs
             # (e.g. payment processing) then we can skip the very expensive process of
             # resolving txins.
@@ -308,9 +303,15 @@ class BTCLikeMempool:
                         sql_transaction_storage.store_txo0(tx, i)
                 sql_transaction_storage.commit()
                 return
+        except Exception as e:
+            sql_transaction_storage.rollback()
+            raise e
+        return temp_transactions
 
-            # Otherwise we have to get all of the input txids in one swoop so we can
-            # finish processing the mempool transactions.
+    def _internal_pass_2b(self, sql_transaction_storage, temp_transactions):
+        try:
+            # For full transaction mode, we have to get all of the input txids
+            # in one swoop so we can finish processing the mempool transactions.
             txid_batches = [
                 self.txos[i : i + self.max_workers]
                 for i in range(0, len(self.txos), self.max_workers)
@@ -320,28 +321,26 @@ class BTCLikeMempool:
                     executor.submit(self._postprocess_transaction, txes)
                     for txes in txid_batches
                 ]
-                for future in futures:
-                    results = future.result()
-                    for txid, result in results.items():
-                        try:
-                            sql_transaction_storage.store_txo1(txid, result)
-                        except DatabaseError:
-                            pass
+                results = {}
+                _ = [results.update(future.result()) for future in futures]
+                for txid, result in results.items():
+                    try:
+                        sql_transaction_storage.store_txo1(txid, result)
+                    except DatabaseError:
+                        pass
 
             self.txos = []
             for temp_transaction in temp_transactions:
-                temp_transaction = temp_transactions[i]
                 new_transaction = self._post_clean_tx(
                     temp_transaction, sql_transaction_storage
                 )
-                if new_transaction is not None:
-                    sql_transaction_storage.store_transaction(new_transaction)
-                    for i in range(len(new_transaction.btclike_transaction.inputs)):
-                        sql_transaction_storage.store_txo0(
-                            new_transaction, i, output=False
-                        )
-                    for i in range(len(new_transaction.btclike_transaction.outputs)):
-                        sql_transaction_storage.store_txo0(new_transaction, i)
+                if new_transaction is None:
+                    continue
+                sql_transaction_storage.store_transaction(new_transaction)
+                for i in range(len(new_transaction.btclike_transaction.inputs)):
+                    sql_transaction_storage.store_txo0(new_transaction, i, output=False)
+                for i in range(len(new_transaction.btclike_transaction.outputs)):
+                    sql_transaction_storage.store_txo0(new_transaction, i)
             sql_transaction_storage.wipeout_reftxos()
             sql_transaction_storage.commit()
         except Exception as e:
