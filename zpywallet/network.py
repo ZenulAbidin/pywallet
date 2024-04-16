@@ -12,7 +12,8 @@ class CryptoNetwork(object):
     Don't use this class - use one of the subclasses instead.
     """
 
-    pass
+    # All P2PKH testnet chains use this path.
+    P2PKH_TESTNET_PATH = "m/44'/1'/0'"
 
 
 class BitcoinCashMainNet(CryptoNetwork):
@@ -72,7 +73,7 @@ class DashMainNet(CryptoNetwork):
     BECH32_PREFIX = None  # Bech32 not supported
 
 
-class DashInvertedMainNet(CryptoNetwork):
+class DashInvertedMainNet(DashMainNet):
     """Dash MainNet version bytes.
 
     This is the version that uses drkv/drkp as the public/private
@@ -80,25 +81,9 @@ class DashInvertedMainNet(CryptoNetwork):
     and coin as the other Dash mainnets.
     """
 
-    NAME = "Dash"
     INTERNAL_NAME = wallet_pb2.Network.DASH_INVERTED_MAINNET
-    COIN = "DASH"
-    TESTNET = False
-    ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x10  # decimal 16
-    PUBKEY_ADDRESS = 0x4C  # decimal 76
-    SECRET_KEY = 0xCC  # decimal 204
     EXT_PUBLIC_KEY = 0x02FE52F8  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x02FE52CC  # Used to serialize private BIP32 addresses
-    BIP32_PATH = "m/44'/5'/0'"
-
-    SUPPORTS_SEGWIT = False
-    SUPPORTS_EVM = False
-    CHAIN_ID = None
-    EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_SECRET_KEY = None
-    BIP32_SEGWIT_PATH = None  # P2WPKH not supported
-    BECH32_PREFIX = None  # Bech32 not supported
 
 
 class DashBTCMainNet(CryptoNetwork):
@@ -142,7 +127,7 @@ class DashTestNet(CryptoNetwork):
     SECRET_KEY = 0xEF  # decimal 239
     EXT_PUBLIC_KEY = 0x3A805837  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x3A8061A0  # Used to serialize private BIP32 addresses
-    BIP32_PATH = "m/44'/1'/0'"
+    BIP32_PATH = CryptoNetwork.P2PKH_TESTNET_PATH
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -153,28 +138,12 @@ class DashTestNet(CryptoNetwork):
     BECH32_PREFIX = None  # Bech32 not supported
 
 
-class DashInvertedTestNet(CryptoNetwork):
+class DashInvertedTestNet(DashTestNet):
     """Dash TestNet version bytes with inverted extended version bytes."""
 
-    NAME = "Dash"
     INTERNAL_NAME = wallet_pb2.Network.DASH_INVERTED_TESTNET
-    COIN = "DASH"
-    TESTNET = True
-    ADDRESS_MODE = ["BASE58"]
-    SCRIPT_ADDRESS = 0x13  # decimal 19
-    PUBKEY_ADDRESS = 0x8C  # decimal 140
-    SECRET_KEY = 0xEF  # decimal 239
     EXT_PUBLIC_KEY = 0x3A8061A0  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x3A805837  # Used to serialize private BIP32 addresses
-    BIP32_PATH = "m/44'/1'/0'"
-
-    SUPPORTS_SEGWIT = False
-    SUPPORTS_EVM = False
-    CHAIN_ID = None
-    EXT_SEGWIT_PUBLIC_KEY = None
-    EXT_SEGWIT_SECRET_KEY = None
-    BIP32_SEGWIT_PATH = None  # P2WPKH not supported
-    BECH32_PREFIX = None  # Bech32 not supported
 
 
 class BitcoinMainNet(CryptoNetwork):
@@ -240,7 +209,7 @@ class BitcoinTestNet(CryptoNetwork):
     EXT_SECRET_KEY = (
         0x04358394  # Used to serialize private keys in BIP32 legacy (P2PKH)
     )
-    BIP32_PATH = "m/44'/1'/0'"
+    BIP32_PATH = CryptoNetwork.P2PKH_TESTNET_PATH
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -315,7 +284,7 @@ class LitecoinSegwitMainNet(LitecoinMainNet):
     EXT_SEGWIT_SECRET_KEY = (
         0x04B2430C  # Used to serialize private keys in BIP32 segwit (P2WPKH)
     )
-    BIP32_SEGWIT_PATH = "m/84'/0'/0'"
+    BIP32_SEGWIT_PATH = "m/84'/2'/0'"
     BECH32_PREFIX = "ltc"
 
 
@@ -368,7 +337,7 @@ class LitecoinBTCSegwitMainNet(LitecoinBTCMainNet):
     EXT_SEGWIT_SECRET_KEY = (
         0x04B2430C  # Used to serialize private keys in BIP32 segwit (P2WPKH)
     )
-    BIP32_SEGWIT_PATH = "m/84'/0'/0'"
+    BIP32_SEGWIT_PATH = "m/84'/2'/0'"
     BECH32_PREFIX = "ltc"
 
 
@@ -394,7 +363,7 @@ class LitecoinTestNet(CryptoNetwork):
 
     EXT_PUBLIC_KEY = 0x0436F6E1
     EXT_SECRET_KEY = 0x0436EF7D
-    BIP32_PATH = "m/44'/1'/0'"
+    BIP32_PATH = CryptoNetwork.P2PKH_TESTNET_PATH
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
@@ -517,7 +486,7 @@ class DogecoinTestNet(CryptoNetwork):
     # https://bitcointalk.org/index.php?topic=409731
     EXT_PUBLIC_KEY = 0x0432A9A8
     EXT_SECRET_KEY = 0x0432A243
-    BIP32_PATH = "m/44'/1'/0'"
+    BIP32_PATH = CryptoNetwork.P2PKH_TESTNET_PATH
 
     EXT_SEGWIT_PUBLIC_KEY = None
     EXT_SEGWIT_SECRET_KEY = None
@@ -539,7 +508,7 @@ class BlockcypherTestNet(CryptoNetwork):
     SECRET_KEY = 0x49  # decimal 73
     EXT_PUBLIC_KEY = 0x2D413FF  # Used to serialize public BIP32 addresses
     EXT_SECRET_KEY = 0x2D40FC3  # Used to serialize private BIP32 addresses
-    BIP32_PATH = "m/44'/1'/0'"
+    BIP32_PATH = CryptoNetwork.P2PKH_TESTNET_PATH
 
     SUPPORTS_SEGWIT = False
     SUPPORTS_EVM = False
