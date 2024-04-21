@@ -7,8 +7,7 @@
 
 
 import unittest
-from zpywallet.address.btc import BitcoinAddress
-from zpywallet.address.eth import EthereumAddress
+from zpywallet.address import CryptoClient
 from zpywallet.destination import Destination
 from zpywallet.network import BitcoinMainNet, BitcoinSegwitMainNet, EthereumMainNet
 from zpywallet.transactions.encode import create_transaction
@@ -32,7 +31,7 @@ class TestAddress(unittest.TestCase):
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        b = BitcoinAddress(["16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM"])
+        b = CryptoClient(["16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM"])
 
         saved_utxos = b.get_utxos()
         destinations = [
@@ -68,7 +67,7 @@ class TestAddress(unittest.TestCase):
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        b = BitcoinAddress(["16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM"])
+        b = CryotoAddress(["16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM"])
 
         saved_utxos = b.get_utxos()
         destinations = [
@@ -106,7 +105,7 @@ class TestAddress(unittest.TestCase):
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        bc = BitcoinAddress(["bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c"])
+        bc = CryptoClient(["bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c"])
 
         saved_utxos = bc.get_utxos()
         destinations = [
@@ -144,7 +143,7 @@ class TestAddress(unittest.TestCase):
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        bc2 = BitcoinAddress(
+        bc2 = CryptoClient(
             [
                 "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM",
                 "bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c",
@@ -187,7 +186,7 @@ class TestAddress(unittest.TestCase):
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        bc2 = BitcoinAddress(
+        bc2 = CryptoClient(
             [
                 "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM",
                 "bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c",
@@ -248,7 +247,7 @@ class TestAddress(unittest.TestCase):
 
     def test_005_eth_sign(self):
         """Test creating EVM Ethereum transactions"""
-        b = EthereumAddress(["0xd73e8e2ac0099169e7404f23c6caa94cf1884384"])
+        b = CryptoClient(["0xd73e8e2ac0099169e7404f23c6caa94cf1884384"], coin="ETH")
 
         destinations = [
             Destination(

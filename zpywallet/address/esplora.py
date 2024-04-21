@@ -235,9 +235,11 @@ class EsploraClient:
             NetworkException: If the API request fails or the transaction
                 history cannot be retrieved.
         """
+        block_height = self.get_block_height()
         for address in self.addresses:
             self.transactions.extend(self._get_one_transaction_history(address))
             self.transactions = deduplicate(self.transactions)
+        self.height = block_height
         return self.transactions
 
     def _get_one_transaction_history(self, address):
@@ -261,6 +263,7 @@ class EsploraClient:
                 response.raise_for_status()
                 data = response.json()
                 for tx in data:
+                    ctx = self._clean_tx(tx)
                     if ctx.confirmed and ctx.height < self.height:
                         return
                     ctx = self._clean_tx(tx)

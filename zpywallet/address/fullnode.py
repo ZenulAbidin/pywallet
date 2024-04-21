@@ -1,5 +1,3 @@
-from Cryptodome import Random
-import requests
 from functools import reduce
 
 import json
@@ -81,7 +79,6 @@ class RPCClient:
                 txoutput.address = vout["scriptPubKey"]["address"]
             elif "addresses" in vout["scriptPubKey"].keys():
                 txoutput.address = vout["scriptPubKey"]["addresses"][0]
-            is_mine = is_mine or txoutput.address in self.addresses
 
         for vin in element["vin"]:
             txinput = new_element.btclike_transaction.inputs.add()
@@ -95,7 +92,6 @@ class RPCClient:
             intx = sql_transaction_storage.get_transaction_by_txid(txinput.txid)
             txinput.amount = intx.btclike_transaction.outputs[txinput.index].amount
             txinput.address = intx.btclike_transaction.outputs[txinput.index].address
-            is_mine |= txinput.address in self.addresses
 
         # Now we must calculate the total fee
         total_inputs = sum([a.amount for a in new_element.btclike_transaction.inputs])
@@ -322,31 +318,6 @@ class RPCClient:
             )[1]
             transaction = self._clean_tx(raw_transaction, None, sql_transaction_storage)
             sql_transaction_storage.store_transaction(transaction)
-
-    def _send_rpc_request(self, method, params=None):
-        payload = {
-            "method": method,
-            "params": params or [],
-            "jsonrpc": "2.0",
-            "id": int.from_bytes(Random.new().read(4), byteorder="big"),
-        }
-        try:
-            response = requests.post(
-                self.rpc_url,
-                auth=(
-                    (self.rpc_user, self.rpc_password)
-                    if self.rpc_user and self.rpc_password
-                    else None
-                ),
-                json=payload,
-                timeout=86400,
-            )
-            j = response.json()
-            if "result" not in j.keys():
-                raise NetworkException("Failed to get result")
-            return j
-        except Exception as e:
-            raise NetworkException(f"RPC call failed: {str(e)}")
 
     def get_block_height(self):
         """

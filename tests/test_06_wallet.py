@@ -7,12 +7,7 @@
 import unittest
 from zpywallet.generated import wallet_pb2
 from zpywallet import Wallet
-from zpywallet.address.btc import BitcoinAddress
-from zpywallet.destination import Destination
 from zpywallet.network import BitcoinSegwitMainNet
-from zpywallet.transactions.encode import create_transaction
-from zpywallet.utxo import UTXO
-from zpywallet.nodes.btc import btc_nodes
 
 
 class TestWallet(unittest.TestCase):
@@ -23,7 +18,7 @@ class TestWallet(unittest.TestCase):
         """Tear down test fixtures, if any."""
 
     def test_000_create_wallet(self):
-        wallet = Wallet(BitcoinSegwitMainNet, None, "zpywallet", receive_gap_limit=1)
+        _ = Wallet(BitcoinSegwitMainNet, None, "zpywallet", receive_gap_limit=1)
         wallet_1 = Wallet(
             BitcoinSegwitMainNet,
             "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon cactus",
@@ -31,7 +26,7 @@ class TestWallet(unittest.TestCase):
             receive_gap_limit=1,
         )
         exported_wallet = wallet_1.serialize()
-        wallet_2 = Wallet.deserialize(exported_wallet, "zpywallet")
+        _ = Wallet.deserialize(exported_wallet, "zpywallet")
 
     def test_001_use_the_wallet(self):
         """Test using the wallet."""

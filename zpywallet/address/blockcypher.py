@@ -219,9 +219,11 @@ class BlockcypherClient:
             NetworkException: If the API request fails or the transaction
                 history cannot be retrieved.
         """
+        block_height = self.get_block_height()
         for address in self.addresses:
             self.transactions.extend(self._get_one_transaction_history(address))
             self.transactions = deduplicate(self.transactions)
+        self.height = block_height
         return self.transactions
 
     def _get_one_transaction_history(self, address):
@@ -266,15 +268,17 @@ class BlockcypherClient:
                 data = response.json()
                 for tx in data["txs"]:
                     ctx = self._clean_tx(tx)
+                    block_height = ctx.height
                     if ctx.confirmed and ctx.height < self.height:
                         # We already have those older transactions
                         # Strictly less-than allows for catching very large
                         # number of matches on the same block spanning
-                        # multiple pages..
-                        self.height = block_height
+                        # multiple pages.
                         return
                     yield ctx
-                    block_height = max(block_height, ctx.height)
+                if not data["txs"]:
+                    return
+                block_height = ctx.height
 
             except requests.exceptions.RetryError:
                 raise NetworkException(
@@ -284,5 +288,3 @@ class BlockcypherClient:
                 raise NetworkException(
                     "Failed to retrieve transactions (response body is not JSON)"
                 )
-
-            self.height = block_height

@@ -1,9 +1,6 @@
 import requests
-import time
 
 from functools import reduce
-
-from urllib3 import Retry
 
 from urllib3 import Retry
 from requests.adapters import HTTPAdapter
@@ -232,14 +229,15 @@ class DogeChainClient:
             NetworkException: If the API request fails or the transaction
                 history cannot be retrieved.
         """
+        block_height = self.get_block_height()
         for address in self.addresses:
             self.transactions.extend(self._get_one_transaction_history(address))
             self.transactions = deduplicate(self.transactions)
+        self.height = block_height
         return self.transactions
 
     def _get_one_transaction_history(self, address):
         data = {"transactions": 1}
-
         i = 1
 
         while data["transactions"]:
@@ -263,12 +261,10 @@ class DogeChainClient:
                         # We already have those older transactions
                         # Strictly less-than allows for catching very large
                         # number of matches on the same block spanning
-                        # multiple pages..
-                        self.height = block_height
+                        # multiple pages.
                         return
                     yield ctx
-                    block_height = max(block_height, ctx.height)
-                i += 1
+                    i += 1
 
             except requests.exceptions.RetryError:
                 raise NetworkException(

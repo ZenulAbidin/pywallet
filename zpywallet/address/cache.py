@@ -54,11 +54,13 @@ class DatabaseConnection:
 
 class PostgreSQLConnection(DatabaseConnection):
     BLOB_TYPE = "BYTEA"
-    REPLACE = (
-        lambda sql, id: "INSERT INTO "
-        + sql
-        + f" ON CONFLICT ({id}) DO UPDATE SET {id} = EXCLUDED.{id}"
-    )
+
+    def REPLACE(sql, id):
+        return (
+            "INSERT INTO "
+            + sql
+            + f" ON CONFLICT ({id}) DO UPDATE SET {id} = EXCLUDED.{id}"
+        )
 
     def __init__(self, psycopg2, connection_params):
         super().__init__(psycopg2, connection_params)
@@ -66,7 +68,9 @@ class PostgreSQLConnection(DatabaseConnection):
 
 class MySQLConnection(DatabaseConnection):
     BLOB_TYPE = "BLOB"
-    REPLACE = lambda sql, id: "REPLACE INTO " + sql
+
+    def REPLACE(self, sql, _=None):
+        return "REPLACE INTO " + sql
 
     def __init__(self, mysql_connector, connection_params):
         super().__init__(mysql_connector, connection_params)
@@ -74,7 +78,9 @@ class MySQLConnection(DatabaseConnection):
 
 class SQLiteConnection(DatabaseConnection):
     BLOB_TYPE = "BLOB"
-    REPLACE = lambda sql, id: "INSERT INTO OR REPLACE " + sql
+
+    def REPLACE(self, sql, _=None):
+        return "INSERT INTO OR REPLACE " + sql
 
     def __init__(self, sqlite3, connection_params):
         super().__init__(sqlite3, connection_params)

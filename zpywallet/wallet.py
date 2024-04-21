@@ -47,13 +47,7 @@ from .network import (
     BlockcypherTestNet,
 )
 
-from .address.bcy import BCYAddress
-from .address.btc import BitcoinAddress
-from .address.btctest import BitcoinTestAddress
-from .address.dash import DashAddress
-from .address.doge import DogecoinAddress
-from .address.eth import EthereumAddress
-from .address.ltc import LitecoinAddress
+from .address import CryptoClient
 
 from .nodes.eth import eth_nodes
 
@@ -362,57 +356,14 @@ class Wallet:
             "blockcypher_tokens": blockcypher_tokens,
         }
 
-        if self._network.COIN == "BCY":
-            self.client = BCYAddress(
-                addresses,
-                transactions=self.wallet.transactions,
-                max_cycles=max_cycles,
-                **kwargs,
-            )
-        elif self._network.COIN == "BTC" and not self._network.TESTNET:
-            self.client = BitcoinAddress(
-                addresses,
-                transactions=self.wallet.transactions,
-                max_cycles=max_cycles,
-                **kwargs,
-            )
-        elif self._network.COIN == "BTC" and self._network.TESTNET:
-            self.client = BitcoinTestAddress(
-                addresses,
-                transactions=self.wallet.transactions,
-                max_cycles=max_cycles,
-                **kwargs,
-            )
-        elif self._network.COIN == "LTC" and not self._network.TESTNET:
-            self.client = LitecoinAddress(
-                addresses,
-                transactions=self.wallet.transactions,
-                max_cycles=max_cycles,
-                **kwargs,
-            )
-        elif self._network.COIN == "DOGE" and not self._network.TESTNET:
-            self.client = DogecoinAddress(
-                addresses,
-                transactions=self.wallet.transactions,
-                max_cycles=max_cycles,
-                **kwargs,
-            )
-        elif self._network.COIN == "DASH" and not self._network.TESTNET:
-            self.client = DashAddress(
-                addresses,
-                transactions=self.wallet.transactions,
-                max_cycles=max_cycles,
-                **kwargs,
-            )
-        elif self._network.COIN == "ETH" and not self._network.TESTNET:
-            self.client = EthereumAddress(
-                addresses,
-                transactions=self.wallet.transactions,
-                max_cycles=max_cycles,
-                **kwargs,
-            )
-        else:
-            raise ValueError("No address client for this network")
+        self.client = CryptoClient(
+            addresses,
+            coin=self._network.COIN,
+            chain="test" if self._network.TESTNET else "main",
+            transactions=self.wallet.transactions,
+            max_cycles=max_cycles,
+            **kwargs,
+        )
 
     def get_transaction_history(self):
         """
