@@ -125,7 +125,8 @@ class Mnemonic(object):
             )
         return self.to_mnemonic(secrets.token_bytes(strength // 8))
 
-    # Adapted from <http://tinyurl.com/oxmn476>
+    # Adapted from BitcoinJ
+    # https://github.com/bitcoinj/bitcoinj/blob/6aa4e51de6004f7171802bbce9c1660228d05aae/core/src/main/java/org/bitcoinj/crypto/MnemonicCode.java#L147
     def to_entropy(self, words: Union[List[str], str]) -> bytearray:
         if not isinstance(words, list):
             words = words.split(" ")
