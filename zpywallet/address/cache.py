@@ -298,7 +298,7 @@ class SQLTransactionStorage:
 
             # Drop all unconfirmed transactions that are more than 2 weeks old
             sql = f"""
-            DELETE from transactions WHERE confirmed = FALSE AND  timestamp < {int(time.time())-1209600}
+            DELETE from transactions WHERE confirmed = FALSE AND  timestamp < {int(time.time()) - 1209600}
             """
 
             self.container.cursor.execute(sql)

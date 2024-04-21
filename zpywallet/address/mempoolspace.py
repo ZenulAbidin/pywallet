@@ -24,6 +24,6 @@ class MempoolSpaceClient(EsploraClient):
             chain=chain,
             request_interval=request_interval,
             transactions=transactions,
-            url=f"https://mempool.space/{'' if chain=='main' else 'testnet/'}api",
+            url=f"https://mempool.space/{'' if chain == 'main' else 'testnet/'}api",
             **kwargs,
         )

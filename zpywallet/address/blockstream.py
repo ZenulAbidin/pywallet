@@ -24,6 +24,6 @@ class BlockstreamClient(EsploraClient):
             chain=chain,
             request_interval=request_interval,
             transactions=transactions,
-            url=f"https://blockstream.info/{'' if chain=='main' else 'testnet/'}api",
+            url=f"https://blockstream.info/{'' if chain == 'main' else 'testnet/'}api",
             **kwargs,
         )

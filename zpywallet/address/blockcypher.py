@@ -260,7 +260,7 @@ class BlockcypherClient:
 
             url = (
                 f"https://api.blockcypher.com/v1/{self.coin}/{self.chain}/addrs/{address}"
-                + f"/full?limit={interval}{'' if not block_height else '&before='+block_height}&txlimit={txlimit}"
+                + f"/full?limit={interval}{'' if not block_height else '&before=' + block_height}&txlimit={txlimit}"
             )
             try:
                 response = session.get(url, params=params, timeout=60)
