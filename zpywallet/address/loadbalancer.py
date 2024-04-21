@@ -36,7 +36,7 @@ class CryptoClient:
         self.transactions = transactions or []
         fullnode_endpoints = kwargs.get("fullnode_endpoints") or []
         esplora_endpoints = kwargs.get("esplora_endpoints") or []
-        blockcypher_tokens = (kwargs.get("blockcypher_tokens") or []) + [""]
+        blockcypher_tokens = kwargs.get("blockcypher_tokens") or []
         self.db_connection_parameters = (
             kwargs.get("db_connection_parameters") if use_database else None
         )
@@ -115,6 +115,17 @@ class CryptoClient:
                     )
                 )
 
+        # Blockcypher without any token
+        with suppress(ValueError):
+            self.provider_list.append(
+                BlockcypherClient(
+                    addresses,
+                    coin,
+                    chain,
+                    transactions=self.transactions,
+                )
+            )
+
         with suppress(ValueError):
             self.provider_list.append(
                 BTCDotComClient(
@@ -122,7 +133,6 @@ class CryptoClient:
                     coin,
                     chain,
                     transactions=self.transactions,
-                    token=token,
                 )
             )
 
@@ -133,7 +143,6 @@ class CryptoClient:
                     coin,
                     chain,
                     transactions=self.transactions,
-                    token=token,
                 )
             )
 
