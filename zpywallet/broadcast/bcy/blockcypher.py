@@ -3,7 +3,7 @@ import requests
 from ...errors import NetworkException
 
 
-async def broadcast_transaction_bcy_blockcypher(raw_transaction_hex, **kwargs):
+async def broadcast_transaction_bcy_blockcypher(raw_transaction_hex):
     """Broadcast a Blockcypher testnet transaction using Blockcypher.
 
     Args:

@@ -1,16 +1,29 @@
+from functools import reduce
+
+import web3
 from web3 import Web3, middleware
 from web3.gas_strategies.time_based import fast_gas_price_strategy
 
-from ...errors import NetworkException
-from ...generated import wallet_pb2
-from ...utils.keccak import to_checksum_address
+from zpywallet.address.cache import SQLTransactionStorage, DatabaseError
+
+from ..errors import NetworkException
+from ..generated import wallet_pb2
+from ..utils.keccak import to_checksum_address
 
 
-class EthereumWeb3Client:
-    """A class representing a list of Ethereum addresses.
+def deduplicate(elements):
+    return reduce(lambda re, x: re + [x] if x not in re else re, elements, [])
 
-    This class allows you to retrieve the balance and transaction history of an
-    Etherum address using a full node.
+
+class Web3Client:
+    """
+    A class indexing all transactions in ethereum-like blockchains into
+    a database for quick fetching. It also lets you query transactions by address.
+
+    The performance of this class heavily depends on the network speed and CPU
+    speed of the node as well as the number of threads available, the size of the RPC
+    batch work queue specified in the constructor, and the amount of transactions in
+    megabytes you are trying to fetch at once.
 
     You can run a private node with many 3rd party providers such as Alchemy,
     Infura, QuickNode, and GetBlock.
@@ -46,7 +59,21 @@ class EthereumWeb3Client:
         new_element.fee_metric = wallet_pb2.WEI
         return new_element
 
-    def __init__(self, addresses, transactions=None, **kwargs):
+    def __init__(
+        self, addresses, coin="ETH", chain="main", transactions=None, **kwargs
+    ):
+        coin_map = {
+            "ETH": 0,
+        }
+        self.coin = coin_map.get(coin.upper())
+        if self.coin is None:
+            raise ValueError(f"Undefined coin '{coin}'")
+
+        chain_map = {"main": 0, "sepolia": 1}
+        self.chain = chain_map.get(chain)
+        if self.chain is None:
+            raise ValueError(f"Undefined chain '{chain}'")
+
         self.web3 = Web3(Web3.HTTPProvider(kwargs.get("url")))
         # This makes it fetch max<priority>feepergas info faster
         self.web3.eth.set_gas_price_strategy(fast_gas_price_strategy)
@@ -54,8 +81,7 @@ class EthereumWeb3Client:
         self.web3.middleware_onion.add(middleware.latest_block_based_cache_middleware)
         self.web3.middleware_onion.add(middleware.simple_cache_middleware)
 
-        self.min_height = kwargs.get("min_height") or 0
-        self.fast_mode = kwargs.get("fast_mode") or True
+        self.db_connection_parameters = kwargs.get("db_connection_parameters")
         self.transactions = []
         self.addresses = [to_checksum_address(a) for a in addresses]
         if transactions is not None and isinstance(transactions, list):
@@ -63,28 +89,31 @@ class EthereumWeb3Client:
         else:
             self.transactions = []
 
-        if kwargs.get("min_height") is not None:
-            self.min_height = kwargs.get("min_height")
-        else:
-            try:
-                self.min_height = self.get_block_height() + 1
-            except NetworkException:
-                self.min_height = 0
-
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Ethereum address from cached
-        data augmented with network data.
+        Retrieves the transaction history of the addresses from cached data.
 
         Returns:
             list: A list of transaction objects.
 
         Raises:
-            NetworkException: If the API request fails or the transaction
+            NetworkException: If the RPC request fails or the transaction
                 history cannot be retrieved.
         """
-        self.transactions = [*self._get_transaction_history()]
-        return self.transactions
+        sql_transaction_storage = SQLTransactionStorage(self.db_connection_parameters)
+
+        try:
+            transactions = []
+            for address in self.addresses:
+                transactions.extend(
+                    sql_transaction_storage.get_transactions_by_address(address)
+                )
+            transactions = deduplicate(transactions)
+            self.transactions = transactions
+            return transactions
+
+        except DatabaseError as e:
+            raise NetworkException(f"Failed to get transaction history: {str(e)}")
 
     def get_block_height(self):
         """
@@ -100,7 +129,7 @@ class EthereumWeb3Client:
         try:
             return self.web3.eth.block_number
         except Exception:
-            raise NetworkException("Failed to invoke Web3 method")
+            raise NetworkException("Failed to get web3 block height")
 
     def get_balance(self):
         """
@@ -121,7 +150,7 @@ class EthereumWeb3Client:
             try:
                 balance += self.web3.eth.get_balance(address)
             except Exception:
-                raise NetworkException("Failed to invoke Web3 method")
+                raise NetworkException("Failed to get web3 balance")
 
         # Ethereum has no unconfirmed balances or transactions.
         # But for compatibility reasons, we still return it as a 2-tuple.
@@ -129,28 +158,34 @@ class EthereumWeb3Client:
 
     # In Ethereum, only one transaction per account can be included in a block
     # at a time.
-    def _get_transaction_history(self):
-        addresses = [a.lower() for a in self.addresses]
+    def read_mempool(self):
+        sql_transaction_storage = SQLTransactionStorage(self.db_connection_parameters)
 
-        # Web3.py stores unconfirmed ETH transactions in "pending".
-        for block_number in list(
-            range(self.block_height, self.get_block_height() + 1)
-        ) + ["pending"]:
-            # Retrieve block information
-            try:
+        try:
+            self.height = sql_transaction_storage.get_block_height()
+
+            # Web3.py stores unconfirmed ETH transactions in "pending".
+            max_height = self.get_block_height()
+            for block_number in list(range(self.block_height, max_height + 1)) + [
+                "pending"
+            ]:
                 block = self.web3.eth.getBlock(block_number, full_transactions=True)
-            except Exception:
-                raise NetworkException("Failed to invoke Web3 method")
 
-            # Check if the block contains transactions
-            if block and "transactions" in block:
+                if not block or "transactions" not in block:
+                    continue
                 transactions = block["transactions"]
 
-                # Iterate through transactions in the block
                 for tx_hash in transactions:
-                    # Retrieve transaction details
                     transaction = self.web3.eth.getTransaction(tx_hash)
 
-                    # Check if the transaction is related to the target address
-                    if transaction and transaction["to"].lower() in addresses:
-                        yield self._clean_tx(transaction, block)
+                    parsed_transaction = self._clean_tx(transaction, block)
+                    sql_transaction_storage.store_transaction(parsed_transaction)
+        except web3.exceptions.Web3Exception as e:
+            raise NetworkException(
+                f"Failed to invoke get web3 transaction history: {e}"
+            )
+        except DatabaseError as e:
+            raise NetworkException(f"Failed to get transaction history: {str(e)}")
+
+        sql_transaction_storage.set_block_height(max_height)
+        sql_transaction_storage.commit()

@@ -1,10 +1,14 @@
 from functools import reduce
-import time
 import requests
 import datetime
 
-from ...errors import NetworkException
-from ...generated import wallet_pb2
+from urllib3 import Retry
+from requests.adapters import HTTPAdapter
+
+from ..errors import NetworkException
+from ..generated import wallet_pb2
+
+HTTPS_ADAPTER = "https://"
 
 
 def deduplicate(elements):
@@ -17,12 +21,12 @@ def convert_to_utc_timestamp(date_string, format_string="%Y-%m-%dT%H:%M:%SZ"):
     return int(utc_date.timestamp())
 
 
-class BlockcypherAddress:
+class BlockcypherClient:
     """
-    A class representing a list of Bitcoin addresses.
+    A class representing a list of crypto addresses.
 
     This class allows you to retrieve the balance, UTXO set, and transaction
-    history of a Bitcoin address using Blockcypher.
+    history of a crypto address using Blockcypher.
     """
 
     def _clean_tx(self, element):
@@ -79,44 +83,53 @@ class BlockcypherAddress:
     def __init__(
         self,
         addresses,
+        coin="BTC",
+        chain="main",
         request_interval=(3, 1),
         transactions=None,
-        api_key=None,
         **kwargs,
     ):
         """
         Initializes an instance of the BlockcypherAddress class.
 
         Args:
-            addresses (list): A list of human-readable Bitcoin addresses.
+            addresses (list): A list of human-readable crypto addresses.
             api_key (str): The API key for accessing the Blockcypher API.
             request_interval (tuple): A pair of integers indicating the number
                 of requests allowed during a particular amount of seconds.
                 Set to (0,N) for no rate limiting, where N>0.
         """
         self.addresses = addresses
-        self.api_key = api_key
+        self.api_key = kwargs.get("api_key")
+        self.height = -1
+        coin_map = {
+            "BTC": "btc",
+            "LTC": "ltc",
+            "DOGE": "doge",
+            "BCY": "bcy",
+            "DASH": "dash",
+        }
+        self.coin = coin_map.get(coin.upper())
+        if not self.coin:
+            raise ValueError(f"Undefined coin '{coin}'")
+
+        chain_map = {"main": "main", "test": "test"}
+        self.chain = chain_map.get(chain)
+        if not self.chain:
+            raise ValueError(f"Undefined chain '{chain}'")
+
         self.requests, self.interval_sec = request_interval
-        self.fast_mode = kwargs.get("fast_mode") or True
         if transactions is not None and isinstance(transactions, list):
             self.transactions = transactions
         else:
             self.transactions = []
 
-        if kwargs.get("min_height") is not None:
-            self.min_height = kwargs.get("min_height")
-        else:
-            try:
-                self.min_height = self.get_block_height()
-            except NetworkException:
-                self.min_height = 0
-
     def get_balance(self):
         """
-        Retrieves the balance of the Bitcoin address.
+        Retrieves the balance of the crypto address.
 
         Returns:
-            tuple: The total balance and the confirmed balance of the Bitcoin address in BTC.
+            tuple: The total balance and the confirmed balance of the crypto address whole units e.g. BTC e.g. BTC.
 
         Raises:
             NetworkException: If the API request fails or the address balance cannot be retrieved.
@@ -167,31 +180,36 @@ class BlockcypherAddress:
                 cannot be retrieved.
         """
 
-        url = "https://api.blockcypher.com/v1/btc/main"
-        for attempt in range(3, -1, -1):
-            if attempt == 0:
-                raise NetworkException("Network request failure")
-            try:
-                params = None
-                if self.api_key:
-                    params = {"token", self.api_key}
-                response = requests.get(url, params=params, timeout=60)
-                break
-            except requests.RequestException:
-                pass
-            except requests.exceptions.JSONDecodeError:
-                pass
+        session = requests.Session()
+        retries = Retry(
+            total=3,
+            backoff_factor=self.interval_sec / self.requests,
+            status_forcelist=[429, 502, 503, 504],
+            allowed_methods={"GET"},
+        )
+        session.mount(HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
-        if response.status_code == 200:
+        url = f"https://api.blockcypher.com/v1/{self.coin}/{self.chain}"
+        try:
+            params = None
+            if self.api_key:
+                params = {"token", self.api_key}
+            response = session.get(url, params=params, timeout=60)
+            response.raise_for_status()
             data = response.json()
-            self.height = data["height"]
-            return self.height
-        else:
-            raise NetworkException("Failed to retrieve block height")
+            return data["height"]
+        except requests.exceptions.RetryError:
+            raise NetworkException(
+                "Failed to retrieve block height (max retries failed)"
+            )
+        except requests.exceptions.JSONDecodeError:
+            raise NetworkException(
+                "Failed to retrieve block height (response body is not JSON)"
+            )
 
     def get_transaction_history(self):
         """
-        Retrieves the transaction history of the Bitcoin address from cached
+        Retrieves the transaction history of the crypto address from cached
         data augmented with network data.
 
         Returns:
@@ -201,88 +219,70 @@ class BlockcypherAddress:
             NetworkException: If the API request fails or the transaction
                 history cannot be retrieved.
         """
-        if len(self.transactions) == 0:
-            self.transactions = deduplicate([*self._get_transaction_history()])
-        else:
-            # First element is the most recent transactions
-            txhash = self.transactions[0].txid
-            txs = [*self._get_transaction_history(txhash)]
-            txs.extend(self.transactions)
-            self.transactions = txs
-
-        self.transactions = deduplicate(self.transactions)
+        for address in self.addresses:
+            self.transactions.extend(self._get_one_transaction_history(address))
+            self.transactions = deduplicate(self.transactions)
         return self.transactions
 
-    def _get_transaction_history(self, txhash=None):
+    def _get_one_transaction_history(self, address):
         params = None
         if self.api_key:
             params = {"token", self.api_key}
-        for address in self.addresses:
-            interval = 50
-            block_height = 0
+        interval = 50
 
-            # Set a very high UTXO limit for those rare address that have crazy high input/output counts.
-            txlimit = 10000
+        # Set a very high UTXO limit for those rare address that have crazy high input/output counts.
+        # This seems to work as of April 2024
+        txlimit = 10000
 
-            url = f"https://api.blockcypher.com/v1/btc/main/addrs/{address}/full?limit={interval}&txlimit={txlimit}"
-            for attempt in range(3, -1, -1):
-                if attempt == 0:
-                    raise NetworkException("Network request failure")
-                try:
-                    response = requests.get(url, params=params, timeout=60)
-                    if response.status_code == 200:
-                        data = response.json()
-                        break
-                    else:
-                        raise NetworkException("Failed to retrieve transaction history")
-                except requests.RequestException:
-                    pass
+        session = requests.Session()
+        retries = Retry(
+            total=3,
+            backoff_factor=self.interval_sec / self.requests,
+            status_forcelist=[429, 502, 503, 504],
+            allowed_methods={"GET"},
+        )
+        session.mount(HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
-            for tx in data["txs"]:
-                time.sleep(self.interval_sec / (self.requests * len(data["txs"])))
-                if txhash and tx["hash"] == txhash:
-                    return
-                ctx = self._clean_tx(tx)
-                if not ctx.confirmed or ctx.height >= self.min_height:
-                    yield ctx
-                else:
-                    return
-            if "hasMore" not in data.keys():
-                return
-            else:
-                block_height = data["txs"][-1]["block_height"]
+        data = {"hasMore": True}
+        block_height = None
 
-            while "hasMore" in data.keys() and data["hasMore"]:
-                url = (
-                    f"https://api.blockcypher.com/v1/btc/main/addrs/{address}"
-                    + f"/full?limit={interval}&before={block_height}&txlimit={txlimit}"
-                )
-                for attempt in range(3, -1, -1):
-                    if attempt == 0:
-                        raise NetworkException("Network request failure")
-                    try:
-                        response = requests.get(url, params=params, timeout=60)
-                        break
-                    except requests.RequestException:
-                        pass
+        while "hasMore" in data.keys() and data["hasMore"]:
+            session = requests.Session()
+            retries = Retry(
+                total=3,
+                backoff_factor=self.interval_sec / self.requests,
+                status_forcelist=[429, 502, 503, 504],
+                allowed_methods={"GET"},
+            )
+            session.mount(HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
-                if response.status_code == 200:
-                    data = response.json()
-                    for tx in data["txs"]:
-                        time.sleep(
-                            self.interval_sec / (self.requests * len(data["txs"]))
-                        )
-                        if txhash and tx["hash"] == txhash:
-                            return
-                        ctx = self._clean_tx(tx)
-                        if not ctx.confirmed or ctx.height >= self.min_height:
-                            yield ctx
-                        else:
-                            self.min_height = self.height + 1
-                            return
-                    if "hasMore" not in data.keys():
+            url = (
+                f"https://api.blockcypher.com/v1/{self.coin}/{self.chain}/addrs/{address}"
+                + f"/full?limit={interval}{'' if not block_height else '&before='+block_height}&txlimit={txlimit}"
+            )
+            try:
+                response = session.get(url, params=params, timeout=60)
+                response.raise_for_status()
+                data = response.json()
+                for tx in data["txs"]:
+                    ctx = self._clean_tx(tx)
+                    if ctx.confirmed and ctx.height < self.height:
+                        # We already have those older transactions
+                        # Strictly less-than allows for catching very large
+                        # number of matches on the same block spanning
+                        # multiple pages..
+                        self.height = block_height
                         return
-                    else:
-                        block_height = data["txs"][-1]["block_height"]
-                else:
-                    raise NetworkException("Failed to retrieve transaction history")
+                    yield ctx
+                    block_height = max(block_height, ctx.height)
+
+            except requests.exceptions.RetryError:
+                raise NetworkException(
+                    "Failed to retrieve transactions (max retries failed)"
+                )
+            except requests.exceptions.JSONDecodeError:
+                raise NetworkException(
+                    "Failed to retrieve transactions (response body is not JSON)"
+                )
+
+            self.height = block_height

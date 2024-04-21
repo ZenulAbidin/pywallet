@@ -138,7 +138,7 @@ message ETHLikeTransaction {
 message Transaction {
   // Common transaction elements
   string txid = 1;               // Transaction ID or hash
-  uint64 timestamp = 2;          // Timestamp of the transaction (Unix time)
+  uint64 timestamp = 2;          // Unix timestamp of the transaction (unreliable)
   bool confirmed = 3;            // Has this transaction been confirmed?
   uint64 height = 4;             // Block height
   uint64 total_fee = 5;          // Transaction or gas fee (wei for Ethereum, sats for Bitcoin)

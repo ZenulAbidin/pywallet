@@ -1,5 +1,5 @@
 from urllib.parse import urlparse
-import json
+import time
 from copy import deepcopy
 from ..generated import wallet_pb2
 
@@ -54,6 +54,11 @@ class DatabaseConnection:
 
 class PostgreSQLConnection(DatabaseConnection):
     BLOB_TYPE = "BYTEA"
+    REPLACE = (
+        lambda sql, id: "INSERT INTO "
+        + sql
+        + f" ON CONFLICT ({id}) DO UPDATE SET {id} = EXCLUDED.{id}"
+    )
 
     def __init__(self, psycopg2, connection_params):
         super().__init__(psycopg2, connection_params)
@@ -61,6 +66,7 @@ class PostgreSQLConnection(DatabaseConnection):
 
 class MySQLConnection(DatabaseConnection):
     BLOB_TYPE = "BLOB"
+    REPLACE = lambda sql, id: "REPLACE INTO " + sql
 
     def __init__(self, mysql_connector, connection_params):
         super().__init__(mysql_connector, connection_params)
@@ -68,6 +74,7 @@ class MySQLConnection(DatabaseConnection):
 
 class SQLiteConnection(DatabaseConnection):
     BLOB_TYPE = "BLOB"
+    REPLACE = lambda sql, id: "INSERT INTO OR REPLACE " + sql
 
     def __init__(self, sqlite3, connection_params):
         super().__init__(sqlite3, connection_params)
@@ -103,10 +110,8 @@ class SQLTransactionStorage:
             self.container.connect()
 
             try:
+                self.create_metadata_table()
                 self.create_transactions_table()
-                self.create_txos_table()
-                self.create_reftxos_table()
-                self.create_idtxos_table()
             except DatabaseError:
                 pass
 
@@ -129,12 +134,35 @@ class SQLTransactionStorage:
         except Exception:
             pass
 
+    # DANGER this wipes out the entire transaction cache
     def clear_transactions(self):
         try:
             sql = "DELETE FROM transactions"
             self.container.cursor.execute(sql)
         except Exception as e:
             raise DatabaseError(f"Error clearing transactions: {e}")
+
+    def create_metadata_table(self):
+        try:
+            sql = """
+            CREATE TABLE IF NOT EXISTS metadata (
+                zpywallet_const VARCHAR(9) PRIMARY KEY,
+                height INTEGER
+                )
+                """
+
+            self.container.cursor.execute(sql)
+
+            sql = self.container.REPLACE(
+                """
+            metadata (zpywallet_const, height) VALUES (?, ?)
+            """,
+                "zpywallet_const",
+            )
+
+            self.container.cursor.execute(sql, ("zpywallet", 0))
+        except Exception as e:
+            raise DatabaseError(f"Error creating table: {e}")
 
     def create_transactions_table(self):
         try:
@@ -159,87 +187,74 @@ class SQLTransactionStorage:
             """
 
             self.container.cursor.execute(sql)
-        except Exception as e:
-            raise DatabaseError(f"Error creating table: {e}")
 
-    def create_txos_table(self):
+            sql = """
+            CREATE VIEW IF NOT EXISTS confirmed_transactions AS
+            SELECT * FROM transactions WHERE confirmed = TRUE
+            """
+
+            self.container.cursor.execute(sql)
+
+            sql = """
+            CREATE VIEW IF NOT EXISTS unconfirmed_transactions AS
+            SELECT * FROM transactions WHERE confirmed = FALSE
+            """
+
+            self.container.cursor.execute(sql)
+
+        except Exception as e:
+            raise DatabaseError(f"Error creating transactions table: {e}")
+
+    def get_block_height(self):
         try:
             if not self.container:
                 self.connect()
 
             sql = """
-            CREATE TABLE IF NOT EXISTS txos (
-                txidn VARCHAR(72) PRIMARY KEY,
-                txid VARCHAR(64),
-                n INTEGER,
-                address VARCHAR(64),
-                amount BIGINT,
-                output BOOLEAN
-            )
+            SELECT height from metadata
+            WHERE zpywallet_const = 'zpywallet'
             """
-            self.container.cursor.execute(sql)
 
-            sql = """
-            CREATE VIEW IF NOT EXISTS outtxos AS
-                SELECT * FROM txos WHERE output = TRUE;
-            """
             self.container.cursor.execute(sql)
-
-            sql = """
-            CREATE VIEW IF NOT EXISTS intxos AS
-                SELECT * FROM txos WHERE output = FALSE;
-            """
-            self.container.cursor.execute(sql)
-
+            height = self.container.cursor.fetchone()[0]
+            return height
         except Exception as e:
-            raise DatabaseError(f"Error creating table: {e}")
+            raise DatabaseError(f"Error getting block height from database: {e}")
 
-    def create_reftxos_table(self):
+    def set_block_height(self, height):
         try:
             if not self.container:
                 self.connect()
 
-            sql = f"""
-            CREATE TABLE IF NOT EXISTS reftxos (
-                txid VARCHAR(64) PRIMARY KEY,
-                fine_rawtx {self.container.BLOB_TYPE}
+            sql = self.container.REPLACE(
+                """
+            metadata (height) VALUES (?, ?)
+            """,
+                "zpywallet_const",
             )
-            """
 
-            self.container.cursor.execute(sql)
+            self.container.cursor.execute(sql, (height))
         except Exception as e:
-            raise DatabaseError(f"Error creating table: {e}")
-
-    def create_idtxos_table(self):
-        try:
-            if not self.container:
-                self.connect()
-
-            sql = """
-            CREATE TABLE IF NOT EXISTS idtxos (
-                txid VARCHAR(64) PRIMARY KEY,
-            )
-            """
-
-            self.container.cursor.execute(sql)
-        except Exception as e:
-            raise DatabaseError(f"Error creating table: {e}")
+            raise DatabaseError(f"Error setting block height in database: {e}")
 
     def store_transaction(self, transaction):
         try:
             if not self.container:
                 self.connect()
 
-            sql = """
-            INSERT INTO transactions (txid, timestamp, confirmed, height, total_fee,
+            sql = self.container.REPLACE(
+                """
+            transactions (txid, timestamp, confirmed, height, total_fee,
                                       fee_metric, rawtx,
                                       txfrom, txto, amount, gas, data)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """
+            """,
+                "txid",
+            )
             data = (
                 transaction.txid,
                 transaction.timestamp,
-                int(transaction.confirmed),
+                transaction.confirmed,
                 transaction.height,
                 transaction.total_fee,
                 transaction.fee_metric,
@@ -270,30 +285,17 @@ class SQLTransactionStorage:
         except Exception as e:
             raise DatabaseError(f"Error deleting transaction: {e}")
 
-    def all_txids(self):
+    def delete_dropped_txids(self):
         try:
             if not self.container:
                 self.connect()
 
-            txids = []
-
-            sql = """
-            SELECT txid from transactions
+            # Drop all unconfirmed transactions that are more than 2 weeks old
+            sql = f"""
+            DELETE from transactions WHERE confirmed = FALSE AND  timestamp < {int(time.time())-1209600}
             """
 
             self.container.cursor.execute(sql)
-            txs = self.container.cursor.fetchall()
-            txids += [tx[0] for tx in txs]
-
-            sql = """
-            SELECT txid from txos
-            """
-
-            self.container.cursor.execute(sql)
-            txs = self.container.cursor.fetchall()
-            txids += [tx[0] for tx in txs]
-
-            return txids
 
         except Exception as e:
             raise DatabaseError(f"Error deleting transaction: {e}")
@@ -318,138 +320,22 @@ class SQLTransactionStorage:
         except Exception as e:
             raise DatabaseError(f"Error deleting transaction: {e}")
 
-    def wipeout_reftxos(self):
-        try:
-            if not self.container:
-                self.connect()
-
-            sql = """
-            DELETE FROM reftxos
-            """
-            self.container.cursor.execute(sql)
-
-        except Exception as e:
-            raise DatabaseError(f"Error clearing reftoxs: {e}")
-
     def get_transaction_by_txid(self, txid):
-        for cached_transaction in self.cache:
-            if cached_transaction.txid == txid:
-                return cached_transaction
-
         try:
             if not self.container:
                 self.connect()
 
-            sql = "SELECT * FROM transactions WHERE txid = %s"
+            sql = "SELECT rawtx FROM transactions WHERE txid = %s"
             self.container.cursor.execute(sql, (txid,))
             result = self.container.cursor.fetchone()
             if result:
-                return self._sql_to_protobuf(result)  # FIXME wrong parsing code
+                transaction = wallet_pb2.Transaction()
+                transaction.ParseFromString(result[0])
+                return transaction
             else:
                 return None
         except Exception as e:
             raise DatabaseError(f"Error getting transaction by txid: {e}")
-
-    def store_txo1(self, txid, transaction):
-        try:
-            if not self.container:
-                self.connect()
-
-            sql = """
-            INSERT INTO reftxos (txid, fine_rawtx)
-            VALUES (?, ?)
-            """
-            data = (
-                txid,
-                transaction,
-            )
-            self.container.cursor.execute(sql, data)
-
-        except Exception as e:
-            raise DatabaseError(f"Error storing txo: {e}")
-
-    def store_txo0(self, transaction, n, output=True):
-
-        def get_address(parent, n):
-            return parent[n].address
-
-        def get_amount(parent, n):
-            return parent[n].amount
-
-        try:
-            if not self.container:
-                self.connect()
-
-            sql = """
-            INSERT INTO txos (txidn, txid, n, address, amount, output)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """
-            outputs = transaction.btclike_transaction.outputs
-            inputs = transaction.btclike_transaction.inputs
-            data = (
-                transaction.txid + ("" if output else "-") + str(n),
-                transaction.txid,
-                n,
-                get_address(outputs if output else inputs, n),
-                get_amount(outputs if output else inputs, n),
-                output,
-            )
-            self.container.cursor.execute(sql, data)
-        except Exception as e:
-            raise DatabaseError(f"Error storing txo: {e}")
-
-    def store_idtxo(self, txid):
-        try:
-            if not self.container:
-                self.connect()
-
-            sql = """
-            INSERT INTO idtxo (txid)
-            VALUES (?)
-            """
-            data = (txid,)
-            self.container.cursor.execute(sql, data)
-        except Exception as e:
-            raise DatabaseError(f"Error storing idtxo: {e}")
-
-    def get_rawtx(self, txid):
-        try:
-            if not self.container:
-                self.connect()
-
-            sql = """
-            SELECT fine_rawtx from reftxos WHERE txid = ?
-            """
-            data = (txid,)
-            self.container.cursor.execute(sql, data)
-            try:
-                result = self.container.cursor.fetchone()
-                rawtx = wallet_pb2.Transaction()
-                rawtx.ParseFromString(result[0])
-                return rawtx
-            except Exception:
-                return None
-        except Exception as e:
-            raise DatabaseError(f"Error storing txo: {e}")
-
-    def get_idtxos(self, batch):
-        try:
-            if not self.container:
-                self.connect()
-
-            sql = """
-            SELECT * FROM idtxos
-            """
-            self.container.cursor.execute(sql)
-            try:
-                result = self.container.cursor.fetchmany(batch)
-                while result is not None:
-                    yield [row[0] for row in result]
-                    result = self.container.cursor.fetchmany(batch)
-            except Exception:
-                pass
-        except Exception as e:
-            raise DatabaseError(f"Error storing txo: {e}")
 
     def get_transactions_by_address(self, address):
         try:
@@ -474,65 +360,6 @@ class SQLTransactionStorage:
             return transactions
         except Exception as e:
             raise DatabaseError(f"Error storing txo: {e}")
-
-    def _btcprotobuf_to_sql(self, transaction_data):
-        # Convert BTCLikeTransaction Protobuf message to JSON and serialize to string
-        json_data = {
-            "fee": transaction_data.fee,
-            "inputs": [
-                self._btcinprotobuf_to_sql(input_data)
-                for input_data in transaction_data.inputs
-            ],
-            "outputs": [
-                self._btcoutprotobuf_to_sql(output_data)
-                for output_data in transaction_data.outputs
-            ],
-        }
-        return json.dumps(json_data)
-
-    def _btcinprotobuf_to_sql(self, txi_data):
-        # Convert BTCLikeInput Protobuf message to JSON and serialize to string
-        json_data = {
-            "txid": txi_data.txid,
-            "index": txi_data.index,
-            "amount": txi_data.amount,
-            # "witness_data": txi_data.witness_data,  # We DO NOT save witness data for now
-            "address": txi_data.address,
-        }
-        return json.dumps(json_data)
-
-    def _btcoutprotobuf_to_sql(self, txo_data):
-        # Convert BTCLikeOutput Protobuf message to JSON and serialize to string
-        json_data = {
-            "amount": txo_data.amount,
-            "address": txo_data.address,
-            "index": txo_data.index,
-            # "witness_data": txo_data.witness_data,  # We DO NOT save witness data for now
-            "spent": txo_data.spent,
-        }
-        return json.dumps(json_data)
-
-    def _sql_to_protobuf(self, row):
-        # Parse transaction data from SQL result
-        btclike_transaction = json.loads(row[6])
-
-        # Create Protobuf message
-        transaction = wallet_pb2.Transaction()
-        transaction.txid = row[0]
-        transaction.timestamp = row[1]
-        transaction.confirmed = row[2]
-        transaction.height = row[3]
-        transaction.total_fee = row[4]
-        transaction.fee_metric = row[5]
-        transaction.btclike_transaction.fee = btclike_transaction["fee"]
-        transaction.btclike_transaction.inputs.extend(btclike_transaction["inputs"])
-        transaction.btclike_transaction.outputs.extend(btclike_transaction["outputs"])
-        transaction.ethlike_transaction.txfrom = row[7]
-        transaction.ethlike_transaction.txto = row[8]
-        transaction.ethlike_transaction.amount = row[9]
-        transaction.ethlike_transaction.gas = row[10]
-        transaction.ethlike_transaction.data = row[11]
-        return transaction
 
 
 class DatabaseError(Exception):
