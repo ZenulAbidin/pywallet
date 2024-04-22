@@ -74,7 +74,8 @@ def descsum_check(s, require=True):
 
 def drop_origins(s):
     """Drop the key origins from a descriptor"""
-    desc = re.sub(r"\[.+?\]", "", s)
+    # formerly lazy quantifier r"\[.+?\]"  XXX Following has not been tested yet!
+    desc = re.sub(r"\[[^]]+\]", "", s)  # greedily negated character class
     if "#" in s:
         desc = desc[: desc.index("#")]
     return descsum_create(desc)

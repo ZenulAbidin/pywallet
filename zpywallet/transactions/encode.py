@@ -109,8 +109,8 @@ def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network)
     #
     # The partial transaction to sign is a double SHA256 of the serialization of:
     # 1.  nVersion of the transaction (4-byte little endian)
-    # 2.  hashPrevouts (32-byte hash)
-    # 3.  hashSequence (32-byte hash)
+    # 2.  hash_prevouts (32-byte hash)
+    # 3.  hash_sequence (32-byte hash)
     # 4.  outpoint (32-byte hash + 4-byte little endian)
     # 5.  scriptCode of the input (serialized as scripts inside CTxOuts)
     # 6.  value of the output spent by this input (8-byte little endian)
@@ -280,24 +280,24 @@ def create_transaction(
                 # nVersion of the transaction (4-byte little endian)
                 segwit_payload = int_to_hex(1, 4)
 
-                # hashPrevouts (32-byte hash)
-                hashPrevouts = b""
+                # hash_prevouts (32-byte hash)
+                hash_prevouts = b""
                 for j in inputs:
-                    hashPrevouts += binascii.unhexlify(j.txid().encode())[
+                    hash_prevouts += binascii.unhexlify(j.txid().encode())[
                         ::-1
                     ] + int_to_hex(j.index(), 4)
                 segwit_payload += hashlib.sha256(
-                    hashlib.sha256(hashPrevouts).digest()
+                    hashlib.sha256(hash_prevouts).digest()
                 ).digest()
 
-                # hashSequence (32-byte hash)
-                hashSequence = b""
+                # hash_sequence (32-byte hash)
+                hash_sequence = b""
                 for j in inputs:
-                    hashSequence += (
+                    hash_sequence += (
                         input_bytes_3  # The timelock is the same for all inputs.
                     )
                 segwit_payload += hashlib.sha256(
-                    hashlib.sha256(hashSequence).digest()
+                    hashlib.sha256(hash_sequence).digest()
                 ).digest()
 
                 # outpoint (32-byte hash + 4-byte little endian)
@@ -307,9 +307,9 @@ def create_transaction(
 
                 # scriptCode of the input (serialized as scripts inside CTxOuts)
                 # note: for p2wpkh this is actually the P2PKH script!!!
+                # Do not include network identifier byte in the decoded address
                 script = b"\x76\xa9" + i._script_pubkey()[1:] + b"\x88\xac"
                 segwit_payload += create_varint(len(script)) + script
-                # segwit_payload += create_varint(len(i._script_pubkey())) + i._script_pubkey()
 
                 # value of the output spent by this input (8-byte little endian)
                 segwit_payload += int_to_hex(i.amount(in_standard_units=False), 8)
@@ -357,7 +357,9 @@ def create_transaction(
             )
 
 
-def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, gas, chainId):
+def create_web3_transaction(
+    a_from, a_to, amount, private_key, fullnodes, gas, chain_id
+):
     sender_address = a_from
     receiver_address = a_to
     # All amounts are in WEI not Ether
@@ -383,7 +385,7 @@ def create_web3_transaction(a_from, a_to, amount, private_key, fullnodes, gas, c
                 # Since the London hard work (EIP-1559), nobody uses gasPrice anymore. They use max<Priority>FeePerGas
                 # Which is automatically specified (somehow) in Web3.
                 # 'gasPrice': w3.toWei(gasPrice, 'gwei'),  # Gas price in Gwei, adjust as needed
-                "chainId": chainId,  # 1 for Mainnet, change to 3 for Ropsten, 4 for Rinkeby, etc.
+                "chain_id": chain_id,  # 1 for Mainnet, change to 3 for Ropsten, 4 for Rinkeby, etc.
             }
 
             # OK now calculate the gas

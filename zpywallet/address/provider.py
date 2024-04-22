@@ -11,7 +11,6 @@ class AddressProvider(object):
     """
 
     HTTPS_ADAPTER = "https://"
-    HTTP_ADAPTER = "http://"
 
     def deduplicate(self, elements):
         return reduce(lambda re, x: re + [x] if x not in re else re, elements, [])

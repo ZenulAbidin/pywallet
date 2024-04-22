@@ -117,46 +117,45 @@ def multirate_padding(used_bytes, align_bytes):
         return [0x01] + ([0x00] * (padlen - 2)) + [0x80]
 
 
+def f_round(state, a, rc):
+    W, H = state.W, state.H
+    range_w, range_h = state.range_w, state.range_h
+    lanew = state.lanew
+    zero = state.zero
+
+    # theta
+    C = [reduce(xor, a[x]) for x in range_w]
+    D = [0] * W
+    for x in range_w:
+        D[x] = C[(x - 1) % W] ^ rol(C[(x + 1) % W], 1, lanew)
+        for y in range_h:
+            a[x][y] ^= D[x]
+
+    # rho and pi
+    B = zero()
+    for x in range_w:
+        for y in range_h:
+            B[y % W][(2 * x + 3 * y) % H] = rol(a[x][y], RotationConstants[y][x], lanew)
+
+    # chi
+    for x in range_w:
+        for y in range_h:
+            a[x][y] = B[x][y] ^ ((~B[(x + 1) % W][y]) & B[(x + 2) % W][y])
+
+    # iota
+    a[0][0] ^= rc
+
+
 def keccak_f(state):
     # Performs the Keccak-f permutation on the given Keccak state. It applies multiple
     # rounds of theta, rho, pi, chi, and iota operations to mutate the state. It operates
     # on and mutates the passed-in KeccakState.
 
-    def f_round(A, RC):
-        W, H = state.W, state.H
-        rangeW, rangeH = state.rangeW, state.rangeH
-        lanew = state.lanew
-        zero = state.zero
-
-        # theta
-        C = [reduce(xor, A[x]) for x in rangeW]
-        D = [0] * W
-        for x in rangeW:
-            D[x] = C[(x - 1) % W] ^ rol(C[(x + 1) % W], 1, lanew)
-            for y in rangeH:
-                A[x][y] ^= D[x]
-
-        # rho and pi
-        B = zero()
-        for x in rangeW:
-            for y in rangeH:
-                B[y % W][(2 * x + 3 * y) % H] = rol(
-                    A[x][y], RotationConstants[y][x], lanew
-                )
-
-        # chi
-        for x in rangeW:
-            for y in rangeH:
-                A[x][y] = B[x][y] ^ ((~B[(x + 1) % W][y]) & B[(x + 2) % W][y])
-
-        # iota
-        A[0][0] ^= RC
-
     l = int(log(state.lanew, 2))
     nr = 12 + 2 * l
 
     for ir in range(nr):
-        f_round(state.s, RoundConstants[ir])
+        f_round(state, state.s, RoundConstants[ir])
 
 
 class KeccakState(object):
@@ -172,15 +171,15 @@ class KeccakState(object):
     W = 5
     H = 5
 
-    rangeW = list(range(W))
-    rangeH = list(range(H))
+    range_w = list(range(W))
+    range_h = list(range(H))
 
     @staticmethod
     def zero():
         """
         Returns an zero state table.
         """
-        return [[0] * KeccakState.W for x in KeccakState.rangeH]
+        return [[0] * KeccakState.W for _ in KeccakState.range_h]
 
     @staticmethod
     def format(st):
@@ -192,9 +191,9 @@ class KeccakState(object):
         def fmt(x):
             return "%016x" % x
 
-        for y in KeccakState.rangeH:
+        for y in KeccakState.range_h:
             row = []
-            for x in KeccakState.rangeW:
+            for x in KeccakState.range_w:
                 row.append(fmt(st[x][y]))
             rows.append(" ".join(row))
         return "\n".join(rows)
@@ -245,8 +244,8 @@ class KeccakState(object):
         bb += [0] * bits2bytes(self.b - self.bitrate)
         i = 0
 
-        for y in self.rangeH:
-            for x in self.rangeW:
+        for y in self.range_h:
+            for x in self.range_w:
                 self.s[x][y] ^= KeccakState.bytes2lane(bb[i : i + 8])
                 i += 8
 
@@ -262,8 +261,8 @@ class KeccakState(object):
         """
         out = [0] * bits2bytes(self.b)
         i = 0
-        for y in self.rangeH:
-            for x in self.rangeW:
+        for y in self.range_h:
+            for x in self.range_w:
                 v = KeccakState.lane2bytes(self.s[x][y], self.lanew)
                 out[i : i + 8] = v
                 i += 8
@@ -275,8 +274,8 @@ class KeccakState(object):
         to be the correct length.
         """
         i = 0
-        for y in self.rangeH:
-            for x in self.rangeW:
+        for y in self.range_h:
+            for x in self.range_w:
                 self.s[x][y] = KeccakState.bytes2lane(bb[i : i + 8])
                 i += 8
 

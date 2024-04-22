@@ -553,6 +553,3 @@ class EthereumSepoliaTestNet(EthereumMainNet):
     # TESTNET flag is exclusively used for Bitcoin-like networks.
     # Instead we just hcange the CHAIN_ID
     CHAIN_ID = 11155111
-
-
-# TODO support Monero, ZCash
