@@ -8,14 +8,10 @@ from requests.adapters import HTTPAdapter
 from ..errors import NetworkException
 from ..generated import wallet_pb2
 
-HTTPS_ADAPTER = "https://"
+from .provider import AddressProvider
 
 
-def deduplicate(elements):
-    return reduce(lambda re, x: re + [x] if x not in re else re, elements, [])
-
-
-class DogeChainClient:
+class DogeChainClient(AddressProvider):
     """
     A class representing a list of crypto addresses.
 
@@ -32,7 +28,7 @@ class DogeChainClient:
             status_forcelist=[429, 502, 503, 504],
             allowed_methods={"GET"},
         )
-        session.mount(HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
+        session.mount(self.HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
         url = f"https://dogechain.info/api/v1/transaction/{element['hash']}"
         response = session.get(url, timeout=60)
@@ -106,8 +102,9 @@ class DogeChainClient:
                 of requests allowed during a particular amount of seconds. Set
                 to (0,N) for no rate limiting, where N>0.
         """
-        self.addresses = addresses
-        self.height = -1
+        super().__init__(
+            addresses, request_interval=request_interval, transactions=transactions
+        )
         coin_map = {
             "DOGE": "doge",
         }
@@ -120,56 +117,6 @@ class DogeChainClient:
         self.chain = chain_map.get(chain)
         if not self.chain:
             raise ValueError(f"Undefined chain '{chain}'")
-
-        self.requests, self.interval_sec = request_interval
-        if transactions is not None and isinstance(transactions, list):
-            self.transactions = transactions
-        else:
-            self.transactions = []
-
-    def get_balance(self):
-        """
-        Retrieves the balance of the crypto address.
-
-        Returns:
-            float: The balance of the crypto address in whole units e.g. DOGE.
-
-        Raises:
-            NetworkException: If the API request fails or the address balance
-                cannot be retrieved.
-        """
-        utxos = self.get_utxos()
-        total_balance = 0
-        confirmed_balance = 0
-        for utxo in utxos:
-            total_balance += utxo.amount
-            if utxo.confirmed:
-                confirmed_balance += utxo.amount
-        return total_balance, confirmed_balance
-
-    def get_utxos(self):
-        """Fetches the UTXO set for the addresses.
-
-        Returns:
-            list: A list of UTXOs
-        """
-
-        # Transactions are generated in reverse order
-        utxos = []
-        for i in range(len(self.transactions) - 1, -1, -1):
-            for out in self.transactions[i].outputs:
-                if out.spent:
-                    continue
-                if out.address in self.addresses:
-                    utxo = wallet_pb2.UTXO()
-                    utxo.address = out.address
-                    utxo.txid = self.transactions[i].txid
-                    utxo.index = out.index
-                    utxo.amount = out.amount
-                    utxo.height = self.transactions[i].height
-                    utxo.confirmed = self.transactions[i].confirmed
-                    utxos.append(utxo)
-        return utxos
 
     def get_block_height(self):
         """
@@ -190,7 +137,7 @@ class DogeChainClient:
             status_forcelist=[429, 502, 503, 504],
             allowed_methods={"GET"},
         )
-        session.mount(HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
+        session.mount(self.HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
         base_url = "https://dogechain.info/api/v1/block/"
         try:
@@ -232,7 +179,7 @@ class DogeChainClient:
         block_height = self.get_block_height()
         for address in self.addresses:
             self.transactions.extend(self._get_one_transaction_history(address))
-            self.transactions = deduplicate(self.transactions)
+            self.transactions = self.deduplicate(self.transactions)
         self.height = block_height
         return self.transactions
 
@@ -248,7 +195,7 @@ class DogeChainClient:
                 status_forcelist=[429, 502, 503, 504],
                 allowed_methods={"GET"},
             )
-            session.mount(HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
+            session.mount(self.HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
             url = f"https://dogechain.info/api/v1/address/transactions/{address}/{i}"
             try:

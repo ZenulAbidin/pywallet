@@ -10,9 +10,7 @@ from ..errors import NetworkException
 from ..generated import wallet_pb2
 from .cache import SQLTransactionStorage, DatabaseError
 
-
-def deduplicate(elements):
-    return reduce(lambda re, x: re + [x] if x not in re else re, elements, [])
+from .provider import AddressProvider
 
 
 def transform_and_sort_transactions(data):
@@ -25,7 +23,7 @@ def transform_and_sort_transactions(data):
     return sorted_data
 
 
-class RPCClient:
+class RPCClient(AddressProvider):
     """
     A class indexing all transactions in bitcoin-like blockchains and mempools into
     a database for quick fetching. It also lets you query transactions by address.
@@ -338,64 +336,6 @@ class RPCClient:
         except Exception as e:
             raise NetworkException(f"Failed to make RPC Call: {str(e)}")
 
-    def get_balance(self):
-        """
-        Retrieves the balance of the Bitcoin address.
-
-        Returns:
-            float: The balance of the Bitcoin address in BTC.
-
-        Raises:
-            NetworkException: If the API request fails or the address balance
-                cannot be retrieved.
-        """
-
-        utxos = self.get_utxos()
-        total_balance = 0
-        confirmed_balance = 0
-        for utxo in utxos:
-            total_balance += utxo.amount
-            # Careful: Block height #0 is the Genesis block - don't want to exclude that.
-            # (Not that it returns it ever though!)
-            if utxo.confirmed:
-                confirmed_balance += utxo.amount
-        return total_balance, confirmed_balance
-
-    def get_utxos(self):
-        """Fetches the UTXO set for the addresses.
-
-        Returns:
-            list: A list of UTXOs
-        """
-
-        # Transactions are generated in reverse order
-        all_outputs = {}
-        for transaction in self.transactions:
-            for i in range(len(transaction.btclike_transaction.outputs)):
-                all_outputs[(transaction.txid, i)] = (
-                    transaction.btclike_transaction.outputs[i]
-                )
-
-        for transaction in self.transactions:
-            for vin in transaction.btclike_transaction.inputs:
-                if (vin.txid, vin.index) in all_outputs:
-                    # Spent
-                    del all_outputs[(vin.txid, vin.index)]
-
-        utxos = []
-        for out in reversed(all_outputs.values()):
-            if out.address in self.addresses:
-                utxo = wallet_pb2.UTXO()
-                utxo.address = out.address
-                utxo.txid = self.transactions[i].txid
-                utxo.index = out.index
-                utxo.amount = out.amount
-                utxo.height = self.transactions[i].height
-                utxo.confirmed = self.transactions[i].confirmed
-                utxos.append(utxo)
-
-        return utxos
-
     def get_transaction_history(self):
         """
         Retrieves the transaction history of the addresses from cached data.
@@ -416,7 +356,7 @@ class RPCClient:
                 transactions.extend(
                     sql_transaction_storage.get_transactions_by_address(address)
                 )
-            transactions = deduplicate(transactions)
+            transactions = self.deduplicate(transactions)
             self.transactions = transactions
             return transactions
 

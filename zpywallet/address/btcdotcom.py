@@ -7,15 +7,10 @@ from requests.adapters import HTTPAdapter
 from ..errors import NetworkException
 from ..generated import wallet_pb2
 
-
-def deduplicate(elements):
-    return reduce(lambda re, x: re + [x] if x not in re else re, elements, [])
+from .provider import AddressProvider
 
 
-HTTPS_ADAPTER = "https://"
-
-
-class BTCDotComClient:
+class BTCDotComClient(AddressProvider):
     """
     A class representing a list of crypto addresses.
 
@@ -79,8 +74,9 @@ class BTCDotComClient:
             request_interval (tuple): A pair of integers indicating the number of requests allowed during
                 a particular amount of seconds. Set to (0,N) for no rate limiting, where N>0.
         """
-        self.requests, self.interval_sec = request_interval
-        self.height = -1
+        super().__init__(
+            addresses, request_interval=request_interval, transactions=transactions
+        )
         coin_map = {"BTC": "btc"}
         self.coin = coin_map.get(coin.upper())
         if not self.coin:
@@ -90,12 +86,6 @@ class BTCDotComClient:
         self.chain = chain_map.get(chain)
         if not self.chain:
             raise ValueError(f"Undefined chain '{chain}'")
-
-        self.addresses = addresses
-        if transactions is not None and isinstance(transactions, list):
-            self.transactions = transactions
-        else:
-            self.transactions = []
 
     def get_balance(self):
         """
@@ -161,7 +151,7 @@ class BTCDotComClient:
             status_forcelist=[429, 502, 503, 504],
             allowed_methods={"GET"},
         )
-        session.mount(HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
+        session.mount(self.HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
         url = "https://chain.api.btc.com/v3/block/latest"
         try:
@@ -193,7 +183,7 @@ class BTCDotComClient:
         block_height = self.get_block_height()
         for address in self.addresses:
             self.transactions.extend(self._get_one_transaction_history(address))
-            self.transactions = deduplicate(self.transactions)
+            self.transactions = self.deduplicate(self.transactions)
         self.height = block_height
         return self.transactions
 
@@ -212,7 +202,7 @@ class BTCDotComClient:
                 status_forcelist=[429, 502, 503, 504],
                 allowed_methods={"GET"},
             )
-            session.mount(HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
+            session.mount(self.HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
             try:
                 response = session.get(url, timeout=60)

@@ -55,7 +55,7 @@ class DatabaseConnection:
 class PostgreSQLConnection(DatabaseConnection):
     BLOB_TYPE = "BYTEA"
 
-    def REPLACE(sql, id):
+    def REPLACE(self, sql, id):
         return (
             "INSERT INTO "
             + sql

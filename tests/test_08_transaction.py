@@ -3,10 +3,6 @@
 
 """Tests for creating signed transactions."""
 
-# TODO We're going to have to do this the hard way and make up some transactions.
-# It's impractical to continue to rely on address clients to test the signing
-# functionality.
-
 import unittest
 from zpywallet.address import CryptoClient
 from zpywallet.destination import Destination
@@ -17,6 +13,8 @@ from zpywallet.utxo import UTXO
 from zpywallet.nodes.btc import btc_nodes
 from zpywallet.nodes.eth import eth_nodes
 from zpywallet.transactions.decode import transaction_size_simple
+from zpywallet.generated import wallet_pb2
+from zpywallet.address.provider import AddressProvider
 
 
 class TestAddress(unittest.TestCase):
@@ -28,14 +26,18 @@ class TestAddress(unittest.TestCase):
 
     def test_000_legacy_sign(self):
         """Test creating Satoshi-like legacy transactions."""
-        return
         # To make things clear, we will use fake UTXOs from this address,
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        b = CryptoClient(["16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM"])
+        # Segwit outputs are fine.
+        tx = wallet_pb2.Transaction()
+        tx.ParseFromString(
+            b'\n@0000000000000000000000000000000000000000000000000000000000000000\x10\x8c\x9e\xfa\xaf\x06\x18\x01 \xc0\xa23(\x90N0\x01z\xc2\x02\x12s\n@ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\x18\x80\xad\xe2\x04**bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\x12m\n@ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\x10\x02\x18\x80\xad\xe2\x04*"1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH\x1a(\x08\xa0\xc2\x1e\x12"16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM\x1a2\x08\xa0\xc2\x1e\x12*bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c\x18\x01'  # noqa: E501
+        )
 
-        saved_utxos = b.get_utxos()
+        provider = AddressProvider([], transactions=[tx])
+        saved_utxos = provider.get_utxos()
         destinations = [
             Destination(
                 "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinMainNet
@@ -64,15 +66,21 @@ class TestAddress(unittest.TestCase):
             )
 
     def test_001_fake_segwit_sign(self):
-        return
-        """Test creating Satoshi-like segwit transactions which have no segwit inputs, so f=alling back to legacy signing."""
+        """Test creating Satoshi-like segwit transactions which have no segwit
+        inputs, so f=alling back to legacy signing.
+        """
         # To make things clear, we will use fake UTXOs from this address,
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        b = CryotoAddress(["16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM"])
+        # Segwit output addresses are fine
+        tx = wallet_pb2.Transaction()
+        tx.ParseFromString(
+            b'\n@0000000000000000000000000000000000000000000000000000000000000000\x10\x8c\x9e\xfa\xaf\x06\x18\x01 \xc0\xa23(\x90N0\x01z\xc2\x02\x12s\n@ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\x18\x80\xad\xe2\x04**bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\x12m\n@ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\x10\x02\x18\x80\xad\xe2\x04*"1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH\x1a(\x08\xa0\xc2\x1e\x12"16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM\x1a2\x08\xa0\xc2\x1e\x12*bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c\x18\x01'  # noqa: E501
+        )
 
-        saved_utxos = b.get_utxos()
+        provider = AddressProvider([], transactions=[tx])
+        saved_utxos = provider.get_utxos()
         destinations = [
             Destination(
                 "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinSegwitMainNet
@@ -103,15 +111,18 @@ class TestAddress(unittest.TestCase):
             )
 
     def test_002_segwit_sign(self):
-        return
         """Test creating Satoshi-like segwit transactions, all segwit inputs."""
         # To make things clear, we will use fake UTXOs from this address,
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        bc = CryptoClient(["bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c"])
+        tx = wallet_pb2.Transaction()
+        tx.ParseFromString(
+            b'\n@0000000000000000000000000000000000000000000000000000000000000000\x10\x8c\x9e\xfa\xaf\x06\x18\x01 \xc0\xa23(\x90N0\x01z\xd3\x01\x12s\n@ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\x18\x80\xad\xe2\x04**bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\x1a(\x08\xa0\xc2\x1e\x12"16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM\x1a2\x08\xa0\xc2\x1e\x12*bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c\x18\x01'  # noqa: E501
+        )
 
-        saved_utxos = bc.get_utxos()
+        provider = AddressProvider([], transactions=[tx])
+        saved_utxos = provider.get_utxos()
         destinations = [
             Destination(
                 "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinSegwitMainNet
@@ -142,20 +153,18 @@ class TestAddress(unittest.TestCase):
             )
 
     def test_003_segwit_sign_partial(self):
-        return
         """Test creating Satoshi-like segwit transactions, mixed segwit and legacy inputs."""
         # To make things clear, we will use fake UTXOs from this address,
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        bc2 = CryptoClient(
-            [
-                "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM",
-                "bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c",
-            ]
+        tx = wallet_pb2.Transaction()
+        tx.ParseFromString(
+            b'\n@0000000000000000000000000000000000000000000000000000000000000000\x10\x8c\x9e\xfa\xaf\x06\x18\x01 \xc0\xa23(\x90N0\x01z\xc2\x02\x12s\n@ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\x18\x80\xad\xe2\x04**bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\x12m\n@ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\x10\x02\x18\x80\xad\xe2\x04*"1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH\x1a(\x08\xa0\xc2\x1e\x12"16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM\x1a2\x08\xa0\xc2\x1e\x12*bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c\x18\x01'  # noqa: E501
         )
 
-        saved_utxos = bc2.get_utxos()
+        provider = AddressProvider([], transactions=[tx])
+        saved_utxos = provider.get_utxos()
         destinations = [
             Destination(
                 "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinSegwitMainNet
@@ -186,20 +195,18 @@ class TestAddress(unittest.TestCase):
             )
 
     def test_004_sign_with_change(self):
-        return
         """Test creating Satoshi-like transactions with change calculation"""
         # To make things clear, we will use fake UTXOs from this address,
         # derived from private key 0, which nobody can spend.
         # We will use a fake private key (1) since we do not need to broadcast
         # it anywhere, and that particular functionality has its own unit test.
-        bc2 = CryptoClient(
-            [
-                "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM",
-                "bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c",
-            ]
+        tx = wallet_pb2.Transaction()
+        tx.ParseFromString(
+            b'\n@0000000000000000000000000000000000000000000000000000000000000000\x10\x8c\x9e\xfa\xaf\x06\x18\x01 \xc0\xa23(\x90N0\x01z\xcb\x01\x12k\n@ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\x18\x80\xad\xe2\x04*"16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM\x1a(\x08\xa0\xc2\x1e\x12"16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM\x1a2\x08\xa0\xc2\x1e\x12*bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c\x18\x01'  # noqa: E501
         )
 
-        saved_utxos = bc2.get_utxos()
+        provider = AddressProvider([], transactions=[tx])
+        saved_utxos = provider.get_utxos()
         destinations = [
             Destination(
                 "16QaFeudRUt8NYy2yzjm3BMvG4xBbAsBFM", 0.00000001, BitcoinSegwitMainNet

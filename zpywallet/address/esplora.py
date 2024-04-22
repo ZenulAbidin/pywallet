@@ -7,15 +7,10 @@ from requests.adapters import HTTPAdapter
 from ..errors import NetworkException
 from ..generated import wallet_pb2
 
-
-def deduplicate(elements):
-    return reduce(lambda re, x: re + [x] if x not in re else re, elements, [])
+from .provider import AddressProvider
 
 
-HTTPS_ADAPTER = "https://"
-
-
-class EsploraClient:
+class EsploraClient(AddressProvider):
     """
     A class representing a list of crypto addresses.
 
@@ -90,7 +85,7 @@ class EsploraClient:
             status_forcelist=[429, 502, 503, 504],
             allowed_methods={"GET"},
         )
-        session.mount(HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
+        session.mount(self.HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
         url = f"{self.endpoint}/addres-prefix/{'bc' if chain else 'tb'}"
         try:
@@ -126,71 +121,25 @@ class EsploraClient:
         # Blockstream.info's rate limits are unknown.
         # Ostensibly there are no limits for that site, but I got 429 errors when testing with (1000,1), so
         # the default limit will be the same as for mempool.space - 3 requests per second.
-        self.requests, self.interval_sec = request_interval
+
+        super().__init__(
+            addresses, request_interval=request_interval, transactions=transactions
+        )
 
         self.db_connection_parameters = kwargs.get("db_connection_parameters")
-        self.transactions = transactions if isinstance(transactions, list) else []
 
         self.height = -1
         coin_map = {"BTC": "btc"}
         self.coin = coin_map.get(coin.upper())
         if not self.coin:
             raise ValueError(f"Unsupported coin '{coin}'")
+        self.endpoint = kwargs.get("url")
 
-        # Note: We have no way to tell whether a given esplora endpoint is mainnet or testnet.
         chain_map = {"main": "main", "test": "test"}
         self.chain = chain_map.get(chain)
         if not self.chain:
             raise ValueError(f"Unsupported chain '{chain}'")
         assert self._chain_is_correct(self.chain)
-
-        self.addresses = addresses
-        self.endpoint = kwargs.get("url")
-
-    def get_balance(self):
-        """
-        Retrieves the balance of the crypto address.
-
-        Returns:
-            float: The balance of the crypto address whole units e.g. BTC e.g. BTC.
-
-        Raises:
-            NetworkException: If the API request fails or the address balance
-                cannot be retrieved.
-        """
-
-        utxos = self.get_utxos()
-        total_balance = 0
-        confirmed_balance = 0
-        for utxo in utxos:
-            total_balance += utxo.amount
-            if utxo.confirmed:
-                confirmed_balance += utxo.amount
-        return total_balance, confirmed_balance
-
-    def get_utxos(self):
-        """Fetches the UTXO set for the addresses.
-
-        Returns:
-            list: A list of UTXOs
-        """
-
-        # Transactions are generated in reverse order
-        utxos = []
-        for i in range(len(self.transactions) - 1, -1, -1):
-            for out in self.transactions[i].outputs:
-                if out.spent:
-                    continue
-                if out.address in self.addresses:
-                    utxo = wallet_pb2.UTXO()
-                    utxo.address = out.address
-                    utxo.txid = self.transactions[i].txid
-                    utxo.index = out.index
-                    utxo.amount = out.amount
-                    utxo.height = self.transactions[i].height
-                    utxo.confirmed = self.transactions[i].confirmed
-                    utxos.append(utxo)
-        return utxos
 
     def get_block_height(self):
         """
@@ -211,7 +160,7 @@ class EsploraClient:
             status_forcelist=[429, 502, 503, 504],
             allowed_methods={"GET"},
         )
-        session.mount(HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
+        session.mount(self.HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
         url = f"{self.endpoint}/blocks/tip/height"
         try:
@@ -238,7 +187,7 @@ class EsploraClient:
         block_height = self.get_block_height()
         for address in self.addresses:
             self.transactions.extend(self._get_one_transaction_history(address))
-            self.transactions = deduplicate(self.transactions)
+            self.transactions = self.deduplicate(self.transactions)
         self.height = block_height
         return self.transactions
 
@@ -256,7 +205,7 @@ class EsploraClient:
                 status_forcelist=[429, 502, 503, 504],
                 allowed_methods={"GET"},
             )
-            session.mount(HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
+            session.mount(self.HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
             try:
                 response = requests.get(url, timeout=60)

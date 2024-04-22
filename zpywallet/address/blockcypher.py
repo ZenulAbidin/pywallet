@@ -5,14 +5,10 @@ import datetime
 from urllib3 import Retry
 from requests.adapters import HTTPAdapter
 
+from .provider import AddressProvider
+
 from ..errors import NetworkException
 from ..generated import wallet_pb2
-
-HTTPS_ADAPTER = "https://"
-
-
-def deduplicate(elements):
-    return reduce(lambda re, x: re + [x] if x not in re else re, elements, [])
 
 
 def convert_to_utc_timestamp(date_string, format_string="%Y-%m-%dT%H:%M:%SZ"):
@@ -21,7 +17,7 @@ def convert_to_utc_timestamp(date_string, format_string="%Y-%m-%dT%H:%M:%SZ"):
     return int(utc_date.timestamp())
 
 
-class BlockcypherClient:
+class BlockcypherClient(AddressProvider):
     """
     A class representing a list of crypto addresses.
 
@@ -99,8 +95,10 @@ class BlockcypherClient:
                 of requests allowed during a particular amount of seconds.
                 Set to (0,N) for no rate limiting, where N>0.
         """
-        self.addresses = addresses
-        self.api_key = kwargs.get("api_key")
+        super().__init__(
+            addresses, request_interval=request_interval, transactions=transactions
+        )
+        self.api_key = kwargs.get("blockcypher_token")
         self.height = -1
         coin_map = {
             "BTC": "btc",
@@ -117,56 +115,6 @@ class BlockcypherClient:
         self.chain = chain_map.get(chain)
         if not self.chain:
             raise ValueError(f"Undefined chain '{chain}'")
-
-        self.requests, self.interval_sec = request_interval
-        if transactions is not None and isinstance(transactions, list):
-            self.transactions = transactions
-        else:
-            self.transactions = []
-
-    def get_balance(self):
-        """
-        Retrieves the balance of the crypto address.
-
-        Returns:
-            tuple: The total balance and the confirmed balance of the crypto address whole units e.g. BTC e.g. BTC.
-
-        Raises:
-            NetworkException: If the API request fails or the address balance cannot be retrieved.
-        """
-
-        utxos = self.get_utxos()
-        total_balance = 0
-        confirmed_balance = 0
-        for utxo in utxos:
-            total_balance += utxo.amount
-            if utxo.confirmed:
-                confirmed_balance += utxo.amount
-        return total_balance, confirmed_balance
-
-    def get_utxos(self):
-        """Fetches the UTXO set for the addresses.
-
-        Returns:
-            list: A list of UTXOs
-        """
-
-        # Transactions are generated in reverse order
-        utxos = []
-        for i in range(len(self.transactions) - 1, -1, -1):
-            for out in self.transactions[i].outputs:
-                if out.spent:
-                    continue
-                if out.address in self.addresses:
-                    utxo = wallet_pb2.UTXO()
-                    utxo.address = out.address
-                    utxo.txid = self.transactions[i].txid
-                    utxo.index = out.index
-                    utxo.amount = out.amount
-                    utxo.height = self.transactions[i].height
-                    utxo.confirmed = self.transactions[i].confirmed
-                    utxos.append(utxo)
-        return utxos
 
     def get_block_height(self):
         """
@@ -187,7 +135,7 @@ class BlockcypherClient:
             status_forcelist=[429, 502, 503, 504],
             allowed_methods={"GET"},
         )
-        session.mount(HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
+        session.mount(self.HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
         url = f"https://api.blockcypher.com/v1/{self.coin}/{self.chain}"
         try:
@@ -222,14 +170,12 @@ class BlockcypherClient:
         block_height = self.get_block_height()
         for address in self.addresses:
             self.transactions.extend(self._get_one_transaction_history(address))
-            self.transactions = deduplicate(self.transactions)
+            self.transactions = self.deduplicate(self.transactions)
         self.height = block_height
         return self.transactions
 
     def _get_one_transaction_history(self, address):
-        params = None
-        if self.api_key:
-            params = {"token", self.api_key}
+        params = {"token", self.api_key} if self.api_key else None
         interval = 50
 
         # Set a very high UTXO limit for those rare address that have crazy high input/output counts.
@@ -243,26 +189,26 @@ class BlockcypherClient:
             status_forcelist=[429, 502, 503, 504],
             allowed_methods={"GET"},
         )
-        session.mount(HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
+        session.mount(self.HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
         data = {"hasMore": True}
         block_height = None
 
-        while "hasMore" in data.keys() and data["hasMore"]:
-            session = requests.Session()
-            retries = Retry(
-                total=3,
-                backoff_factor=self.interval_sec / self.requests,
-                status_forcelist=[429, 502, 503, 504],
-                allowed_methods={"GET"},
-            )
-            session.mount(HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
+        try:
+            while "hasMore" in data.keys() and data["hasMore"]:
+                session = requests.Session()
+                retries = Retry(
+                    total=3,
+                    backoff_factor=self.interval_sec / self.requests,
+                    status_forcelist=[429, 502, 503, 504],
+                    allowed_methods={"GET"},
+                )
+                session.mount(self.HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
-            url = (
-                f"https://api.blockcypher.com/v1/{self.coin}/{self.chain}/addrs/{address}"
-                + f"/full?limit={interval}{'' if not block_height else '&before=' + block_height}&txlimit={txlimit}"
-            )
-            try:
+                url = (
+                    f"https://api.blockcypher.com/v1/{self.coin}/{self.chain}/addrs/{address}"
+                    + f"/full?limit={interval}{'' if not block_height else '&before=' + block_height}&txlimit={txlimit}"
+                )
                 response = session.get(url, params=params, timeout=60)
                 response.raise_for_status()
                 data = response.json()
@@ -279,12 +225,11 @@ class BlockcypherClient:
                 if not data["txs"]:
                     return
                 block_height = ctx.height
-
-            except requests.exceptions.RetryError:
-                raise NetworkException(
-                    "Failed to retrieve transactions (max retries failed)"
-                )
-            except requests.exceptions.JSONDecodeError:
-                raise NetworkException(
-                    "Failed to retrieve transactions (response body is not JSON)"
-                )
+        except requests.exceptions.RetryError:
+            raise NetworkException(
+                "Failed to retrieve transactions (max retries failed)"
+            )
+        except requests.exceptions.JSONDecodeError:
+            raise NetworkException(
+                "Failed to retrieve transactions (response body is not JSON)"
+            )

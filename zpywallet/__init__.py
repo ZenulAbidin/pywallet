@@ -26,5 +26,4 @@ __all__ = [
     "utxo",
     "transaction",
     "destination",
-    "mempool",
 ]

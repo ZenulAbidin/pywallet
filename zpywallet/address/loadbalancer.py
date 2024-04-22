@@ -8,12 +8,13 @@ from .mempoolspace import MempoolSpaceClient
 from .web3node import Web3Client
 from ..generated import wallet_pb2
 from ..errors import NetworkException
+from .provider import AddressProvider
 from contextlib import suppress
 
 # TODO we currently have no easy way to update cache providers asynchronously.
 
 
-class CryptoClient:
+class CryptoClient(AddressProvider):
     """Represents a list of crypto addresses.
 
     Developers should use this class, because it autoselects the most stable
@@ -29,11 +30,10 @@ class CryptoClient:
         transactions=None,
         **kwargs,
     ):
+        super().__init__(addresses, transactions=transactions)
         self.cache_provider_list = []
         self.provider_list = []
         self.current_index = 0
-        self.addresses = addresses
-        self.transactions = transactions or []
         fullnode_endpoints = kwargs.get("fullnode_endpoints") or []
         esplora_endpoints = kwargs.get("esplora_endpoints") or []
         blockcypher_tokens = kwargs.get("blockcypher_tokens") or []
@@ -148,50 +148,6 @@ class CryptoClient:
 
         if not self.provider_list and not self.cache_provider_list:
             raise ValueError(f"No providers for coin '{coin}', chain '{chain}' found.")
-
-    def get_balance(self):
-        """
-        Retrieves the balance of the Litecoin address.
-
-        Returns:
-            float: The balance of the Litecoin address in LTC.
-
-        Raises:
-            NetworkException: If the API request fails or the address balance
-                cannot be retrieved.
-        """
-        utxos = self.get_utxos()
-        total_balance = 0
-        confirmed_balance = 0
-        for utxo in utxos:
-            total_balance += utxo.amount
-            if utxo.confirmed:
-                confirmed_balance += utxo.amount
-        return total_balance, confirmed_balance
-
-    def get_utxos(self):
-        """Fetches the UTXO set for the addresses.
-
-        Returns:
-            list: A list of UTXOs
-        """
-
-        # Transactions are generated in reverse order
-        utxos = []
-        for i in range(len(self.transactions) - 1, -1, -1):
-            for out in self.transactions[i].btclike_transaction.outputs:
-                if out.spent:
-                    continue
-                if out.address in self.addresses:
-                    utxo = wallet_pb2.UTXO()
-                    utxo.address = out.address
-                    utxo.txid = self.transactions[i].txid
-                    utxo.index = out.index
-                    utxo.amount = out.amount
-                    utxo.height = self.transactions[i].height
-                    utxo.confirmed = self.transactions[i].confirmed
-                    utxos.append(utxo)
-        return utxos
 
     def _advance_to_next_provider(self):
         if not self.provider_list:
