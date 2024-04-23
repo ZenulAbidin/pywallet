@@ -12,7 +12,7 @@ import base64
 import binascii
 import hashlib
 from hashlib import sha256
-import random
+from Crypto import Random
 from collections import namedtuple
 
 import coincurve
@@ -30,6 +30,8 @@ from ..errors import (
 
 
 Point = namedtuple("Point", ["x", "y"])
+
+INVALID_NETWORK_PARAMETER = "Invalid network parameter"
 
 
 class secp256k1:
@@ -73,6 +75,30 @@ def decode_der_signature(signature):
     return r, s
 
 
+def encode_der_signature(r, s):
+    r_bytes = r.to_bytes((r.bit_length() + 7) // 8, byteorder="big", signed=False)
+    s_bytes = s.to_bytes((s.bit_length() + 7) // 8, byteorder="big", signed=False)
+
+    # Ensure leading zero byte if highest bit is set
+    if r_bytes[0] & 0x80:
+        r_bytes = b"\x00" + r_bytes
+    if s_bytes[0] & 0x80:
+        s_bytes = b"\x00" + s_bytes
+
+    # DER encoding format
+    der_signature = bytearray()
+    der_signature.append(0x30)  # SEQUENCE tag
+    der_signature.append(2 + len(r_bytes) + 2 + len(s_bytes))  # Length of SEQUENCE
+    der_signature.append(0x02)  # INTEGER tag for R
+    der_signature.append(len(r_bytes))  # Length of R
+    der_signature.extend(r_bytes)  # R value
+    der_signature.append(0x02)  # INTEGER tag for S
+    der_signature.append(len(s_bytes))  # Length of S
+    der_signature.extend(s_bytes)  # S value
+
+    return bytes(der_signature)
+
+
 class PrivateKey:
     """Encapsulation of a private key on the secp256k1 curve.
 
@@ -114,7 +140,7 @@ class PrivateKey:
 
         Args:
             h (str): A hex-encoded string containing a 256-bit
-                 (32-byte) integer.
+                (32-byte) integer.
             network: The network to use for things like defining key
                 key paths and supported address formats. Defaults to Bitcoin mainnet.
 
@@ -139,24 +165,6 @@ class PrivateKey:
         return PrivateKey(ckey, network)
 
     @staticmethod
-    def from_b58check(private_key, network=BitcoinSegwitMainNet):
-        """Decodes a Base58Check encoded private-key.
-
-        Args:
-            private_key (str): A Base58Check encoded private key.
-            network: The network to use for things like defining key
-                key paths and supported address formats. Defaults to Bitcoin mainnet.
-
-        Returns:
-            PrivateKey: A PrivateKey object
-        """
-        b58dec = b58decode_check(private_key)
-        version = b58dec[0]
-        assert version == network.SECRET_KEY
-
-        return PrivateKey.from_bytes(b58dec[1:], network)
-
-    @staticmethod
     def from_random(network=BitcoinSegwitMainNet):
         """Initializes a private key from a random integer.
 
@@ -167,9 +175,11 @@ class PrivateKey:
         Returns:
             PrivateKey: The object representing the private key.
         """
-        return PrivateKey.from_int(
-            random.SystemRandom().randrange(1, secp256k1.N), network
-        )
+        i = 0
+        while i < 0 or i >= secp256k1.N:
+            i = int.from_bytes(Random.new().read(32), byteorder="big")
+
+        return PrivateKey.from_int(i, network)
 
     @classmethod
     def from_brainwallet(
@@ -240,6 +250,10 @@ class PrivateKey:
 
         # Drop the network bytes
         extended_key_bytes = extended_key_bytes[1:]
+
+        if len(extended_key_bytes) == 33:
+            # Compressed WIF, drop the last byte
+            extended_key_bytes = extended_key_bytes[:-1]
 
         # And we should finally have a valid key
         return PrivateKey.from_bytes(extended_key_bytes, network)
@@ -349,12 +363,12 @@ class PrivateKey:
             message = bytes(message, "utf-8")
 
         sig = base64.b64encode(self._key.sign(message)).decode()
-        address = self._public_key.address()
+        address = self._public_key.base58_address()
         rfc2440 = f"-----BEGIN {self.network.NAME.upper()} SIGNED MESSAGE-----\n"
-        rfc2440 += message.decode("utf-8")
+        rfc2440 += message.decode("utf-8") + "\n"
         rfc2440 += f"-----BEGIN {self.network.NAME.upper()} SIGNATURE-----\n"
-        rfc2440 += address
-        rfc2440 += sig
+        rfc2440 += address + "\n"
+        rfc2440 += sig + "\n"
         rfc2440 += f"-----END {self.network.NAME.upper()} SIGNATURE-----\n"
         return rfc2440
 
@@ -362,7 +376,9 @@ class PrivateKey:
         """Signs message using this private key. The message is encoded in UTF-8.
 
         Avoid using any non-printable characters or whitespace (except for 0x20
-        space and 0x0a newline) inside the signature.
+        space and 0x0a newline) inside the signature. Note that excessive
+        leading or trailing whitespace will be trimmed from the message before
+        signed or verified.
 
         Args:
             message (bytes): The message to be signed. If a string is
@@ -506,27 +522,47 @@ class PublicKey:
         """
         return PublicKey.from_bytes(binascii.unhexlify(h), network)
 
-    def verify(self, message, signature, address):
+    def der_verify(self, message, signature, address):
         """Verifies a signed message.
 
         Args:
             message(bytes or str): The message that the signature corresponds to.
-            signature (bytes or str): A string Base64 encoded signature OR a bytes DER signature.
+            signature (bytes): A bytes DER signature.
             address (str): Base58Check encoded address.
 
         Returns:
             bool: True if the signature is authentic, False otherwise.
         """
         if (
-            self.address(compressed=False) != address
-            and self.address(compressed=True) != address
+            self.base58_address(compressed=False) != address
+            and self.base58_address(compressed=True) != address
         ):
             return False
 
         if isinstance(message, str):
-            message = message.decode("utf-8")
-        if isinstance(signature, str):
-            signature = base64.b64decode(signature)
+            message = message.encode("utf-8")
+        return coincurve.verify_signature(signature, message, bytes(self))
+
+    def base64_verify(self, message, signature, address):
+        """Verifies a signed message in Base64 format.
+
+        Args:
+            message(bytes or str): The message that the signature corresponds to.
+            signature (str): A string Base64 encoded signature.
+            address (str): Base58Check encoded address.
+
+        Returns:
+            bool: True if the signature is authentic, False otherwise.
+        """
+        if (
+            self.base58_address(compressed=False) != address
+            and self.base58_address(compressed=True) != address
+        ):
+            return False
+
+        if isinstance(message, str):
+            message = message.encode("utf-8")
+        signature = base64.b64decode(signature)
         return coincurve.verify_signature(signature, message, bytes(self))
 
     def rfc2440_verify(self, text):
@@ -539,21 +575,19 @@ class PublicKey:
             bool: True if the signature is authentic, False otherwise.
         """
 
-        text_lines = text.split("\n")
+        text_lines = text.strip().split("\n")
         if (
             text_lines[0]
             != f"-----BEGIN {self.network.NAME.upper()} SIGNED MESSAGE-----"
         ):
             raise ValueError("Invalid RFC2440 signature")
-        elif (
-            text_lines[-4] != f"-----BEGIN {self.network.NAME.upper()} SIGNATURE -----"
-        ):
+        elif text_lines[-4] != f"-----BEGIN {self.network.NAME.upper()} SIGNATURE-----":
             raise ValueError("Missing BEGIN in RFC2440 signature")
-        elif text_lines[-4] != f"-----END {self.network.NAME.upper()} SIGNATURE -----":
+        elif text_lines[-1] != f"-----END {self.network.NAME.upper()} SIGNATURE-----":
             raise ValueError("Missing END in RFC2440 signature")
 
-        address = text_lines[-3]
-        signature = text_lines[-2]
+        address = text_lines[-3].strip()
+        signature = text_lines[-2].strip()
         # In case the newline is the first/last character of the message before it was signed,
         # this text_lines slice will have as its first/last element '' so a newline will still be inserted anyway.
         # If the newline is the only character in the message, then we have to check for that directly.
@@ -561,9 +595,40 @@ class PublicKey:
             message = "\n"
         else:
             message = "\n".join(text_lines[1:-4])
-        return self.verify(message, signature, address)
 
-    # TODO RSZ verify and DER verify
+        return self.base64_verify(message, signature, address)
+
+    def rsz_verify(self, message, r, s, z, address):
+        """Verifies a signed message.
+
+        Args:
+            message(bytes or str): The message that the signature corresponds to.
+            r (bytes): The signature's R value.
+            s (bytes): The signature's S value.
+            z (bytes): The signature's Z value.
+            address (str): Base58Check encoded address.
+
+        Returns:
+            bool: True if the signature is authentic, False otherwise.
+        """
+        if (
+            self.base58_address(compressed=False) != address
+            and self.base58_address(compressed=True) != address
+        ):
+            return False
+
+        z = int.to_bytes(
+            z, length=((z.bit_length() + 7) // 8), byteorder="big", signed=False
+        )
+
+        if isinstance(message, str):
+            message = message.encode("utf-8")
+
+        if hashlib.sha256(message).digest() != z:
+            return False
+
+        signature = encode_der_signature(r, s)
+        return coincurve.verify_signature(signature, message, bytes(self))
 
     def __init__(self, ckey, network=BitcoinSegwitMainNet):
         self._key = ckey
@@ -770,13 +835,13 @@ class PublicKey:
 
         Args:
             compressed (bool): Whether or not the compressed key should
-               be used.
+                be used.
 
         Returns:
             bytes: Address encoded in Base58Check.
         """
         if not self.network or not self.network.ADDRESS_MODE:
-            raise TypeError("Invalid network parameter")
+            raise TypeError(INVALID_NETWORK_PARAMETER)
         elif "BASE58" not in self.network.ADDRESS_MODE:
             raise unsupported_feature_exception_factory(
                 self.network.NAME, "base58 addresses"
@@ -802,7 +867,7 @@ class PublicKey:
         """
 
         if not self.network or not self.network.ADDRESS_MODE:
-            raise TypeError("Invalid network parameter")
+            raise TypeError(INVALID_NETWORK_PARAMETER)
         elif "BECH32" not in self.network.ADDRESS_MODE:
             raise unsupported_feature_exception_factory(
                 self.network.NAME, "bech32 addresses"
@@ -818,7 +883,7 @@ class PublicKey:
         """Address property that returns a hexadecimal encoding of the public key."""
 
         if not self.network or not self.network.ADDRESS_MODE:
-            raise TypeError("Invalid network parameter")
+            raise TypeError(INVALID_NETWORK_PARAMETER)
         elif "HEX" not in self.network.ADDRESS_MODE:
             raise unsupported_feature_exception_factory(
                 self.network.NAME, "hexadecimal addresses"
