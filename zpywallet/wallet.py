@@ -166,13 +166,13 @@ class Wallet:
         if not _with_wallet:
             return
 
-        self.wallet = wallet_pb2.Wallet()
-        self.wallet.SerializeToString()
-        self.wallet.receive_gap_limit = receive_gap_limit
-        self.wallet.change_gap_limit = change_gap_limit
-        self.wallet.height = 0
+        self.container = wallet_pb2.Wallet()
+        self.container.SerializeToString()
+        self.container.receive_gap_limit = receive_gap_limit
+        self.container.change_gap_limit = change_gap_limit
+        self.container.height = 0
 
-        self.wallet.derivation_path = derivation_path
+        self.container.derivation_path = derivation_path
         if not isinstance(derivation_path, str):
             raise ValueError("Invalid derivation path")
 
@@ -182,7 +182,7 @@ class Wallet:
         # We do not save the password. Instead, we are going to
         # generate a base64-encrypted serialization of this wallet file
         # using the password.
-        self.wallet.encrypted_seed_phrase = encrypt_str(
+        self.container.encrypted_seed_phrase = encrypt_str(
             seed_phrase, password
         )  # AES-256-SIV encryption
 
@@ -211,13 +211,13 @@ class Wallet:
             BlockcypherTestNet: wallet_pb2.BLOCKCYPHER_TESTNET,
         }
 
-        self.wallet.network = network_map.get(network)
-        if self.wallet.network is None:
+        self.container.network = network_map.get(network)
+        if self.container.network is None:
             raise ValueError("Unknown network")
 
-        self.wallet.fullnode_endpoints.extend(fullnode_endpoints or [])
-        self.wallet.esplora_endpoints.extend(esplora_endpoints or [])
-        self.wallet.blockcypher_tokens.extend(blockcypher_tokens or [])
+        self.container.fullnode_endpoints.extend(fullnode_endpoints or [])
+        self.container.esplora_endpoints.extend(esplora_endpoints or [])
+        self.container.blockcypher_tokens.extend(blockcypher_tokens or [])
 
         self.encrypted_private_keys = []
         for i in range(0, receive_gap_limit):
@@ -227,7 +227,7 @@ class Wallet:
             pubkey = privkey.public_key
 
             # Add an Address
-            address = self.wallet.addresses.add()
+            address = self.container.addresses.add()
             address.address = pubkey.address()
             address.pubkey = pubkey.to_hex()
             self.encrypted_private_keys.append(
@@ -289,13 +289,13 @@ class Wallet:
             raise ValueError("Unknown network")
 
         self = cls(network, seed_phrase, password, _with_wallet=False)
-        self.wallet = wallet
+        self.container = wallet
         hdwallet = HDWallet.from_mnemonic(mnemonic=seed_phrase, network=network)
 
         self.encrypted_private_keys = []
-        for i in range(0, self.wallet.receive_gap_limit):
+        for i in range(0, self.container.receive_gap_limit):
             privkey = hdwallet.get_child_for_path(
-                f"{self.wallet.derivation_path}/0/{i}"
+                f"{self.container.derivation_path}/0/{i}"
             ).private_key
             self.encrypted_private_keys.append(
                 privkey.to_hex() if network.SUPPORTS_EVM else privkey.to_wif()
@@ -303,7 +303,7 @@ class Wallet:
             pubkey = privkey.public_key
 
             # Add an Address
-            address = self.wallet.addresses.add()
+            address = self.container.addresses.add()
             address.address = pubkey.address()
             address.pubkey = pubkey.to_hex()
         self.encrypted_private_keys = encrypt_str(
@@ -325,13 +325,13 @@ class Wallet:
         return self._network
 
     def _setup_client(self, max_cycles=100):
-        addresses = [a.address for a in self.wallet.addresses]
+        addresses = [a.address for a in self.container.addresses]
 
         fullnode_endpoints = []
         esplora_endpoints = []
         blockcypher_tokens = []
 
-        for node_pb2 in self.wallet.fullnode_endpoints:
+        for node_pb2 in self.container.fullnode_endpoints:
             node = {}
             if node_pb2.url:
                 node["url"] = node_pb2.url
@@ -341,13 +341,13 @@ class Wallet:
                 node["password"] = node_pb2.password
             fullnode_endpoints.append(node)
 
-        for node_pb2 in self.wallet.esplora_endpoints:
+        for node_pb2 in self.container.esplora_endpoints:
             node = {}
             if node_pb2.url:
                 node["url"] = node_pb2.url
             esplora_endpoints.append(node)
 
-        for token in self.wallet.blockcypher_tokens:
+        for token in self.container.blockcypher_tokens:
             blockcypher_tokens.append(token)
 
         kwargs = {
@@ -360,7 +360,7 @@ class Wallet:
             addresses,
             coin=self._network.COIN,
             chain="test" if self._network.TESTNET else "main",
-            transactions=self.wallet.transactions,
+            transactions=self.container.transactions,
             max_cycles=max_cycles,
             **kwargs,
         )
@@ -393,8 +393,8 @@ class Wallet:
 
         # Update the transactions list with deduplicated transactions
         transactions = deduplicated_transactions
-        del self.wallet.transactions[:]
-        self.wallet.transactions.extend(transactions)
+        del self.container.transactions[:]
+        self.container.transactions.extend(transactions)
         tx_array = []
         for t in transactions:
             tx_array.append(Transaction(t, self._network))
@@ -410,7 +410,7 @@ class Wallet:
         Returns:
             List[UTXO]: The list of unspent transaction outputs.
         """
-        addresses = [a.address for a in self.wallet.addresses]
+        addresses = [a.address for a in self.container.addresses]
 
         transactions = self.get_transaction_history()
         utxo_set = []
@@ -506,7 +506,7 @@ class Wallet:
         Returns:
             List[str]: The list of addresses associated with the wallet.
         """
-        return [a.address for a in self.wallet.addresses]
+        return [a.address for a in self.container.addresses]
 
     def random_address(self):
         """
@@ -549,7 +549,7 @@ class Wallet:
 
     def _add_stock_nodes(self):
         fullnode_endpoints = []
-        for f in self.wallet.fullnode_endpoints:
+        for f in self.container.fullnode_endpoints:
             _f = {}
             _f["url"] = f.url
             fullnode_endpoints.append(_f)
@@ -679,4 +679,4 @@ class Wallet:
         Returns:
             bytes: The serialized representation of the wallet.
         """
-        return self.wallet.SerializeToString()
+        return self.container.SerializeToString()

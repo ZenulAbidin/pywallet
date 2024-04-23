@@ -46,6 +46,40 @@ def long_to_hex(l, size):
     return f_str.format(l).lower().encode("utf-8")
 
 
+def hex_check_length(val, hex_len):
+    if isinstance(val, int):
+        return long_to_hex(val, hex_len)
+    elif (isinstance(val, str) or isinstance(val, bytes)) and is_hex_string(val):
+        if isinstance(val, str):
+            val = val.encode("utf-8")
+        if len(val) != hex_len:
+            raise ValueError("Invalid parameter length")
+        return val
+    else:
+        raise ValueError("Invalid parameter type")
+
+
+def hex_int(val):
+    if isinstance(val, int):
+        return int(val)
+    elif isinstance(val, str) or isinstance(val, bytes):
+        if isinstance(val, str):
+            val = val.encode("utf-8")
+        if not is_hex_string(val):
+            val = hexlify(val)
+        return int(val, 16)
+    else:
+        raise ValueError("parameter must be an int or long")
+
+
+def bytes_int(byte_seq):
+    return (
+        int(hexlify(byte_seq), 16)
+        if byte_seq is None or isinstance(byte_seq, int)
+        else byte_seq
+    )
+
+
 class HDWallet(object):
     """A BIP32 wallet is made up of Wallet nodes.
 
@@ -62,7 +96,7 @@ class HDWallet(object):
 
     >>> my_wallet = Wallet.from_mnemonic(
     ...     key='correct horse battery staple')
-    >>> private = my_wallet.serialize(private=True)
+    >>> private = my_wallet.dump_xkey(private=True)
     >>> private  # doctest: +ELLIPSIS
     u'xprv9s21ZrQH143K2mDJW8vDeFwbyDbFv868mM2Zr87rJSTj8q16Unkaq1pryiV...'
 
@@ -120,42 +154,9 @@ class HDWallet(object):
         if self.private_key and self.private_key.public_key != self.public_key:
             raise ValueError("Provided private and public values do not match")
 
-        def hex_check_length(val, hex_len):
-            if isinstance(val, int):
-                return long_to_hex(val, hex_len)
-            elif (isinstance(val, str) or isinstance(val, bytes)) and is_hex_string(
-                val
-            ):
-                if isinstance(val, str):
-                    val = val.encode("utf-8")
-                if len(val) != hex_len:
-                    raise ValueError("Invalid parameter length")
-                return val
-            else:
-                raise ValueError("Invalid parameter type")
-
-        def hex_int(val):
-            if isinstance(val, int):
-                return int(val)
-            elif isinstance(val, str) or isinstance(val, bytes):
-                if isinstance(val, str):
-                    val = val.encode("utf-8")
-                if not is_hex_string(val):
-                    val = hexlify(val)
-                return int(val, 16)
-            else:
-                raise ValueError("parameter must be an int or long")
-
         self.network = network
         self.depth = hex_int(depth)
-        if isinstance(parent_fingerprint, str) or isinstance(parent_fingerprint, bytes):
-            if isinstance(parent_fingerprint, str):
-                val = parent_fingerprint.encode("utf-8")
-            else:
-                val = parent_fingerprint
-            if val.startswith(b"0x"):
-                parent_fingerprint = val[2:]
-        self.parent_fingerprint = b"0x" + hex_check_length(parent_fingerprint, 8)
+        self.parent_fingerprint = hex_check_length(parent_fingerprint, 8)
         self.child_number = hex_int(child_number)
         self.chain_code = hex_check_length(chain_code, 64)
 
@@ -198,7 +199,7 @@ class HDWallet(object):
     def fingerprint(self):
         """The first 32 bits of the identifier are called the fingerprint."""
         # 32 bits == 4 Bytes == 8 hex characters
-        return b"0x" + self.identifier[:8]
+        return self.identifier[:8]
 
     def create_new_address_for_user(self, user_id):
         """Create a new bitcoin address to accept payments for a User.
@@ -396,7 +397,7 @@ class HDWallet(object):
         >>> master_public_key = w_pub.serialize_b58(private=False)
         >>> # Now you put master_public_key on your website
         >>> # and give somebody a private key
-        >>> public_master = Wallet.deserialize(master_public_key)
+        >>> public_master = HDWallet.load_str_xkey(master_public_key)
         >>> cracked_private_master = public_master.crack_private_key(child)
         >>> assert w == cracked_private_master  # :(
 
@@ -432,7 +433,7 @@ class HDWallet(object):
             network=self.network,
         )
 
-    def serialize(self, private: bool = True, segwit: bool = False):
+    def dump_xkey(self, private: bool = True, segwit: bool = False):
         """Serialize this key.
 
         Args:
@@ -446,7 +447,7 @@ class HDWallet(object):
                 legacy extended version bytes. Only for networks which support Segwit,
                 therefore the default value is False.
 
-        See the spec in `deserialize` for more details.
+        See the spec in `load_xkey` for more details.
         """
 
         if private and not self.private_key:
@@ -495,7 +496,7 @@ class HDWallet(object):
         network_version = long_to_hex(network_version_func(), 8)
 
         depth = long_to_hex(self.depth, 2)
-        parent_fingerprint = self.parent_fingerprint[2:]  # strip leading 0x
+        parent_fingerprint = self.parent_fingerprint
         child_number = long_to_hex(self.child_number, 8)
         chain_code = self.chain_code
         ret = network_version + depth + parent_fingerprint + child_number + chain_code
@@ -506,9 +507,9 @@ class HDWallet(object):
             ret += self.get_public_key_hex(compressed=True)
         return ret.lower()
 
-    def serialize_b58(self, private=True, segwit=False):
+    def dump_str_xkey(self, private=True, segwit=False) -> str:
         """Encode the serialized node in base58."""
-        return b58encode_check(unhexlify(self.serialize(private, segwit))).decode(
+        return b58encode_check(unhexlify(self.dump_xkey(private, segwit))).decode(
             "utf-8"
         )
 
@@ -535,11 +536,26 @@ class HDWallet(object):
         return key.address(compressed=compressed, witness_version=witness_version)
 
     @classmethod
-    def deserialize(cls, key: str, network=BitcoinSegwitMainNet):
-        """Load an extended BIP32 private key from a hex string.
+    def load_str_xkey(cls, key: str, network=BitcoinSegwitMainNet):
+        """Load an extended BIP32 key from a base58 or hex-encoded string.
 
         Args:
-            key: the extended private key to generate an HDWallet from.
+            key (str): the extended key to generate an HDWallet from.
+        """
+        if len(key) in [78 * 2, (78 + 32) * 2]:
+            # we have a hexlified non-base58 key, continue!
+            key = unhexlify(key)
+        elif len(key) == 111:
+            # We have a base58 encoded string
+            key = b58decode_check(key)
+        return cls.load_xkey(key, network=network)
+
+    @classmethod
+    def load_xkey(cls, key: bytes, network=BitcoinSegwitMainNet):
+        """Load an extended BIP32 key from a byte string.
+
+        Args:
+            key (bytes): the extended key to generate an HDWallet from.
 
         The key consists of
 
@@ -559,15 +575,6 @@ class HDWallet(object):
                 generate such data.)
         """
 
-        if len(key) not in [78, (78 + 32)]:
-            # not a byte array
-            key = key.encode("utf-8")
-            if len(key) in [78 * 2, (78 + 32) * 2]:
-                # we have a hexlified non-base58 key, continue!
-                key = unhexlify(key)
-            elif len(key) == 111:
-                # We have a base58 encoded string
-                key = b58decode_check(key)
         # Now that we double checkd the values, convert back to bytes because
         # they're easier to slice
         version, depth, parent_fingerprint, child, chain_code, key_data = (
@@ -576,7 +583,7 @@ class HDWallet(object):
             key[5:9],
             key[9:13],
             key[13:45],
-            key[45:],
+            key[45:78],
         )
 
         if int(depth) == 0 and int(hexlify(parent_fingerprint), 16) != 0:
@@ -610,16 +617,8 @@ class HDWallet(object):
                     version,
                 )
             pubkey = PublicKey.from_bytes(key_data)
-            # Even though this was generated from a compressed pubkey, we
-            # want to store it as an uncompressed pubkey
-            pubkey.compressed = False
         else:
             raise ValueError(f"Invalid key_data prefix, got {point_type}")
-
-        def bytes_int(byte_seq):
-            if byte_seq is None or isinstance(byte_seq, int):
-                return byte_seq
-            return int(hexlify(byte_seq), 16)
 
         return cls(
             depth=bytes_int(depth),

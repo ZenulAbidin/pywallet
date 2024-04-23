@@ -285,13 +285,9 @@ class PrivateKey:
             bytes: The signature encoded in DER form.
         """
         if isinstance(message, str):
-            msg = bytes(message, "utf-8")
-        elif isinstance(message, bytes):
-            msg = message
-        else:
-            raise TypeError("message must be either str or bytes")
+            message = bytes(message, "utf-8")
 
-        return self._key.sign(msg)
+        return self._key.sign(message)
 
     def base64_sign(self, message):
         """Signs message using this private key. The message is encoded in UTF-8.
@@ -310,14 +306,10 @@ class PrivateKey:
             str: The signature encoded in DER form, which is again encoded in Base64.
         """
         if isinstance(message, str):
-            msg = bytes(message, "utf-8")
-        elif isinstance(message, bytes):
-            msg = message
-        else:
-            raise TypeError("message must be either str or bytes")
+            message = bytes(message, "utf-8")
 
         return base64.b64encode(
-            self._key.sign(msg)
+            self._key.sign(message)
         ).decode()  # decode is to convert from bytes to str
 
     def rfc2440_sign(self, message):
@@ -354,16 +346,12 @@ class PrivateKey:
             str: A text string in the form of RFC2440, in a similar form to Electrum.
         """
         if isinstance(message, str):
-            msg = bytes(message, "utf-8")
-        elif isinstance(message, bytes):
-            msg = message
-        else:
-            raise TypeError("message must be either str or bytes")
+            message = bytes(message, "utf-8")
 
-        sig = base64.b64encode(self._key.sign(msg)).decode()
+        sig = base64.b64encode(self._key.sign(message)).decode()
         address = self._public_key.address()
         rfc2440 = f"-----BEGIN {self.network.NAME.upper()} SIGNED MESSAGE-----\n"
-        rfc2440 += message
+        rfc2440 += message.decode("utf-8")
         rfc2440 += f"-----BEGIN {self.network.NAME.upper()} SIGNATURE-----\n"
         rfc2440 += address
         rfc2440 += sig
@@ -387,14 +375,10 @@ class PrivateKey:
                 A tuple of R, S, and Z (message hash) values.
         """
         if isinstance(message, str):
-            msg = bytes(message, "utf-8")
-        elif isinstance(message, bytes):
-            msg = message
-        else:
-            raise TypeError("message must be either str or bytes")
+            message = bytes(message, "utf-8")
 
-        der = self._key.sign(msg)
-        z = sha256(msg).digest()
+        der = self._key.sign(message)
+        z = sha256(message).digest()
         r, s = decode_der_signature(der)
         r = int(binascii.hexlify(r), 16)
         s = int(binascii.hexlify(s), 16)
