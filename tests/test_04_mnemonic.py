@@ -42,7 +42,7 @@ class MnemonicTest(unittest.TestCase):
             self.assertEqual(v[3], xprv)
 
     def test_vectors(self) -> None:
-        with open("vectors.json", "r") as f:
+        with open("tests/data/vectors.json", "r") as f:
             vectors = json.load(f)
         for lang in vectors.keys():
             self._check_list(lang, vectors[lang])
