@@ -1,0 +1,19 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Check flake8 compliance",
+            "type": "shell",
+            "command": "tox",
+            "args": [
+                "-e",
+                "flake8"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
