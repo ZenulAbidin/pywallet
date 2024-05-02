@@ -450,12 +450,9 @@ class Wallet:
                         privkey.public_key.base58_address(False),
                     ]
                 u._output["private_key"] = (
-                    private_key if u._output["address"] in a else None
+                    privkey if u._output["address"] in a else None
                 )
-                u._output["script_pubkey"] = PublicKey.script(
-                    u._output["address"], self._network
-                )
-                del privkey
+                u._output["address_hash"] = privkey.public_key.hash160()
                 del private_key
                 if u._output["private_key"] is None:
                     continue

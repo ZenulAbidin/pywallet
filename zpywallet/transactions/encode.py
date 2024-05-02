@@ -8,7 +8,7 @@ from ..utils.keys import PrivateKey
 from ..utxo import UTXO
 from ..destination import Destination
 
-from ..utils.base58 import b58decode_check
+from ..utils.base58 import b58decode_check, is_b58check
 from ..utils.keccak import to_checksum_address
 
 # Should really use list[] annotation directly but we still support Python 3.8 which does not have such syntax yet.
@@ -52,7 +52,106 @@ def create_varint(value):
         return b"\xff" + int_to_hex(value, min_bytes=8)
 
 
-def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network):
+def assemble_legacy_signature(
+    bytes_1,
+    bytes_2_inputs,
+    bytes_3,
+    bytes_4,
+    network,
+    b2i,
+):
+    # Remove segwit signalling bytes if present
+    if bytes_1[-3:-1] == b"\x00\x01":
+        bytes_1 = bytes_1[:-3] + bytes_1[-1:]
+    b2 = bytes_2_inputs[b2i]
+    script_pubkey = b2[3]
+    private_key = b2[4]
+    sighash = b2[5]
+    keyhash = b2[6]
+    partial_transaction = bytes_1
+    for i in range(0, len(bytes_2_inputs)):
+        partial_transaction += bytes_2_inputs[i][0]
+        if i == b2i:
+            partial_transaction += create_varint(len(script_pubkey)) + script_pubkey
+        else:
+            partial_transaction += bytes_2_inputs[i][1]  # The empty scriptsig
+        partial_transaction += bytes_2_inputs[i][2]
+    partial_transaction += bytes_3
+    partial_transaction += bytes_4
+    # And last, the input's sighash must be placed AT THE END of the temporary transaction
+    partial_transaction += int_to_hex(sighash, 4)
+    # We are actually supposed to hash the partial transaction twice.
+    # However, coincurve ALWAYS hashes the message before signing, and if we disable the
+    # hasher then it throws a tantrum.
+    # So we only hash it one time here.
+    hashed_preimage = hashlib.sha256(partial_transaction).digest()
+
+    # Sign it
+    pubkey = private_key.public_key.to_bytes()
+    if private_key.public_key.hash160(compressed=False) == keyhash:
+        pubkey = private_key.public_key.to_bytes(False)
+    der = private_key.der_sign(hashed_preimage) + bytes([sighash])
+    # I would like to mention that this only works if the data being pushed is less than 76 bytes.
+    # Otherwise we need to use OP_PUSHDATA<1/2/4>
+    if network.ADDRESS_MODE:
+        script = int_to_hex(len(der)) + der + int_to_hex(len(pubkey)) + pubkey
+    else:
+        # P2PK has no pubkey
+        script = int_to_hex(len(der)) + der
+    return create_varint(len(script)) + script
+
+
+def assemble_segwit_payload(
+    i, inputs, nsequence, outputs, nlocktime="00000000", sighash=SIGHASH_ALL
+):
+    # nVersion of the transaction (4-byte little endian)
+    segwit_payload = int_to_hex(1, 4)
+
+    # hash_prevouts (32-byte hash)
+    hash_prevouts = b""
+    for j in inputs:
+        hash_prevouts += binascii.unhexlify(j.txid().encode()) + int_to_hex(
+            j.index(), 4
+        )
+    segwit_payload += hashlib.sha256(hashlib.sha256(hash_prevouts).digest()).digest()
+
+    # hash_sequence (32-byte hash)
+    hash_sequence = b""
+    for j in inputs:
+        hash_sequence += bytes.fromhex(j._nsequence())
+    segwit_payload += hashlib.sha256(hashlib.sha256(hash_sequence).digest()).digest()
+
+    # outpoint (32-byte hash + 4-byte little endian)
+    segwit_payload += binascii.unhexlify(i.txid().encode()) + int_to_hex(i.index(), 4)
+
+    # scriptCode of the input (serialized as scripts inside CTxOuts)
+    # note: for p2wpkh this is actually the P2PKH script!!!
+    # for p2wsh it is the original script
+    if i._private_key().public_key.hashonly:
+        script = i._private_key().public_key.script()  # p2wsh
+    else:
+        script = i._private_key().public_key.p2pkh_script()
+    segwit_payload += create_varint(len(script)) + script
+
+    # value of the output spent by this input (8-byte little endian)
+    segwit_payload += int_to_hex(i.amount(in_standard_units=False), 8)
+
+    # nSequence of the input (4-byte little endian)
+    segwit_payload += nsequence
+
+    # hashOutputs (32-byte hash)
+    segwit_payload += hashlib.sha256(hashlib.sha256(outputs).digest()).digest()
+
+    # nLocktime of the transaction (4-byte little endian)
+    segwit_payload += bytes.fromhex(nlocktime)
+
+    # sighash type of the signature (4-byte little endian)
+    segwit_payload += int_to_hex(sighash, 4)
+
+    return segwit_payload
+
+
+def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4):
     # Signs the inputs of a legacy transaction. The parts are contained in bytes 1, 2, 3, 4.
     # Bytes 2 contains the inputs broken up so that the signature is isolated. It also has
     # the script pubkey, the private key, and sighash.
@@ -61,34 +160,11 @@ def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network)
     # Note that only ONE INPUT IS FILLED AT A TIME DURING SIGNING
     for b2i in range(0, len(bytes_2_inputs)):
         b2 = bytes_2_inputs[b2i]
-        script_pubkey = b2[3]
-        private_key = b2[4]
-        sighash = b2[5]
-        address = b2[6]
-        partial_transaction = bytes_1
-        for i in range(0, len(bytes_2_inputs)):
-            partial_transaction += bytes_2_inputs[i][0]
-            if i == b2i:
-                partial_transaction += create_varint(len(script_pubkey)) + script_pubkey
-            else:
-                partial_transaction += bytes_2_inputs[i][1]  # The empty scriptsig
-            partial_transaction += bytes_2_inputs[i][2]
-        partial_transaction += bytes_3
-        partial_transaction += bytes_4
-        # And last, the input's sighash must be placed AT THE END of the temporary transaction
-        partial_transaction += int_to_hex(sighash, 4)
-        hashed_preimage = hashlib.sha256(partial_transaction).digest()
-
-        # Sign it
-        p = PrivateKey.from_wif(private_key, network=network)
-        pubkey = p.public_key.to_bytes()
-        if p.public_key.base58_address(compressed=False) == address:
-            pubkey = p.public_key.to_bytes(False)
-        der = p.der_sign(hashed_preimage) + bytes([sighash])
-        # I would like to mention that this only works if the data being pushed is less than 76 bytes.
-        # Otherwise we need to use OP_PUSHDATA<1/2/4>
-        script = int_to_hex(len(der)) + der + int_to_hex(len(pubkey)) + pubkey
-        signatures.append(create_varint(len(script)) + script)
+        signatures.append(
+            assemble_legacy_signature(
+                bytes_1, bytes_2_inputs, bytes_3, bytes_4, b2[8], b2i
+            )
+        )
 
     # Now that we have all the signatures, we can assemble the signed transaction
     signed_transaction = bytes_1
@@ -102,7 +178,7 @@ def create_signatures_legacy(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network)
     return signed_transaction.hex()
 
 
-def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network):
+def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4):
     # Signs the inputs of a segwit transaction. The parts are contained in bytes 1, 2, 3, 4.
     # Bytes 2 contains the inputs broken up so that the signature is isolated. It also has
     # the script pubkey, the private key, and sighash.
@@ -124,30 +200,26 @@ def create_signatures_segwit(bytes_1, bytes_2_inputs, bytes_3, bytes_4, network)
     # Note that only ONE INPUT IS FILLED AT A TIME DURING SIGNING
     for b2i in range(0, len(bytes_2_inputs)):
         b2 = bytes_2_inputs[b2i]
-        script_pubkey = b2[3]
-        private_key = b2[4]
-        sighash = b2[5]
-        address = b2[6]
-        segwit_payload = hashlib.sha256(b2[7]).digest()
+        segwit_payload = None if not b2[7] else hashlib.sha256(b2[7]).digest()
 
         # Sign it
-        p = PrivateKey.from_wif(private_key, network=network)
-        pubkey = p.public_key.to_bytes()
-        if script_is_p2pkh(script_pubkey):
-            if p.public_key.base58_address(compressed=False) == address:
-                pubkey = p.public_key.to_bytes(False)
-            # Legacy inputs are signed the old way
-            der = p.der_sign(hashlib.sha256(segwit_payload).digest()) + bytes([sighash])
-            script = int_to_hex(len(der)) + der + int_to_hex(len(pubkey)) + pubkey
-            signatures.append(create_varint(len(script)) + script)
+        if not segwit_payload:
+            signatures.append(
+                assemble_legacy_signature(
+                    bytes_1, bytes_2_inputs, bytes_3, bytes_4, b2[8], b2i
+                )
+            )
             witness_stack.append([])
-        elif script_is_p2wpkh(script_pubkey):
-            # Place data on the witness stack
-            der = p.der_sign(segwit_payload) + bytes([sighash])
+        else:
+            # It's a segwit input, sign it and place it on the witness stack.
+            # Note: ZPyWallet doesn't support signing with non-standard
+            # uncompressed segwit pubkeys.
+            private_key = b2[4]
+            sighash = b2[5]
+            pubkey = private_key.public_key.to_bytes()
+            der = private_key.der_sign(segwit_payload) + bytes([sighash])
             witness_stack.append([der, pubkey])
             signatures.append(b"\x00")
-        else:
-            raise ValueError("Unsupported script type")
 
     # Now that we have all the signatures, we can assemble the signed transaction
     signed_transaction = bytes_1
@@ -195,7 +267,7 @@ def create_transaction(
             BitcoinSegwitMainNet.
         full_nodes (list, optional): List of Web3 nodes to connect for signing.
             Only for EVM blockchains.
-        gas (int): Specifies the gas in Gwei. Only for EVM blockchains.
+        gas (int, optional): Specifies the gas in Gwei. Only for EVM blockchains.
 
     Returns:
         bytes: The signed transaction data in bytes.
@@ -204,157 +276,103 @@ def create_transaction(
         ValueError: If there's an issue with the transaction or network configuration.
     """
 
-    if not full_nodes:
-        full_nodes = []
-
     # First, construct the raw transacation
     if network.SUPPORTS_EVM:
-        try:
-            return create_web3_transaction(
-                inputs[0].address(),
-                outputs[0].address(),
-                outputs[0].amount(in_standard_units=False),
-                inputs[0]._private_key(),
-                full_nodes,
-                kwargs.get("gas"),
-                network.CHAIN_ID,
-            )
-        finally:
-            del inputs
-    else:
-        all_legacy = True
-        for i in inputs:
-            try:
-                b58decode_check(i.address())
-            except ValueError:
-                all_legacy = False
-                if not network.SUPPORTS_SEGWIT:
-                    raise ValueError(
-                        "You must use a segwit network to use bech32 inputs"
-                    )
-                break
-        tx_bytes_1 = tx_bytes_3 = tx_bytes_4 = b""
-        tx_bytes_1 += int_to_hex(1, 4)  # Version 1 transaction
-        if network.SUPPORTS_SEGWIT and not all_legacy:
-            tx_bytes_1 += b"\x00\x01"  # Signal segwit support
+        return create_web3_transaction(
+            inputs[0].address(),
+            outputs[0].address(),
+            outputs[0].amount(in_standard_units=False),
+            inputs[0]._private_key(),
+            full_nodes,
+            kwargs.get("gas"),
+            network.CHAIN_ID,
+        )
 
-        # We process the outputs before the inputs so that we can use it for segwit transactions.
-        tx_bytes_3 += create_varint(len(outputs))
-        tx_bytes_3a = b""
-        for o in outputs:
-            tx_bytes_3b = b""
-            tx_bytes_3b += int_to_hex(o.amount(in_standard_units=False), 8)
-            # if network.SUPPORTS_SEGWIT and o.script_pubkey()[0] == 0:
-            #    script =  b"\x76\xa9" + o.script_pubkey()[1:] + b"\x88\xac"
-            #    tx_bytes_3b += create_varint(len(script)) + script
-            # else:
-            script = o.script_pubkey()
-            tx_bytes_3b += create_varint(len(script))
-            tx_bytes_3b += script
-            tx_bytes_3a += tx_bytes_3b
-        tx_bytes_3 += tx_bytes_3a
+    legacy = []
+    for i in inputs:
+        is_legacy = is_b58check(i.address())
+        legacy.append(is_legacy)
+    all_legacy = all(legacy)
+    if not all_legacy and not network.SUPPORTS_SEGWIT:
+        raise ValueError("You must use a segwit network to use bech32 inputs")
 
-        # Inputs
-        tx_bytes_1 += create_varint(len(inputs))
-        tx_bytes_2_inputs = []
-        for i in inputs:
-            input_bytes_1 = input_bytes_2 = input_bytes_3 = b""
-            input_bytes_1 += binascii.unhexlify(i.txid().encode())[::-1]
-            input_bytes_1 += int_to_hex(i.index(), 4)
+    tx_bytes_1 = tx_bytes_3 = tx_bytes_4 = b""
+    tx_bytes_1 += int_to_hex(1, 4)  # Version 1 transaction
+    if network.SUPPORTS_SEGWIT and not all_legacy:
+        tx_bytes_1 += b"\x00\x01"  # Signal segwit support
 
-            # The transacion cannot be signed until it is fully constructed.
-            # To avoid a chicken-and-egg, we set the signature scripts to empty.
-            # This is the prescribed behavior by the bitcoin protocol.
-            # EDIT I heard it's just the scriptpubkey
-            input_bytes_2 = (
-                b"\x00"  # create_varint(len(i._script_pubkey())) + i._script_pubkey()
-            )
+    # We process the outputs before the inputs so that we can use it for segwit transactions.
+    tx_bytes_3 += create_varint(len(outputs))
+    tx_bytes_3a = b""
+    for o in outputs:
+        tx_bytes_3b = b""
+        tx_bytes_3b += int_to_hex(o.amount(in_standard_units=False), 8)
+        # if network.SUPPORTS_SEGWIT and o.script_pubkey()[0] == 0:
+        #    script =  b"\x76\xa9" + o.script_pubkey()[1:] + b"\x88\xac"
+        #    tx_bytes_3b += create_varint(len(script)) + script
+        # else:
+        script = o.script_pubkey()
+        tx_bytes_3b += create_varint(len(script))
+        tx_bytes_3b += script
+        tx_bytes_3a += tx_bytes_3b
+    tx_bytes_3 += tx_bytes_3a
 
-            input_bytes_3 = int_to_hex(
-                0xFFFFFFFD if rbf else 0xFFFFFFFF, 4
-            )  # disables timelocks, see https://bitcointalk.org/index.php?topic=5479540.msg63401889#msg63401889
+    # Inputs
+    tx_bytes_1 += create_varint(len(inputs))
+    tx_bytes_2_inputs = []
+    for num in range(inputs):
+        i = inputs[num]
+        input_bytes_1 = input_bytes_2 = input_bytes_3 = b""
+        input_bytes_1 += binascii.unhexlify(i.txid().encode())[::-1]
+        input_bytes_1 += int_to_hex(i.index(), 4)
 
-            segwit_payload = b""
-            # It is easier to prepare the Segwit signing data here.
-            if network.SUPPORTS_SEGWIT and not all_legacy:
-                # nVersion of the transaction (4-byte little endian)
-                segwit_payload = int_to_hex(1, 4)
+        # The transacion cannot be signed until it is fully constructed.
+        # To avoid a chicken-and-egg, we set the signature scripts to empty.
+        # This is the prescribed behavior by the bitcoin protocol.
+        # EDIT I heard it's just the scriptpubkey
+        input_bytes_2 = (
+            b"\x00"  # create_varint(len(i._script_pubkey())) + i._script_pubkey()
+        )
 
-                # hash_prevouts (32-byte hash)
-                hash_prevouts = b""
-                for j in inputs:
-                    hash_prevouts += binascii.unhexlify(j.txid().encode())[
-                        ::-1
-                    ] + int_to_hex(j.index(), 4)
-                segwit_payload += hashlib.sha256(
-                    hashlib.sha256(hash_prevouts).digest()
-                ).digest()
+        input_bytes_3 = int_to_hex(
+            0xFFFFFFFD if rbf else 0xFFFFFFFF, 4
+        )  # disables timelocks, see https://bitcointalk.org/index.php?topic=5479540.msg63401889#msg63401889
+        inputs[num]._output["nsequence"] = input_bytes_3
 
-                # hash_sequence (32-byte hash)
-                hash_sequence = b""
-                for j in inputs:
-                    hash_sequence += (
-                        input_bytes_3  # The timelock is the same for all inputs.
-                    )
-                segwit_payload += hashlib.sha256(
-                    hashlib.sha256(hash_sequence).digest()
-                ).digest()
-
-                # outpoint (32-byte hash + 4-byte little endian)
-                segwit_payload += binascii.unhexlify(i.txid().encode())[
-                    ::-1
-                ] + int_to_hex(i.index(), 4)
-
-                # scriptCode of the input (serialized as scripts inside CTxOuts)
-                # note: for p2wpkh this is actually the P2PKH script!!!
-                # Do not include network identifier byte in the decoded address
-                script = b"\x76\xa9" + i._script_pubkey()[1:] + b"\x88\xac"
-                segwit_payload += create_varint(len(script)) + script
-
-                # value of the output spent by this input (8-byte little endian)
-                segwit_payload += int_to_hex(i.amount(in_standard_units=False), 8)
-
-                # nSequence of the input (4-byte little endian)
-                segwit_payload += input_bytes_3
-
-                # hashOutputs (32-byte hash)
-                segwit_payload += hashlib.sha256(
-                    hashlib.sha256(tx_bytes_3a).digest()
-                ).digest()
-
-                # nLocktime of the transaction (4-byte little endian)
-                segwit_payload += int_to_hex(0, 4)
-
-                # sighash type of the signature (4-byte little endian)
-                segwit_payload += int_to_hex(SIGHASH_ALL, 4)
-
-            # If this is a segwit transaction these will need to go into witness data eventually.
-            tx_bytes_2_inputs.append(
-                [
-                    input_bytes_1,
-                    input_bytes_2,
-                    input_bytes_3,
-                    i._script_pubkey(),
-                    i._private_key(),
-                    SIGHASH_ALL,
-                    i.address(),
-                    segwit_payload,
-                ]
+        segwit_payload = b""
+        # It is easier to prepare the Segwit signing data here.
+        is_legacy = legacy.pop(0)
+        if network.SUPPORTS_SEGWIT and not is_legacy:
+            segwit_payload = assemble_segwit_payload(
+                i, inputs, input_bytes_3, tx_bytes_3a
             )
 
-        # tx_bytes_3 should also contain the witness data
+        # If this is a segwit transaction these will need to go into witness data eventually.
+        tx_bytes_2_inputs.append(
+            [
+                input_bytes_1,
+                input_bytes_2,
+                input_bytes_3,
+                i._private_key().public_key.script(),
+                i._private_key(),
+                SIGHASH_ALL,
+                i.key_hash(),
+                segwit_payload,
+                i.network(),
+            ]
+        )
 
-        tx_bytes_4 += int_to_hex(0, 4)  # Disable locktime (redundant)
+    # tx_bytes_3 should also contain the witness data
 
-        del inputs
-        if network.SUPPORTS_SEGWIT and not all_legacy:
-            return create_signatures_segwit(
-                tx_bytes_1, tx_bytes_2_inputs, tx_bytes_3, tx_bytes_4, network
-            )
-        else:
-            return create_signatures_legacy(
-                tx_bytes_1, tx_bytes_2_inputs, tx_bytes_3, tx_bytes_4, network
-            )
+    tx_bytes_4 += int_to_hex(0, 4)  # Disable locktime (redundant)
+
+    if network.SUPPORTS_SEGWIT and not all_legacy:
+        return create_signatures_segwit(
+            tx_bytes_1, tx_bytes_2_inputs, tx_bytes_3, tx_bytes_4
+        )
+    return create_signatures_legacy(
+        tx_bytes_1, tx_bytes_2_inputs, tx_bytes_3, tx_bytes_4
+    )
 
 
 def create_web3_transaction(
@@ -394,9 +412,7 @@ def create_web3_transaction(
             transaction["gas"] = gas
 
             # Sign the transaction
-            return w3.eth.account.signTransaction(
-                transaction, binascii.unhexlify(private_key[2:].encode())
-            )
+            return w3.eth.account.signTransaction(transaction, bytes(private_key))
         except Exception:
             pass
     raise RuntimeError("Cannot sign web3 transaction (try specifying different nodes)")

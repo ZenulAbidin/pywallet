@@ -135,3 +135,14 @@ def b58decode_check(
         raise ValueError("Invalid checksum")
 
     return result
+
+
+def is_b58check(
+    v: Union[str, bytes], alphabet: bytes = BITCOIN_ALPHABET, *, autofix: bool = False
+) -> bool:
+    """Check if a string is valid Base58Check"""
+    try:
+        _ = b58decode_check(v, alphabet, autofix=autofix)
+        return True
+    except ValueError:
+        return False

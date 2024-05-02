@@ -175,6 +175,15 @@ class BitcoinMainNet(CryptoNetwork):
     BECH32_PREFIX = None
 
 
+class BitcoinP2PKMainNet(BitcoinMainNet):
+    """Bitcoin MainNet version bytes, with no address support - P2PK only."""
+
+    INTERNAL_NAME = wallet_pb2.Network.BITCOIN_P2PK_MAINNET
+    ADDRESS_MODE = []
+    SCRIPT_ADDRESS = None
+    PUBKEY_ADDRESS = None
+
+
 class BitcoinSegwitMainNet(BitcoinMainNet):
     """Bitcoin MainNet version bytes, defaulting to segwit addresses."""
 
@@ -218,6 +227,15 @@ class BitcoinTestNet(CryptoNetwork):
     EXT_SEGWIT_SECRET_KEY = None
     BIP32_SEGWIT_PATH = None
     BECH32_PREFIX = None
+
+
+class BitcoinP2PKTestNet(BitcoinTestNet):
+    """Bitcoin TestNet version bytes, with no address support - P2PK only."""
+
+    INTERNAL_NAME = wallet_pb2.Network.BITCOIN_P2PK_TESTNET
+    ADDRESS_MODE = []
+    SCRIPT_ADDRESS = None
+    PUBKEY_ADDRESS = None
 
 
 class BitcoinSegwitTestNet(BitcoinTestNet):

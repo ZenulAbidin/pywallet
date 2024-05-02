@@ -23,6 +23,7 @@ from .bech32 import bech32_decode, bech32_encode
 from .ripemd160 import ripemd160
 from ..network import BitcoinSegwitMainNet
 from ..errors import (
+    PublicKeyHashException,
     incompatible_network_bytes_exception_factory,
     ChecksumException,
     unsupported_feature_exception_factory,
@@ -300,7 +301,6 @@ class PrivateKey:
         """
         if isinstance(message, str):
             message = bytes(message, "utf-8")
-
         return self._key.sign(message)
 
     def base64_sign(self, message):
@@ -522,6 +522,25 @@ class PublicKey:
         """
         return PublicKey.from_bytes(binascii.unhexlify(h), network)
 
+    @classmethod
+    def from_address(cls, address, network):
+        """Creates a public key hash from an address.
+        Only applicable to Bitcoin-like blockchains.
+
+        Args:
+            address (string) the address to get the script for.
+            network (string) the network for this address
+        """
+        if network.SUPPORTS_EVM:
+            raise PublicKeyHashException
+        else:
+            try:
+                b = b58decode_check(address)
+                return PublicKey(b[1:], network=network, hashonly=True)
+            except ValueError:
+                b = bech32_decode(network.BECH32_PREFIX, address)[1]
+                return PublicKey(bytes(b), network=network, hashonly=True)
+
     def der_verify(self, message, signature, address):
         """Verifies a signed message.
 
@@ -533,6 +552,8 @@ class PublicKey:
         Returns:
             bool: True if the signature is authentic, False otherwise.
         """
+        if self.hashonly:
+            raise PublicKeyHashException
         if (
             self.base58_address(compressed=False) != address
             and self.base58_address(compressed=True) != address
@@ -554,6 +575,8 @@ class PublicKey:
         Returns:
             bool: True if the signature is authentic, False otherwise.
         """
+        if self.hashonly:
+            raise PublicKeyHashException
         if (
             self.base58_address(compressed=False) != address
             and self.base58_address(compressed=True) != address
@@ -575,6 +598,8 @@ class PublicKey:
             bool: True if the signature is authentic, False otherwise.
         """
 
+        if self.hashonly:
+            raise PublicKeyHashException
         text_lines = text.strip().split("\n")
         if (
             text_lines[0]
@@ -611,6 +636,9 @@ class PublicKey:
         Returns:
             bool: True if the signature is authentic, False otherwise.
         """
+
+        if self.hashonly:
+            raise PublicKeyHashException
         if (
             self.base58_address(compressed=False) != address
             and self.base58_address(compressed=True) != address
@@ -630,27 +658,31 @@ class PublicKey:
         signature = encode_der_signature(r, s)
         return coincurve.verify_signature(signature, message, bytes(self))
 
-    def __init__(self, ckey, network=BitcoinSegwitMainNet):
+    def __init__(self, ckey, network=BitcoinSegwitMainNet, hashonly=False):
         self._key = ckey
         self._network = network
 
-        # RIPEMD-160 of SHA-256
-        if "BASE58" in network.ADDRESS_MODE or "BECH32" in network.ADDRESS_MODE:
-            self.ripe = ripemd160(
-                hashlib.sha256(ckey.format(compressed=False)).digest()
-            )
-            self.ripe_compressed = ripemd160(
-                hashlib.sha256(ckey.format(compressed=True)).digest()
-            )
-        else:
-            self.ripe = None
-            self.ripe_compressed = None
+        self.ripe = None
+        self.ripe_compressed = None
+        self.keccak = None
+        self.hashonly = False
+
+        if hashonly:
+            # Only public key hash is available, disables a lot of functionality
+            # Use ripe_compressed so that they work with default named args
+            self.ripe_compressed = ckey
+            self.hashonly = True
 
         # Keccak-256 for Ethereum
         if "HEX" in network.ADDRESS_MODE:
             self.keccak = Keccak256(ckey.format(compressed=False)[1:]).digest()
-        else:
-            self.keccak = None
+            return
+
+        # RIPEMD-160 of SHA-256
+        self.ripe = ripemd160(hashlib.sha256(ckey.format(compressed=False)).digest())
+        self.ripe_compressed = ripemd160(
+            hashlib.sha256(ckey.format(compressed=True)).digest()
+        )
 
     @property
     def network(self):
@@ -665,6 +697,8 @@ class PublicKey:
         Returns:
             b (bytes): A byte string.
         """
+        if self.hashonly:
+            raise PublicKeyHashException
         return self._key.format(compressed)
 
     def to_hex(self, compressed=True) -> str:
@@ -675,12 +709,16 @@ class PublicKey:
         Returns:
             b (str): A hexadecimal string.
         """
+        if self.hashonly:
+            raise PublicKeyHashException
         return binascii.hexlify(self.to_bytes(compressed)).decode("utf-8")
 
     def __bytes__(self):
         return self.to_bytes(compressed=True)
 
     def to_point(self):
+        if self.hashonly:
+            raise PublicKeyHashException
         """Return the public key points as a Point."""
         return Point(*self._key.point())
 
@@ -695,7 +733,24 @@ class PublicKey:
         Returns:
             bytes: RIPEMD-160 byte string.
         """
+        if self.hashonly:
+            return self.ripe_compressed
         return self.ripe_compressed if compressed else self.ripe
+
+    def p2pk_script(self, compressed=True):
+        """Return the P2PK script bytes contianing the public key's hash.
+        Undefined for EVM blockchains.
+
+        Args:
+            compressed (bool): Whether or not the compressed key should
+               be used.
+        Returns:
+            bytes: A P2PK script.
+        """
+        key = self.to_bytes(compressed)
+        length = len(key).to_bytes(length=1, byteorder="big")
+        # (OP_PUSH of pubkeyhash) OP_CHECKSIG
+        return length + key + b"\xac"
 
     def p2pkh_script(self, compressed=True):
         """Return the P2PKH script bytes contianing the public key's hash.
@@ -707,33 +762,16 @@ class PublicKey:
         Returns:
             bytes: A P2PKH script.
         """
+        ripe = self.ripe_compressed if compressed else self.ripe
         if (compressed and not self.ripe_compressed) or (
             not compressed and not self.ripe
         ):
             return None
         # OP_DUP OP_HASH160 (OP_PUSH of pubkeyhash) OP_EQUALVERIFY OP_CHECKSIG
-        return (
-            b"\x76\xa9\x14"
-            + (self.ripe_compressed if compressed else self.ripe)
-            + b"\x88\xac"
-        )
+        return b"\x76\xa9\x14" + ripe + b"\x88\xac"
 
-    @classmethod
-    def p2pkh(cls, pubkey_hash):
-        """Return the P2PKH script bytes contianing the specified pubkey hash.
-        Only applicable to Bitcoin-like blockchains.
-
-        Args:
-            pubkey_hash (bytes): The pubkey hash to use.
-        Returns:
-            bytes: A P2PKH script.
-        """
-        # OP_DUP OP_HASH160 (OP_PUSH of pubkeyhash) OP_EQUALVERIFY OP_CHECKSIG
-        return b"\x76\xa9\x14" + pubkey_hash + b"\x88\xac"
-
-    @classmethod
-    def p2sh(cls, script_hash):
-        """Return the P2SH script bytes contianing the specified script hash.
+    def p2sh_script(self):
+        """Return the P2SH script bytes contianing the script hash.
         Only applicable to Bitcoin-like blockchains
 
         Args:
@@ -741,8 +779,10 @@ class PublicKey:
         Returns:
             bytes: A P2SH script.
         """
+        if not self.hashonly:
+            return None
         # OP_HASH160 (OP_PUSH of scripthash) OP_EQUAL
-        return b"\xa9\x14" + script_hash + b"\x87"
+        return b"\xa9\x14" + self.ripe_compressed + b"\x87"
 
     # P2SH-P2WPKH is currently not supported
     def p2wpkh_script(self, compressed=True):
@@ -756,41 +796,47 @@ class PublicKey:
         Returns:
             bytes: A P2WPKH script.
         """
+        ripe = self.ripe_compressed if compressed else self.ripe
         if (compressed and not self.ripe_compressed) or (
             not compressed and not self.ripe
         ):
             return None
         # OP_0 (OP_PUSH of pubkeyhash)
-        return b"\x00\x14" + (self.ripe_compressed if compressed else self.ripe)
+        return b"\x00\x14" + ripe
 
-    @classmethod
-    def p2wpkh(cls, pubkey_hash):
-        """Return the P2WPKH script bytes contianing the specified pubkey hash.
+    def p2wsh_script(self):
+        """Return the P2WSH script bytes contianing the script hash.
         Only applicable to Bitcoin-like blockchains.
 
-        Args:
-            pubkey_hash (bytes): The pubkey hash to use.
-        Returns:
-            bytes: A P2WPKH script.
-        """
-        # OP_DUP OP_HASH160 (OP_PUSH of pubkeyhash) OP_EQUALVERIFY OP_CHECKSIG
-        return b"\x00\x14" + pubkey_hash
-
-    @classmethod
-    def p2wsh(cls, script_hash):
-        """Return the P2WSH script bytes contianing the specified script hash.
-        Only applicable to Bitcoin-like blockchains.
-
-        Args:
-            script_hash (bytes): The script hash to use.
         Returns:
             bytes: A P2WSH script.
         """
+        if not self.hashonly:
+            return None
         # OP_0 (OP_PUSH of scripthash)
-        return b"\x00\x20" + script_hash
+        return b"\x00\x20" + self.ripe_compressed
+
+    def script(self):
+        """Returns the appropriate script depending on the network.
+        Only applicable to Bitcoin-like blockchains.
+
+        Args:
+            address (string) the address to get the script for.
+            network (string) the network for this address
+        Returns:
+            bytes: the address script.
+        """
+        if self.network.SUPPORTS_EVM:
+            return None  # Undefined
+        elif self.network.ADDRESS_MODE[0] == "BECH32":
+            return self.p2wsh_script() if self.hashonly else self.p2wpkh_script()
+        elif self.network.ADDRESS_MODE[0] == "BASE58":
+            return self.p2sh_script() if self.hashonly else self.p2pkh_script()
+        else:
+            return self.p2pk_script()  # Default to P2PK
 
     @classmethod
-    def script(cls, address, network):
+    def address_script(cls, address, network):
         """Returns the appropriate script depending on the address value.
         Only applicable to Bitcoin-like blockchains.
 

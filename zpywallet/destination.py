@@ -34,7 +34,7 @@ class Destination:
         self._address = address
         self._amount = amount
         self._fee_policy = fee_policy
-        self._script_pubkey = PublicKey.script(address, network)
+        self._script_pubkey = PublicKey.address_script(address, network)
 
     def address(self):
         """

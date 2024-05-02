@@ -47,6 +47,12 @@ class NetworkException(Exception):
     """
 
 
+class PublicKeyHashException(Exception):
+    """
+    Raised when attempting a public key operation with a public key hash.
+    """
+
+
 def incompatible_network_bytes_exception_factory(
     network_name, expected_prefix, given_prefix
 ):
