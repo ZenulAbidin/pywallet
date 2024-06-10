@@ -110,6 +110,7 @@ This module has been hardened against various types of attacks:
 - Runtime dependencies are kept to an absolute minimum. Only modules that have compile-time native
   code are installed using pip. The rest are hardcoded directly into ZPyWallet. This prevents many kinds
   of supply chain attacks.
+- All random numbers are generated with a secure RNG. ZPyWallet does not use pseudorandom number generators.
 - Coincurve is using libsecp256k1, which protects keys from various power and RF frequency analysis side-channels.
 
 
