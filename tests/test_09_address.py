@@ -3,7 +3,8 @@
 
 """Tests for address transaction, balance, and UTXO fetcher."""
 
-# FIXME
+# FIXME make these tests deterministic so that they always pass even without network connectivity.
+# This would require mocking some of the HTTP endpoints.
 
 import unittest
 from zpywallet.address import CryptoClient
