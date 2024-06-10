@@ -12,6 +12,20 @@
             "problemMatcher": [],
             "group": {
                 "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Install python project",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "setup.py",
+                "install"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
                 "isDefault": true
             }
         }
