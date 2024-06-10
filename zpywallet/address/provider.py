@@ -34,10 +34,10 @@ class AddressProvider(object):
         self.addresses = addresses
         self.height = -1
         self.requests, self.interval_sec = request_interval
-        if transactions is not None and isinstance(transactions, list):
-            self.transactions = transactions
-        else:
+        if transactions is None:
             self.transactions = []
+        else:
+            self.transactions = transactions
 
     def get_balance(self):
         """
@@ -59,6 +59,16 @@ class AddressProvider(object):
                 confirmed_balance += utxo.amount
         return total_balance, confirmed_balance
 
+    def _manual_filter_utxos(self, utxos):
+        # This method is for the benefit of providers which do not provide
+        # data on spent outputs.
+        for i in range(len(self.transactions)):
+            for _in in self.transactions[i].btclike_transaction.inputs:
+                for j in range(len(utxos) - 1, -1, -1):
+                    if _in.txid == utxos[j].txid and _in.index == utxos[j].index:
+                        del utxos[j]  # spent
+        return utxos
+
     def get_utxos(self):
         """Fetches the UTXO set for the addresses.
 
@@ -67,6 +77,7 @@ class AddressProvider(object):
         """
 
         # Transactions are generated in reverse order
+        self.get_transaction_history()
         utxos = []
         for i in range(len(self.transactions) - 1, -1, -1):
             for out in self.transactions[i].btclike_transaction.outputs:
@@ -81,6 +92,11 @@ class AddressProvider(object):
                     utxo.height = self.transactions[i].height
                     utxo.confirmed = self.transactions[i].confirmed
                     utxos.append(utxo)
+
+        utxos = self._manual_filter_utxos(utxos)
+
+        # Ensure unconfirmed UTXOs are last.
+        utxos.sort(key=lambda u: u.height if u.confirmed else 1e100)
         return utxos
 
     def get_block_height(self):
