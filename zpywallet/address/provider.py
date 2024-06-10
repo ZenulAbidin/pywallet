@@ -77,7 +77,12 @@ class AddressProvider(object):
         """
 
         # Transactions are generated in reverse order
-        self.get_transaction_history()
+        try:
+            self.get_transaction_history()
+        except NotImplementedError:
+            # If transaction history is not implemented then it was
+            # explicitly specified.
+            pass
         utxos = []
         for i in range(len(self.transactions) - 1, -1, -1):
             for out in self.transactions[i].btclike_transaction.outputs:
