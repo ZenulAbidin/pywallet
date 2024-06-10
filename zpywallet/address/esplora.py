@@ -87,7 +87,7 @@ class EsploraClient(AddressProvider):
         )
         session.mount(self.HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
-        url = f"{self.endpoint}/addres-prefix/{'bc' if chain else 'tb'}"
+        url = f"{self.endpoint}/address-prefix/{'bc' if chain else 'tb'}"
         try:
             response = session.get(url, timeout=60)
             response.raise_for_status()
@@ -188,6 +188,8 @@ class EsploraClient(AddressProvider):
         for address in self.addresses:
             self.transactions.extend(self._get_one_transaction_history(address))
             self.transactions = self.deduplicate(self.transactions)
+        # Ensure unconfirmed transactions are last.
+        self.transactions.sort(key=lambda tx: tx.height if tx.confirmed else 1e100)
         self.height = block_height
         return self.transactions
 
