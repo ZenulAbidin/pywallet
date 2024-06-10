@@ -17,6 +17,6 @@ aiohttp<4.0
 # Web3 6.14.0 fixes a bug that would make ZPyWallet unit tests fail to setup the testing environment.
 web3>=6.14.0
 
-# For mempool transaction caching inside full nodes.
+# For mempool transaction caching inside full nodes. By default only SQLite is included.
 # psycopg2  # If you use Postgres install this
 # mysql-connector-python  # If you use MySQL install this
