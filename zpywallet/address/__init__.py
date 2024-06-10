@@ -3,14 +3,12 @@
 
 from .blockcypher import BlockcypherClient
 from .blockstream import BlockstreamClient
-from .btcdotcom import BTCDotComClient
 from .cache import (
     SQLiteConnection,
     SQLTransactionStorage,
     MySQLConnection,
     PostgreSQLConnection,
 )
-from .dogechain import DogeChainClient
 from .esplora import EsploraClient
 from .fullnode import RPCClient
 from .loadbalancer import CryptoClient

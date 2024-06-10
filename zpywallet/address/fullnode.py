@@ -358,6 +358,8 @@ class RPCClient(AddressProvider):
                 )
             transactions = self.deduplicate(transactions)
             self.transactions = transactions
+            # Ensure unconfirmed transactions are last.
+            self.transactions.sort(key=lambda tx: tx.height if tx.confirmed else 1e100)
             return transactions
 
         except DatabaseError as e:

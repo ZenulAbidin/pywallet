@@ -1,7 +1,5 @@
 from .blockcypher import BlockcypherClient
 from .blockstream import BlockstreamClient
-from .btcdotcom import BTCDotComClient
-from .dogechain import DogeChainClient
 from .esplora import EsploraClient
 from .fullnode import RPCClient
 from .mempoolspace import MempoolSpaceClient
@@ -40,7 +38,6 @@ class CryptoClient(AddressProvider):
         self.db_connection_parameters = (
             kwargs.get("db_connection_parameters") if use_database else None
         )
-        self.transactions = transactions
 
         if use_database:
             for endpoint in fullnode_endpoints:
@@ -126,26 +123,6 @@ class CryptoClient(AddressProvider):
                 )
             )
 
-        with suppress(ValueError):
-            self.provider_list.append(
-                BTCDotComClient(
-                    addresses,
-                    coin,
-                    chain,
-                    transactions=self.transactions,
-                )
-            )
-
-        with suppress(ValueError):
-            self.provider_list.append(
-                DogeChainClient(
-                    addresses,
-                    coin,
-                    chain,
-                    transactions=self.transactions,
-                )
-            )
-
         if not self.provider_list and not self.cache_provider_list:
             raise ValueError(f"No providers for coin '{coin}', chain '{chain}' found.")
 
@@ -212,7 +189,11 @@ class CryptoClient(AddressProvider):
             NetworkException: If the API request fails or the transaction
                 history cannot be retrieved.
         """
-        min_height = max([tx.height for tx in self.transactions] + [-1])
+        min_height = (
+            0
+            if not self.transactions
+            else max([tx.height for tx in self.transactions] + [-1])
+        )
 
         for provider in self.provider_list:
             provider.transactions = self.transactions

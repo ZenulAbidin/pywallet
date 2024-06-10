@@ -34,7 +34,7 @@ enum BTCProvider {
   BTC_BLOCKCYPHER = 0;
   BTC_BLOCKSTREAM = 1;
   BTC_MEMPOOLSPACE = 2;
-  BTC_BTCDOTCOM = 3;
+  //BTC_BTCDOTCOM = 3; // Disabled
   // BTC_BLOCKCHAIN_INFO = 4; // Disabled
   BTC_ESPLORA = 5;
   BTC_FULLNODE = 6;
@@ -55,7 +55,7 @@ enum DASHProvider {
 
 enum DOGEProvider {
   DOGE_BLOCKCYPHER = 0;
-  DOGE_DOGECHAIN = 1;
+  // DOGE_DOGECHAIN = 1; // Disabled
 }
 
 enum ETHProvider {
