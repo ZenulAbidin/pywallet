@@ -25,6 +25,8 @@ class BlockcypherClient(AddressProvider):
     history of a crypto address using Blockcypher.
     """
 
+    DEFAULT_URL = "https://api.blockcypher.com"
+
     def _clean_tx(self, element):
         new_element = wallet_pb2.Transaction()
         new_element.txid = element["hash"]
@@ -116,6 +118,8 @@ class BlockcypherClient(AddressProvider):
         if not self.chain:
             raise ValueError(f"Undefined chain '{chain}'")
 
+        self.base_url = kwargs.get("base_url", self.DEFAULT_URL)
+
     def get_block_height(self):
         """
         Retrieves the current block height.
@@ -137,7 +141,7 @@ class BlockcypherClient(AddressProvider):
         )
         session.mount(self.HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
-        url = f"https://api.blockcypher.com/v1/{self.coin}/{self.chain}"
+        url = f"{self.base_url}/v1/{self.coin}/{self.chain}"
         try:
             params = None
             if self.api_key:
@@ -208,7 +212,7 @@ class BlockcypherClient(AddressProvider):
                 session.mount(self.HTTPS_ADAPTER, HTTPAdapter(max_retries=retries))
 
                 url = (
-                    f"https://api.blockcypher.com/v1/{self.coin}/{self.chain}/addrs/{address}"
+                    f"{self.base_url}/v1/{self.coin}/{self.chain}/addrs/{address}"
                     + f"/full?limit={interval}{'' if not block_height else f'&before={block_height}'}&txlimit={txlimit}"
                 )
                 response = session.get(url, params=params, timeout=60)
