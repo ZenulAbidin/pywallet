@@ -5,6 +5,9 @@ import sys
 import requests
 
 
+import socket
+
+
 class ResponseManager:
     def __init__(self, responses=None):
         self.responses = responses if responses is not None else []
@@ -77,5 +80,29 @@ def exit_server(port):
 # This requires that the port be free on localhost.
 # If you are getting errors then you can pass min and max values to use
 # different ports, e.g. gen_random_ports(30000, 40000)
+
+
 def gen_random_port(small=57000, large=58000):
-    return random.randrange(small, large)
+    """
+    Generates a random port that is confirmed to be free on localhost.
+    Args:
+        small (int): Minimum port number (inclusive).
+        large (int): Maximum port number (inclusive).
+
+    Returns:
+        int: A random free port number between 'small' and 'large'.
+
+    Raises:
+        RuntimeError: If no free port is found after a reasonable number of attempts.
+    """
+    max_attempts = large - small  # Maximum number of attempts to find a free port
+    for _ in range(max_attempts):
+        port = random.randint(small, large)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            try:
+                sock.bind(("localhost", port))
+                sock.listen(1)
+                return port  # Port is free
+            except socket.error:
+                continue  # This port is already in use, try another one
+    raise RuntimeError("No free port available in the specified range.")
