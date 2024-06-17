@@ -11,10 +11,11 @@ from ..errors import NetworkException
 from ..generated import wallet_pb2
 
 
+# Note - the input date is assumed to be in UTC, even if you change the format string.
 def convert_to_utc_timestamp(date_string, format_string="%Y-%m-%dT%H:%M:%SZ"):
-    date_object = datetime.datetime.strptime(date_string, format_string)
-    utc_date = date_object.astimezone(datetime.timezone.utc)
-    return int(utc_date.timestamp())
+    utc_timezone = datetime.timezone.utc
+    date_object = datetime.datetime.strptime(date_string, format_string).replace(tzinfo=utc_timezone)
+    return int(date_object.timestamp())
 
 
 class BlockcypherClient(AddressProvider):

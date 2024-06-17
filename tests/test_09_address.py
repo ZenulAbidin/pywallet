@@ -73,8 +73,8 @@ class TestAddress(unittest.TestCase):
             tx_history = client.get_transaction_history()
             exit_server(port)
             server.terminate()
-            # It seems that the protobuf serialization is not deterministic so it can
-            # cause tests to fail arbitrarily. So we must compare them deserialized.
+            with open('/tmp/outputproto', 'w') as f:
+                f.write(str([t.SerializeToString() for t in tx_history]))
             self.assertEqual(
                 tx_history,
                 assemble_tx_proto(BitcoinMainUnit.BlockcypherExpectedTransactions),
