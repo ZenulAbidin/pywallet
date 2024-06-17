@@ -20,6 +20,26 @@ from .mock.server import gen_random_port, spawn_server, exit_server
 
 import multiprocessing
 
+from zpywallet.generated.wallet_pb2 import Transaction, UTXO
+
+
+def assemble_tx_proto(bin):
+    result = []
+    for b in bin:
+        a = Transaction()
+        a.ParseFromString(b)
+        result.append(a)
+    return result
+
+
+def assemble_utxo_proto(bin):
+    result = []
+    for b in bin:
+        a = UTXO()
+        a.ParseFromString(b)
+        result.append(a)
+    return result
+
 
 class TestAddress(unittest.TestCase):
     def setUp(self):
@@ -53,9 +73,11 @@ class TestAddress(unittest.TestCase):
             tx_history = client.get_transaction_history()
             exit_server(port)
             server.terminate()
+            # It seems that the protobuf serialization is not deterministic so it can
+            # cause tests to fail arbitrarily. So we must compare them deserialized.
             self.assertEqual(
-                [t.SerializeToString() for t in tx_history],
-                BitcoinMainUnit.BlockcypherExpectedTransactions,
+                tx_history,
+                assemble_tx_proto(BitcoinMainUnit.BlockcypherExpectedTransactions),
             )
 
             # Each call for the utxo set or the balance also gets the transaction history.
@@ -71,8 +93,8 @@ class TestAddress(unittest.TestCase):
             exit_server(port)
             server.terminate()
             self.assertEqual(
-                [t.SerializeToString() for t in utxos],
-                BitcoinMainUnit.BlockcypherExpectedUTXOs,
+                utxos,
+                assemble_utxo_proto(BitcoinMainUnit.BlockcypherExpectedUTXOs),
             )
 
             port = gen_random_port()
@@ -133,8 +155,8 @@ class TestAddress(unittest.TestCase):
             exit_server(port)
             server.terminate()
             self.assertEqual(
-                [t.SerializeToString() for t in tx_history],
-                BitcoinMainUnit.BlockstreamExpectedTransactions,
+                tx_history,
+                assemble_tx_proto(BitcoinMainUnit.BlockstreamExpectedTransactions),
             )
 
             # Each call for the utxo set or the balance also gets the transaction history.
@@ -150,8 +172,8 @@ class TestAddress(unittest.TestCase):
             exit_server(port)
             server.terminate()
             self.assertEqual(
-                [t.SerializeToString() for t in utxos],
-                BitcoinMainUnit.BlockstreamExpectedUTXOs,
+                utxos,
+                assemble_utxo_proto(BitcoinMainUnit.BlockstreamExpectedUTXOs),
             )
 
             port = gen_random_port()
@@ -212,8 +234,8 @@ class TestAddress(unittest.TestCase):
             exit_server(port)
             server.terminate()
             self.assertEqual(
-                [t.SerializeToString() for t in tx_history],
-                BitcoinMainUnit.MempoolSpaceExpectedTransactions,
+                tx_history,
+                assemble_tx_proto(BitcoinMainUnit.MempoolSpaceExpectedTransactions),
             )
 
             # Each call for the utxo set or the balance also gets the transaction history.
@@ -228,11 +250,9 @@ class TestAddress(unittest.TestCase):
             utxos = client.get_utxos()
             exit_server(port)
             server.terminate()
-            with open("/tmp/outputproto", "w") as f:
-                f.write(str([t.SerializeToString() for t in utxos]))
             self.assertEqual(
-                [t.SerializeToString() for t in utxos],
-                BitcoinMainUnit.MempoolSpaceExpectedUTXOs,
+                utxos,
+                assemble_utxo_proto(BitcoinMainUnit.MempoolSpaceExpectedUTXOs),
             )
 
             port = gen_random_port()
