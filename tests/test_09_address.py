@@ -3,9 +3,6 @@
 
 """Tests for address transaction, balance, and UTXO fetcher."""
 
-# FIXME make these tests deterministic so that they always pass even without network connectivity.
-# This would require mocking some of the HTTP endpoints.
-
 import random
 import time
 import unittest
