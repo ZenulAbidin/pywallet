@@ -31,7 +31,11 @@ class MyHandler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
-                self.wfile.write(json.dumps(response_data).encode("utf-8"))
+                self.wfile.write(
+                    response_data.encode("utf-8")
+                    if isinstance(response_data, str)
+                    else json.dumps(response_data).encode("utf-8")
+                )
             except IndexError as e:
                 self.send_response(404)
                 self.end_headers()

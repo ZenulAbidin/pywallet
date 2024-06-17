@@ -133,7 +133,7 @@ class EsploraClient(AddressProvider):
         self.coin = coin_map.get(coin.upper())
         if not self.coin:
             raise ValueError(f"Unsupported coin '{coin}'")
-        self.endpoint = kwargs.get("url")
+        self.endpoint = kwargs.get("base_url", kwargs.get("url"))
 
         chain_map = {"main": "main", "test": "test"}
         self.chain = chain_map.get(chain)

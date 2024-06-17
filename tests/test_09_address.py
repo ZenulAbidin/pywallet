@@ -51,6 +51,8 @@ class TestAddress(unittest.TestCase):
                 args=[BitcoinMainUnit.BlockcypherTXHistoryResponseManager, port],
             )
             server.start()
+            # A race condition prevents us from immediately querying the local server.
+            time.sleep(0.5)
             tx_history = client.get_transaction_history()
             exit_server(port)
             server.terminate()
@@ -66,6 +68,7 @@ class TestAddress(unittest.TestCase):
                 args=[BitcoinMainUnit.BlockcypherTXHistoryResponseManager, port],
             )
             server.start()
+            time.sleep(0.5)
             client.base_url = f"http://localhost:{port}"
             utxos = client.get_utxos()
             exit_server(port)
@@ -81,6 +84,7 @@ class TestAddress(unittest.TestCase):
                 args=[BitcoinMainUnit.BlockcypherTXHistoryResponseManager, port],
             )
             server.start()
+            time.sleep(0.5)
             client.base_url = f"http://localhost:{port}"
             balance = client.get_balance()
             exit_server(port)
@@ -93,6 +97,7 @@ class TestAddress(unittest.TestCase):
                 args=[BitcoinMainUnit.BlockcypherHeightResponseManager, port],
             )
             server.start()
+            time.sleep(0.5)
             client.base_url = f"http://localhost:{port}"
             block_height = client.get_block_height()
             exit_server(port)
@@ -111,21 +116,22 @@ class TestAddress(unittest.TestCase):
     def test_001_btc_blockstream_address(self):
         """Test fetching Bitcoin addresses with Blockstream using mocked data."""
         port = gen_random_port()
-        client = BlockstreamClient(
-            [
-                "3KzZceAGsA7HRxFzgbZxVJMAV9TJa8o97V",
-                "bc1plytzh6jqwltfq6l0ujt5ucz9csrlff4rfnxwmy3tkepkeyj3y2gskcf48c",
-            ],
-            coin="BTC",
-            chain="main",
-            base_url=f"http://localhost:{port}",
-        )
         try:
             server = multiprocessing.Process(
                 target=spawn_server,
                 args=[BitcoinMainUnit.BlockstreamTXHistoryResponseManager, port],
             )
             server.start()
+            time.sleep(0.5)
+            client = BlockstreamClient(
+                [
+                    "3KzZceAGsA7HRxFzgbZxVJMAV9TJa8o97V",
+                    "bc1plytzh6jqwltfq6l0ujt5ucz9csrlff4rfnxwmy3tkepkeyj3y2gskcf48c",
+                ],
+                coin="BTC",
+                chain="main",
+                base_url=f"http://localhost:{port}",
+            )
             tx_history = client.get_transaction_history()
             exit_server(port)
             server.terminate()
@@ -138,10 +144,11 @@ class TestAddress(unittest.TestCase):
             port = gen_random_port()
             server = multiprocessing.Process(
                 target=spawn_server,
-                args=[BitcoinMainUnit.BlockstreamTXHistoryResponseManager, port],
+                args=[BitcoinMainUnit.BlockstreamUTXOResponseManager, port],
             )
             server.start()
-            client.base_url = f"http://localhost:{port}"
+            time.sleep(0.5)
+            client.endpoint = f"http://localhost:{port}"
             utxos = client.get_utxos()
             exit_server(port)
             server.terminate()
@@ -153,10 +160,11 @@ class TestAddress(unittest.TestCase):
             port = gen_random_port()
             server = multiprocessing.Process(
                 target=spawn_server,
-                args=[BitcoinMainUnit.BlockstreamTXHistoryResponseManager, port],
+                args=[BitcoinMainUnit.BlockstreamUTXOResponseManager, port],
             )
             server.start()
-            client.base_url = f"http://localhost:{port}"
+            time.sleep(0.5)
+            client.endpoint = f"http://localhost:{port}"
             balance = client.get_balance()
             exit_server(port)
             server.terminate()
@@ -168,7 +176,8 @@ class TestAddress(unittest.TestCase):
                 args=[BitcoinMainUnit.BlockstreamHeightResponseManager, port],
             )
             server.start()
-            client.base_url = f"http://localhost:{port}"
+            time.sleep(0.5)
+            client.endpoint = f"http://localhost:{port}"
             block_height = client.get_block_height()
             exit_server(port)
             # server.terminate()   # handled below along with the failure case
@@ -186,21 +195,22 @@ class TestAddress(unittest.TestCase):
     def test_002_btc_mempoolspace_address(self):
         """Test fetching Bitcoin addresses with MempoolSpace using mocked data."""
         port = gen_random_port()
-        client = MempoolSpaceClient(
-            [
-                "3KzZceAGsA7HRxFzgbZxVJMAV9TJa8o97V",
-                "bc1plytzh6jqwltfq6l0ujt5ucz9csrlff4rfnxwmy3tkepkeyj3y2gskcf48c",
-            ],
-            coin="BTC",
-            chain="main",
-            base_url=f"http://localhost:{port}",
-        )
         try:
             server = multiprocessing.Process(
                 target=spawn_server,
                 args=[BitcoinMainUnit.MempoolSpaceTXHistoryResponseManager, port],
             )
             server.start()
+            time.sleep(0.5)
+            client = MempoolSpaceClient(
+                [
+                    "3KzZceAGsA7HRxFzgbZxVJMAV9TJa8o97V",
+                    "bc1plytzh6jqwltfq6l0ujt5ucz9csrlff4rfnxwmy3tkepkeyj3y2gskcf48c",
+                ],
+                coin="BTC",
+                chain="main",
+                base_url=f"http://localhost:{port}",
+            )
             tx_history = client.get_transaction_history()
             exit_server(port)
             server.terminate()
@@ -213,13 +223,16 @@ class TestAddress(unittest.TestCase):
             port = gen_random_port()
             server = multiprocessing.Process(
                 target=spawn_server,
-                args=[BitcoinMainUnit.MempoolSpaceTXHistoryResponseManager, port],
+                args=[BitcoinMainUnit.MempoolSpaceUTXOResponseManager, port],
             )
             server.start()
-            client.base_url = f"http://localhost:{port}"
+            time.sleep(0.5)
+            client.endpoint = f"http://localhost:{port}"
             utxos = client.get_utxos()
             exit_server(port)
             server.terminate()
+            with open("/tmp/outputproto", "w") as f:
+                f.write(str([t.SerializeToString() for t in utxos]))
             self.assertEqual(
                 [t.SerializeToString() for t in utxos],
                 BitcoinMainUnit.MempoolSpaceExpectedUTXOs,
@@ -228,10 +241,11 @@ class TestAddress(unittest.TestCase):
             port = gen_random_port()
             server = multiprocessing.Process(
                 target=spawn_server,
-                args=[BitcoinMainUnit.MempoolSpaceTXHistoryResponseManager, port],
+                args=[BitcoinMainUnit.MempoolSpaceUTXOResponseManager, port],
             )
             server.start()
-            client.base_url = f"http://localhost:{port}"
+            time.sleep(0.5)
+            client.endpoint = f"http://localhost:{port}"
             balance = client.get_balance()
             exit_server(port)
             server.terminate()
@@ -243,7 +257,8 @@ class TestAddress(unittest.TestCase):
                 args=[BitcoinMainUnit.MempoolSpaceHeightResponseManager, port],
             )
             server.start()
-            client.base_url = f"http://localhost:{port}"
+            time.sleep(0.5)
+            client.endpoint = f"http://localhost:{port}"
             block_height = client.get_block_height()
             exit_server(port)
             # server.terminate()   # handled below along with the failure case
@@ -257,77 +272,3 @@ class TestAddress(unittest.TestCase):
         finally:
             # This terminates the last server created whether there was an error or not.
             server.terminate()
-
-    def test_001_btctest_address(self):
-        """Test fetching Bitcoin testnet addressses"""
-        return
-        b = CryptoClient(
-            [
-                "2NDNwoqdNvJ2jkBD8B6VVxNntpuKR4tkTSz",
-                "tb1qtnl457a54cz5gq0zgyf4n2xt7n9uuqxzs8jwrp",
-            ],
-            coin="BTC",
-            chain="TEST",
-        )
-        try:
-
-            b.get_transaction_history()
-            b.get_utxos()
-            b.get_balance()
-        except NetworkException:
-            pass
-
-    def test_002_dash_address(self):
-        """Test fetching Dash addressses"""
-        return
-        b = CryptoClient(
-            ["XbzLCqAv8rkYmky6uEsxibHRUbHZU2XCKg"], coin="DASH", chain="main"
-        )
-        try:
-
-            b.get_transaction_history()
-            b.get_utxos()
-            b.get_balance()
-        except NetworkException:
-            pass
-
-    def test_003_doge_address(self):
-        """Test fetching Dogecoin addressses"""
-        return
-        b = CryptoClient(
-            ["D8xCRT245ax9TJVDfYZ1ErLTMtG186S9rx"], coin="DOGE", chain="main"
-        )
-        try:
-
-            b.get_transaction_history()
-            b.get_utxos()
-            b.get_balance()
-        except NetworkException:
-            pass
-
-    def test_004_eth_address(self):
-        """Test fetching Ethereum addressses"""
-        return
-        b = CryptoClient(
-            ["0x383d4669f177182f2c8c90cecd291190ea04edad"], coin="ETH", chain="main"
-        )
-        try:
-
-            # b.get_transaction_history()  # On EVM chains, this scans all blocks and takes forever.
-            b.get_balance()
-        except NetworkException:
-            pass
-
-    def test_005_ltc_address(self):
-        """Test fetching Litecoin addressses"""
-        return
-        b = CryptoClient(
-            ["ltc1q9pw48v23gq9d2lqcss8yaqeh7fqzu4wrt6m6nr"], coin="LTC", chain="main"
-        )
-        try:
-
-            b.get_transaction_history()
-            b.get_utxos()
-            b.get_balance()
-        except NetworkException:
-            pass
