@@ -262,7 +262,7 @@ def create_transaction(
         outputs (List[Destination]): A list of Destination objects representing
             the transaction outputs.
         rbf (bool, optional): Whether to enable Replace-By-Fee. Defaults to True.
-            Only for Bitcoin-like blockchains.
+            Only for Bitcoin-like blockchains. <Deprecated>
         network (CryptoNetwork, optional): The network to use. Defaults to
             BitcoinSegwitMainNet.
         full_nodes (list, optional): List of Web3 nodes to connect for signing.
@@ -335,8 +335,8 @@ def create_transaction(
         )
 
         input_bytes_3 = int_to_hex(
-            0xFFFFFFFD if rbf else 0xFFFFFFFF, 4
-        )  # disables timelocks, see https://bitcointalk.org/index.php?topic=5479540.msg63401889#msg63401889
+            0xFFFFFFFD, 4
+        )  # see https://bitcointalk.org/index.php?topic=5479540.msg63401889#msg63401889
         inputs[num]._output["nsequence"] = input_bytes_3
 
         segwit_payload = b""
