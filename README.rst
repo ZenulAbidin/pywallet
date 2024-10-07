@@ -31,6 +31,8 @@ BIP32 (or HD for "hierarchical deterministic") wallets allow you to create
 child wallets which can only generate public keys and don't expose a
 private key to an insecure server.
 
+**This is beta software. Only use it if you know what you're doing. There might be bugs.**
+
 
 Features
 ========
