@@ -1,4 +1,3 @@
-
 ZPyWallet
 ===========
 
@@ -18,6 +17,8 @@ ZPyWallet
     :target: https://codecov.io/gh/ZenulAbidin/zpywallet
     :alt: Code coverage
 
+.. image:: https://i.imgur.com/h611jJK.png
+    :alt: Logo
 
 ZPyWallet is a Python-based hierarchical deterministic (HD) wallet generator and transaction manager.
 HD wallets allow you to  generate a tree-like structure of cryptographic key pairs from a single
