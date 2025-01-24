@@ -11,7 +11,7 @@ You can create a wallet with a randomly-generated mnemonic phrase like this:
     from zpywallet.network import BitcoinSegwitMainNet
     from zpywallet import Wallet
 
-    wallet = zpywallet.Wallet(BitcoinSegWitMainNet, None, "password")
+    wallet = Wallet(BitcoinSegwitMainNet, None, "password")
 
 The second argument is the mnemonic phrase you want to do, which allows you to restore a wallet using different parameters.
 There is an additional keyword argument, ``derivation_path``, which takes a string to use as the custom path. For example: ``"m/0'``.
@@ -38,32 +38,34 @@ Blockchains can be imported from `zpywallet.network`. For example:
 
 Here are the supported networks:
 
-- ``BitcoinMainNet - Bitcoin mainnet, creates legacy addresses and transactions``
-- ``BitcoinSegwitMainNet - Bitcoin mainnet, creates segwit and legacy addresses and transactions``
-- ``BitcoinTestNet - Bitcoin testnet, creates legacy addresses and transactions``
-- ``BitcoinSegwitTestNet - Bitcoin testnet, creates segwit and legacy addresses and transactions``
-- ``LitecoinMainNet - Litecoin mainnet, creates legacy addresses and transactions``
-- ``LitecoinSegwitMainNet - Litecoin mainnet, creates segwit and legacy addresses and transactions``
-- ``LitecoinBTCMainNet - Litecoin mainnet, creates legacy addresses and transactions``
-- ``LitecoinBTCSegwitMainNet - Litecoin mainnet using Bitcoin xpub/xprv, creates segwit and legacy addresses and transactions``
-- ``LitecoinTestNet - Litecoin testnet, creates legacy addresses and transactions``
-- ``LitecoinSegwitTestNet - Litecoin testnet, creates segwit and legacy addresses and transactions``
-- ``DashMainNet - Dash mainnet``
-- ``DashInvertedMainNet - Dash mainnet, with extended public/private bytes swapped``
-- ``DashBTCMainNet - Dash mainnet usign Bitcoin xpub/xprv``
-- ``DashTestNet - Dash testnet``
-- ``DashInvertedTestNet - Dash testnet, with extended public/private bytes swapped``
-- ``DogecoinMainNet - Dogecoin mainnet``
-- ``DogecoinBTCMainNet - Dogecoin mainnet usign Bitcoin xpub/xprv``
-- ``DogecoinTestNet - Dogecoin testnet``
-- ``EthereumMainNet - Ethereum mainnet``  
-- ``BitcoinCashMainNet - Bitcoin Cash mainnet (limited support)``
-- ``BlockcypherTestNet - Blockcypher testnet (limited support)``
+- ``BitcoinMainNet`` - Bitcoin mainnet, creates legacy addresses and transactions
+- ``BitcoinSegwitMainNet`` - Bitcoin mainnet, creates segwit and legacy addresses and transactions
+- ``BitcoinTestNet`` - Bitcoin testnet, creates legacy addresses and transactions
+- ``BitcoinSegwitTestNet`` - Bitcoin testnet, creates segwit and legacy addresses and transactions
+- ``LitecoinMainNet`` - Litecoin mainnet, creates legacy addresses and transactions
+- ``LitecoinSegwitMainNet`` - Litecoin mainnet, creates segwit and legacy addresses and transactions
+- ``LitecoinBTCMainNet`` - Litecoin mainnet, creates legacy addresses and transactions
+- ``LitecoinBTCSegwitMainNet`` - Litecoin mainnet using Bitcoin xpub/xprv, creates segwit and legacy addresses and transactions
+- ``LitecoinTestNet`` - Litecoin testnet, creates legacy addresses and transactions
+- ``LitecoinSegwitTestNet`` - Litecoin testnet, creates segwit and legacy addresses and transactions
+- ``DashMainNet`` - Dash mainnet
+- ``DashInvertedMainNet`` - Dash mainnet, with extended public/private bytes swapped
+- ``DashBTCMainNet`` - Dash mainnet usign Bitcoin xpub/xprv
+- ``DashTestNet`` - Dash testnet
+- ``DashInvertedTestNet`` - Dash testnet, with extended public/private bytes swapped
+- ``DogecoinMainNet`` - Dogecoin mainnet
+- ``DogecoinBTCMainNet`` - Dogecoin mainnet usign Bitcoin xpub/xprv
+- ``DogecoinTestNet`` - Dogecoin testnet
+- ``EthereumMainNet`` - Ethereum mainnet (does not support smart contracts)
+- ``BitcoinCashMainNet`` - Bitcoin Cash mainnet (limited support)
+- ``BlockcypherTestNet`` - Blockcypher testnet (limited support)
 
-  In most cases, if there is a BTC variant of a network, you would want to use that, because many wallets incorrectly use Bitcoin's extended bytes
-  when generating addresses and keys from seed phrases, and for backwards compatibility, you should also use those bytes to continue detecting wallet balances.
+Bitcoin Signet support is planned for a future release.
 
-  There is also an inverted version of Dash's network because the Dash specifications and implementation differ on which pair is canonical.
+In most cases, if there is a BTC variant of a network, you would want to use that, because many wallets incorrectly use Bitcoin's extended bytes
+when generating addresses and keys from seed phrases, and for backwards compatibility, you should also use those bytes to continue detecting wallet balances.
+
+There is also an inverted version of Dash's network because the Dash specifications and implementation differ on which pair is canonical.
 
 Addresses
 ---------
